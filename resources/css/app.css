@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* ─── Dark mode: class strategy for Tailwind v4 ─────────────────────── */
+/* 
+  Tailwind v4 kullanıyor. `dark:` prefix'lerinin .dark class ile çalışması için
+  CSS'de custom variant tanımlıyoruz.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --primary: 79 70 229;
+    --primary-dark: 67 56 202;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: rgb(249 250 251);
+    color: rgb(17 24 39);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html.dark body {
+    background-color: rgb(3 7 18);
+    color: rgb(243 244 246);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+    border-radius: 9999px;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    background: rgb(55 65 81);
+  }
+}
