@@ -5,6 +5,8 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Briefcase, Plus, Search, Edit2, Trash2, ChevronRight, Filter, Calendar } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import Pagination from '../components/ui/Pagination.jsx'
+import { useEffect } from 'react'
 
 const statusConfig = {
     PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10 border border-yellow-500/20' },
@@ -22,8 +24,14 @@ export default function JobsPage() {
     const [modal, setModal] = useState({ open: false, job: null })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [form, setForm] = useState({})
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const qc = useQueryClient()
     const navigate = useNavigate()
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search, filterStatus])
 
     const { data: jobs = [], isLoading } = useQuery({
         queryKey: ['jobs'],
@@ -97,6 +105,9 @@ export default function JobsPage() {
         return matchSearch && matchStatus
     })
 
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
     return (
         <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -160,7 +171,7 @@ export default function JobsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filtered.map(job => {
+                                {paginatedData.map(job => {
                                     const statusConf = statusConfig[job.status] || statusConfig.PENDING
                                     const customStatus = statuses.find(s => s.id === (job.jobStatusId || job.job_status_id))
                                     return (
@@ -198,6 +209,11 @@ export default function JobsPage() {
                                 })}
                             </tbody>
                         </table>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

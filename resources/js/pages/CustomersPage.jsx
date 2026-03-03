@@ -5,6 +5,8 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, ChevronRight, X, Check } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import Pagination from '../components/ui/Pagination.jsx'
+import { useEffect } from 'react'
 
 const emptyForm = { name: '', phone: '', email: '', notes: '' }
 
@@ -13,7 +15,13 @@ export default function CustomersPage() {
     const [modal, setModal] = useState({ open: false, customer: null })
     const [form, setForm] = useState(emptyForm)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const qc = useQueryClient()
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search])
 
     const { data: customers = [], isLoading } = useQuery({
         queryKey: ['customers'],
@@ -53,6 +61,8 @@ export default function CustomersPage() {
     }
 
     const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search) || c.email?.toLowerCase().includes(search.toLowerCase()))
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
     return (
         <div className="space-y-5">
@@ -105,7 +115,7 @@ export default function CustomersPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filtered.map(customer => (
+                                {paginatedData.map(customer => (
                                     <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
@@ -148,6 +158,11 @@ export default function CustomersPage() {
                                 ))}
                             </tbody>
                         </table>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

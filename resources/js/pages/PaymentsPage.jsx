@@ -4,6 +4,8 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { CreditCard, Plus, Trash2, Edit2, Search } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import Pagination from '../components/ui/Pagination.jsx'
+import { useEffect } from 'react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -16,7 +18,13 @@ export default function PaymentsPage() {
     const [modal, setModal] = useState({ open: false, payment: null })
     const [form, setForm] = useState(emptyForm)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const qc = useQueryClient()
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search])
 
     const { data: payments = [], isLoading } = useQuery({
         queryKey: ['payments'],
@@ -70,6 +78,9 @@ export default function PaymentsPage() {
     const totalPayments = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const filtered = payments.filter(p => p.job?.title?.toLowerCase().includes(search.toLowerCase()) || p.description?.toLowerCase().includes(search.toLowerCase()))
 
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
     return (
         <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -111,7 +122,7 @@ export default function PaymentsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filtered.map(p => (
+                                {paginatedData.map(p => (
                                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="font-medium text-gray-900 dark:text-white text-sm">{p.job?.title || 'Genel'}</div>
@@ -134,6 +145,11 @@ export default function PaymentsPage() {
                                 ))}
                             </tbody>
                         </table>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

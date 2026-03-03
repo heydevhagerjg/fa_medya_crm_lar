@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal.jsx'
 export default function FilesPage() {
     const qc = useQueryClient()
     const [search, setSearch] = useState('')
-    const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('list') // 'grid' or 'list'
     const [selectedJob, setSelectedJob] = useState(null)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
 

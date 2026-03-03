@@ -262,6 +262,20 @@ class BackupController extends Controller
                         $job->jobSteps()->create(['title' => $step['title'], 'is_completed' => $step['isCompleted'] ?? false, 'order' => $step['order'] ?? 0]);
                     }
                 }
+
+                // Restore job files
+                if (!empty($j['jobfile'])) {
+                    $job->jobFiles()->delete();
+                    foreach ($j['jobfile'] as $file) {
+                        $job->jobFiles()->create([
+                            'file_name' => $file['fileName'] ?? $file['file_name'] ?? 'unknown',
+                            'file_path' => $file['filePath'] ?? $file['file_path'] ?? '',
+                            'file_type' => $file['fileType'] ?? $file['file_type'] ?? 'application/octet-stream',
+                            'file_size' => $file['fileSize'] ?? $file['file_size'] ?? 0,
+                            'uploaded_at' => $file['uploadedAt'] ?? $file['uploaded_at'] ?? now(),
+                        ]);
+                    }
+                }
             }
 
             // Import expense categories

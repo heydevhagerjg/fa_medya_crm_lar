@@ -4,6 +4,8 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { TrendingDown, Plus, Trash2, Edit2, Search } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import Pagination from '../components/ui/Pagination.jsx'
+import { useEffect } from 'react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -14,7 +16,13 @@ export default function ExpensesPage() {
     const [modal, setModal] = useState({ open: false, expense: null })
     const [form, setForm] = useState(emptyForm)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const qc = useQueryClient()
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search])
 
     const { data: expenses = [], isLoading } = useQuery({ queryKey: ['expenses'], queryFn: () => api.get('/expenses').then(r => r.data) })
     const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => api.get('/jobs').then(r => r.data) })
@@ -55,6 +63,9 @@ export default function ExpensesPage() {
     const totalExpenses = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
     const filtered = expenses.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) || e.job?.title?.toLowerCase().includes(search.toLowerCase()))
 
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
     return (
         <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -93,7 +104,7 @@ export default function ExpensesPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filtered.map(e => (
+                                {paginatedData.map(e => (
                                     <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="font-medium text-gray-900 dark:text-white text-sm">{e.title}</div>
@@ -114,6 +125,11 @@ export default function ExpensesPage() {
                                 ))}
                             </tbody>
                         </table>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

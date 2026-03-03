@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import api from '../lib/api.js'
 import { FileText, Activity } from 'lucide-react'
+import Pagination from '../components/ui/Pagination.jsx'
 
 const actionColors = {
     CREATE: 'text-green-500 bg-green-500/10',
@@ -9,12 +11,18 @@ const actionColors = {
 }
 
 export default function LogsPage() {
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+
     const { data, isLoading } = useQuery({
         queryKey: ['logs'],
-        queryFn: () => api.get('/logs?limit=100').then(r => r.data),
+        // Fetch up to 500 logs to allow reasonable client-side pagination
+        queryFn: () => api.get('/logs?limit=500').then(r => r.data),
     })
 
     const logs = data?.logs || []
+    const totalPages = Math.ceil(logs.length / itemsPerPage)
+    const paginatedData = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
     return (
         <div className="space-y-5">
@@ -35,24 +43,31 @@ export default function LogsPage() {
                         <p className="text-gray-500 dark:text-gray-400">Henüz aktivite yok.</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {logs.map(log => (
-                            <div key={log.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                                <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${actionColors[log.action] || 'text-gray-500 bg-gray-500/10'}`}>
-                                    {log.action}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-gray-700 dark:text-gray-300">
-                                        <span className="font-medium">{log.entityType}</span>
-                                        {log.entityName && <span className="text-gray-500"> — {log.entityName}</span>}
+                    <div>
+                        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {paginatedData.map(log => (
+                                <div key={log.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${actionColors[log.action] || 'text-gray-500 bg-gray-500/10'}`}>
+                                        {log.action}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300">
+                                            <span className="font-medium">{log.entityType}</span>
+                                            {log.entityName && <span className="text-gray-500"> — {log.entityName}</span>}
+                                        </div>
+                                        {log.details && <div className="text-xs text-gray-500 mt-0.5 truncate">{log.details}</div>}
                                     </div>
-                                    {log.details && <div className="text-xs text-gray-500 mt-0.5 truncate">{log.details}</div>}
+                                    <div className="text-xs text-gray-400 flex-shrink-0">
+                                        {log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '-'}
+                                    </div>
                                 </div>
-                                <div className="text-xs text-gray-400 flex-shrink-0">
-                                    {log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '-'}
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

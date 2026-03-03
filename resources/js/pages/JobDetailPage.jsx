@@ -107,7 +107,10 @@ export default function JobDetailPage() {
     const files = job.jobfile || []
     const completedSteps = steps.filter(s => s.is_completed).length
     const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
-    const remaining = parseFloat(job.totalPrice || job.total_price || 0) - totalPaid
+    const totalPrice = parseFloat(job.totalPrice || job.total_price || 0)
+    const remaining = totalPrice - totalPaid
+    const paymentPerformance = totalPrice > 0 ? Math.round((totalPaid / totalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
+    const completionProgress = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0
     const statusConf = statusConfig[job.status] || statusConfig.PENDING
     const tabs = [
         { key: 'steps', label: `Aşamalar (${steps.length})` },
@@ -136,12 +139,14 @@ export default function JobDetailPage() {
             </div>
 
             {/* Stats bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                    { label: 'Toplam Fiyat', value: formatCurrency(job.totalPrice || job.total_price), color: 'text-gray-900 dark:text-white' },
-                    { label: 'Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500' },
-                    { label: 'Kalan', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-emerald-500' },
-                    { label: 'İlerleme', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
+                    { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
+                    { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500' },
+                    { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500' },
+                    { label: 'İş Aşamaları', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
+                    { label: 'İş Tamamlama', value: steps.length ? `%${completionProgress}` : '-', color: 'text-purple-500' },
+                    { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500' },
                 ].map(({ label, value, color }) => (
                     <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center">
                         <div className={`text-lg font-bold ${color}`}>{value}</div>
@@ -149,19 +154,6 @@ export default function JobDetailPage() {
                     </div>
                 ))}
             </div>
-
-            {/* Progress */}
-            {steps.length > 0 && (
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-                    <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600 dark:text-gray-400">Tamamlanma</span>
-                        <span className="font-medium text-gray-900 dark:text-white">%{Math.round((completedSteps / steps.length) * 100)}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${(completedSteps / steps.length) * 100}%` }} />
-                    </div>
-                </div>
-            )}
 
             {/* Tabs */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
