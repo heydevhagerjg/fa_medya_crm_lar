@@ -64,6 +64,7 @@ export default function JobsPage() {
             totalPrice: job.totalPrice || job.total_price || 0,
             startDate: job.startDate || job.start_date ? (job.startDate || job.start_date).toString().substring(0, 10) : '',
             endDate: job.endDate || job.end_date ? (job.endDate || job.end_date).toString().substring(0, 10) : '',
+            customFields: job.customfieldvalue ? Object.fromEntries(job.customfieldvalue.map(cf => [cf.custom_field_id, cf.value])) : {}
         } : {
             customerId: customers[0]?.id || '',
             serviceId: '',
@@ -74,6 +75,7 @@ export default function JobsPage() {
             totalPrice: 0,
             startDate: new Date().toISOString().substring(0, 10),
             endDate: '',
+            customFields: {}
         })
         setModal({ open: true, job })
     }
@@ -269,6 +271,16 @@ export default function JobsPage() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                             <textarea value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
                         </div>
+                        {services.find(s => s.id == form.serviceId)?.customfield?.map(cf => (
+                            <div key={cf.id} className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
+                                {cf.type === 'textarea' ? (
+                                    <textarea value={form.customFields?.[cf.id] || ''} onChange={e => setForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
+                                ) : (
+                                    <input type={cf.type || 'text'} value={form.customFields?.[cf.id] || ''} onChange={e => setForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                                )}
+                            </div>
+                        ))}
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModal({ open: false, job: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
@@ -291,6 +303,6 @@ export default function JobsPage() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     )
 }

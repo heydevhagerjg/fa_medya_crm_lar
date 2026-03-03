@@ -24,9 +24,12 @@ export default function JobDetailPage() {
     const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '' })
     const [selectedTemplate, setSelectedTemplate] = useState('')
 
-    // İş düzenleme State
     const [editModal, setEditModal] = useState(false)
     const [editForm, setEditForm] = useState({})
+
+    // Not düzenleme State
+    const [editField, setEditField] = useState(null)
+    const [editValue, setEditValue] = useState('')
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -142,11 +145,25 @@ export default function JobDetailPage() {
             totalPrice: job.totalPrice || job.total_price || '',
             startDate: (job.startDate || job.start_date || '').toString().substring(0, 10),
             endDate: (job.endDate || job.end_date || '').toString().substring(0, 10),
-            notes: job.jobdetail?.notes || '',
-            customerRequests: job.jobdetail?.customer_requests || ''
+            customFields: job.customfieldvalue ? Object.fromEntries(job.customfieldvalue.map(cf => [cf.custom_field_id, cf.value])) : {}
         })
         setEditModal(true)
     }
+
+    const saveNotes = useMutation({
+        mutationFn: (data) => api.put(`/jobs/${id}`, {
+            customerId: job.customerId || job.customer_id,
+            customerRequests: job.jobdetail?.customer_requests || '',
+            notes: job.jobdetail?.notes || '',
+            ...data
+        }),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            setEditField(null)
+            toast.success('Kaydedildi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
 
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
@@ -205,32 +222,55 @@ export default function JobDetailPage() {
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
 
                 {/* Notes Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <FileText size={18} className="text-orange-500" />
                         Notlar & Bilgiler
                     </h2>
                     <div className="space-y-4 flex-1 overflow-y-auto pr-1">
-                        {job.jobdetail?.customer_requests && (
-                            <div>
-                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Müşteri Talepleri</div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed">{job.jobdetail.customer_requests}</p>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Müşteri Talepleri</div>
+                                <button onClick={() => { setEditField('customer_requests'); setEditValue(job.jobdetail?.customer_requests || '') }} className="text-gray-400 hover:text-blue-500 transition-colors">
+                                    <Edit2 size={14} />
+                                </button>
                             </div>
-                        )}
-                        {job.jobdetail?.notes && (
-                            <div>
-                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Genel Notlar</div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed">{job.jobdetail.notes}</p>
+                            {editField === 'customer_requests' ? (
+                                <div className="space-y-2">
+                                    <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} rows={4} className="w-full px-3 py-2 border border-blue-500 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none resize-none" />
+                                    <div className="flex gap-2 justify-end">
+                                        <button onClick={() => setEditField(null)} className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">İptal</button>
+                                        <button onClick={() => saveNotes.mutate({ customerRequests: editValue })} disabled={saveNotes.isPending} className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors">Kaydet</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed min-h-[60px]">{job.jobdetail?.customer_requests || 'Girilen bir talep yok.'}</p>
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Genel Notlar (Sadece Siz Görürsünüz)</div>
+                                <button onClick={() => { setEditField('notes'); setEditValue(job.jobdetail?.notes || '') }} className="text-gray-400 hover:text-blue-500 transition-colors">
+                                    <Edit2 size={14} />
+                                </button>
                             </div>
-                        )}
-                        {!job.jobdetail?.notes && !job.jobdetail?.customer_requests && (
-                            <p className="text-center text-gray-400 py-4 text-sm">Not bulunamadı.</p>
-                        )}
+                            {editField === 'notes' ? (
+                                <div className="space-y-2">
+                                    <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} rows={4} className="w-full px-3 py-2 border border-blue-500 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none resize-none" />
+                                    <div className="flex gap-2 justify-end">
+                                        <button onClick={() => setEditField(null)} className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">İptal</button>
+                                        <button onClick={() => saveNotes.mutate({ notes: editValue })} disabled={saveNotes.isPending} className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors">Kaydet</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed min-h-[60px]">{job.jobdetail?.notes || 'Girilen bir not yok.'}</p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Steps Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <CheckSquare size={18} className="text-indigo-500" />
                         Aşamalar ({steps.length})
@@ -286,7 +326,7 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Payments Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <CreditCard size={18} className="text-emerald-500" />
@@ -314,7 +354,7 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Files Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <File size={18} className="text-blue-500" />
@@ -362,7 +402,7 @@ export default function JobDetailPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ödeme Tipi</label>
                         <select value={paymentForm.paymentType} onChange={e => setPaymentForm(p => ({ ...p, paymentType: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                            <option value="ADVANCE">Avans</option>
+                            <option value="ADVANCE" selected>Avans</option>
                             <option value="PARTIAL">Taksit</option>
                             <option value="FINAL">Final</option>
                         </select>
@@ -436,14 +476,16 @@ export default function JobDetailPage() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bitiş Tarihi</label>
                             <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm(p => ({ ...p, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                         </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Müşteri Talepleri</label>
-                            <textarea value={editForm.customerRequests || ''} onChange={e => setEditForm(p => ({ ...p, customerRequests: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notlar</label>
-                            <textarea value={editForm.notes || ''} onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
-                        </div>
+                        {services.find(s => s.id == editForm.serviceId)?.customfield?.map(cf => (
+                            <div key={cf.id} className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
+                                {cf.type === 'textarea' ? (
+                                    <textarea value={editForm.customFields?.[cf.id] || ''} onChange={e => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
+                                ) : (
+                                    <input type={cf.type || 'text'} value={editForm.customFields?.[cf.id] || ''} onChange={e => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                                )}
+                            </div>
+                        ))}
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setEditModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
