@@ -22,7 +22,11 @@ export default function JobDetailPage() {
     const [addStepTitle, setAddStepTitle] = useState('')
     const [paymentModal, setPaymentModal] = useState(false)
     const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '' })
-    const [activeTab, setActiveTab] = useState('steps')
+    const [selectedTemplate, setSelectedTemplate] = useState('')
+
+    // İş düzenleme State
+    const [editModal, setEditModal] = useState(false)
+    const [editForm, setEditForm] = useState({})
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -33,6 +37,15 @@ export default function JobDetailPage() {
         queryKey: ['cash-registers'],
         queryFn: () => api.get('/settings/cash-registers').then(r => r.data),
     })
+
+    const { data: stepTemplates = [] } = useQuery({
+        queryKey: ['step-templates'],
+        queryFn: () => api.get('/settings/templates').then(r => r.data),
+    })
+
+    const { data: customers = [] } = useQuery({ queryKey: ['customers'], queryFn: () => api.get('/customers').then(r => r.data) })
+    const { data: services = [] } = useQuery({ queryKey: ['services'], queryFn: () => api.get('/settings/services').then(r => r.data) })
+    const { data: statuses = [] } = useQuery({ queryKey: ['statuses'], queryFn: () => api.get('/settings/statuses').then(r => r.data) })
 
     const toggleStep = useMutation({
         mutationFn: ({ stepId, isCompleted }) => api.patch(`/steps/${stepId}`, { isCompleted }),
@@ -54,6 +67,16 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Aşama silindi.')
         },
+    })
+
+    const applyTemplate = useMutation({
+        mutationFn: () => api.post(`/jobs/${id}/steps/template`, { templateId: selectedTemplate }),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            setSelectedTemplate('')
+            toast.success('Şablon eklendi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Şablon eklenemedi.'),
     })
 
     const addPayment = useMutation({
@@ -99,6 +122,32 @@ export default function JobDetailPage() {
         },
     })
 
+    const updateJob = useMutation({
+        mutationFn: (data) => api.put(`/jobs/${id}`, { ...data, customerId: data.customerId || null, serviceId: data.serviceId || null, jobStatusId: data.jobStatusId || null }),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success('İş güncellendi.')
+            setEditModal(false)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'İş güncellenemedi.'),
+    })
+
+    const openEditModal = () => {
+        setEditForm({
+            title: job.title,
+            customerId: job.customerId || job.customer_id || '',
+            serviceId: job.serviceId || job.service_id || '',
+            status: job.status || 'PENDING',
+            jobStatusId: job.jobStatusId || job.job_status_id || '',
+            totalPrice: job.totalPrice || job.total_price || '',
+            startDate: (job.startDate || job.start_date || '').toString().substring(0, 10),
+            endDate: (job.endDate || job.end_date || '').toString().substring(0, 10),
+            notes: job.jobdetail?.notes || '',
+            customerRequests: job.jobdetail?.customer_requests || ''
+        })
+        setEditModal(true)
+    }
+
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
 
@@ -112,12 +161,6 @@ export default function JobDetailPage() {
     const paymentPerformance = totalPrice > 0 ? Math.round((totalPaid / totalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
     const completionProgress = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0
     const statusConf = statusConfig[job.status] || statusConfig.PENDING
-    const tabs = [
-        { key: 'steps', label: `Aşamalar (${steps.length})` },
-        { key: 'payments', label: `Ödemeler (${payments.length})` },
-        { key: 'files', label: `Dosyalar (${files.length})` },
-        { key: 'notes', label: 'Notlar' },
-    ]
 
     return (
         <div className="space-y-6">
@@ -136,6 +179,9 @@ export default function JobDetailPage() {
                         )}
                     </div>
                 </div>
+                <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
+                    <Edit2 size={18} />
+                </button>
             </div>
 
             {/* Stats bar */}
@@ -155,121 +201,150 @@ export default function JobDetailPage() {
                 ))}
             </div>
 
-            {/* Tabs */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
-                <div className="flex border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
-                    {tabs.map(t => (
-                        <button key={t.key} onClick={() => setActiveTab(t.key)}
-                            className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === t.key ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >{t.label}</button>
-                    ))}
+            {/* Sections in Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+
+                {/* Notes Section */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <FileText size={18} className="text-orange-500" />
+                        Notlar & Bilgiler
+                    </h2>
+                    <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                        {job.jobdetail?.customer_requests && (
+                            <div>
+                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Müşteri Talepleri</div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed">{job.jobdetail.customer_requests}</p>
+                            </div>
+                        )}
+                        {job.jobdetail?.notes && (
+                            <div>
+                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Genel Notlar</div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl whitespace-pre-wrap leading-relaxed">{job.jobdetail.notes}</p>
+                            </div>
+                        )}
+                        {!job.jobdetail?.notes && !job.jobdetail?.customer_requests && (
+                            <p className="text-center text-gray-400 py-4 text-sm">Not bulunamadı.</p>
+                        )}
+                    </div>
                 </div>
 
-                <div className="p-6">
-                    {/* Steps Tab */}
-                    {activeTab === 'steps' && (
-                        <div className="space-y-3">
-                            {steps.map(step => (
-                                <div key={step.id} className="flex items-center gap-3 group">
-                                    <button
-                                        onClick={() => toggleStep.mutate({ stepId: step.id, isCompleted: !step.is_completed })}
-                                        className={`flex-shrink-0 transition-colors ${step.is_completed ? 'text-green-500' : 'text-gray-300 dark:text-gray-600 hover:text-indigo-500'}`}
-                                    >
-                                        {step.is_completed ? <CheckSquare size={20} /> : <Square size={20} />}
-                                    </button>
-                                    <span className={`flex-1 text-sm transition-colors ${step.is_completed ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{step.title}</span>
-                                    <button onClick={() => deleteStep.mutate(step.id)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                            {steps.length === 0 && <p className="text-center text-gray-400 py-4">Henüz aşama yok.</p>}
-                            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                <input
-                                    value={addStepTitle}
-                                    onChange={e => setAddStepTitle(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && addStepTitle.trim() && addStep.mutate()}
-                                    placeholder="Yeni aşama ekle..."
-                                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500"
-                                />
-                                <button onClick={() => addStepTitle.trim() && addStep.mutate()} disabled={!addStepTitle.trim() || addStep.isPending}
-                                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50">
-                                    <Plus size={18} />
+                {/* Steps Section */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <CheckSquare size={18} className="text-indigo-500" />
+                        Aşamalar ({steps.length})
+                    </h2>
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                        {steps.map(step => (
+                            <div key={step.id} className="flex items-center gap-3 group">
+                                <button
+                                    onClick={() => toggleStep.mutate({ stepId: step.id, isCompleted: !step.is_completed })}
+                                    className={`flex-shrink-0 transition-colors ${step.is_completed ? 'text-green-500' : 'text-gray-300 dark:text-gray-600 hover:text-indigo-500'}`}
+                                >
+                                    {step.is_completed ? <CheckSquare size={20} /> : <Square size={20} />}
+                                </button>
+                                <span className={`flex-1 text-sm transition-colors ${step.is_completed ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{step.title}</span>
+                                <button onClick={() => deleteStep.mutate(step.id)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Payments Tab */}
-                    {activeTab === 'payments' && (
-                        <div className="space-y-3">
-                            <button onClick={() => setPaymentModal(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors mb-4">
-                                <Plus size={16} /> Ödeme Ekle
+                        ))}
+                        {steps.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz aşama yok.</p>}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                        <div className="flex gap-2">
+                            <input
+                                value={addStepTitle}
+                                onChange={e => setAddStepTitle(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && addStepTitle.trim() && addStep.mutate()}
+                                placeholder="Aşama ekle..."
+                                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 min-w-0"
+                            />
+                            <button onClick={() => addStepTitle.trim() && addStep.mutate()} disabled={!addStepTitle.trim() || addStep.isPending}
+                                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex-shrink-0">
+                                <Plus size={18} />
                             </button>
-                            {payments.map(p => (
-                                <div key={p.id} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group">
-                                    <div>
-                                        <div className="font-semibold text-emerald-500">{formatCurrency(p.amount)}</div>
-                                        <div className="text-xs text-gray-500 mt-0.5">{formatDate(p.paymentDate || p.payment_date)} • {p.paymentType === 'ADVANCE' ? 'Avans' : p.paymentType === 'PARTIAL' ? 'Taksit' : 'Final'}</div>
-                                        {p.description && <div className="text-xs text-gray-400">{p.description}</div>}
-                                    </div>
-                                    <button onClick={() => deletePayment.mutate(p.id)} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-gray-300 hover:text-red-500 transition-all">
+                        </div>
+                        {stepTemplates.length > 0 && (
+                            <div className="flex gap-2 items-center flex-wrap">
+                                <select
+                                    value={selectedTemplate}
+                                    onChange={e => setSelectedTemplate(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-transparent text-gray-900 dark:text-gray-200 focus:outline-none focus:border-indigo-500 min-w-0"
+                                >
+                                    <option value="">Şablon Seç...</option>
+                                    {stepTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                </select>
+                                <button onClick={() => selectedTemplate && applyTemplate.mutate()} disabled={!selectedTemplate || applyTemplate.isPending}
+                                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap flex-shrink-0">
+                                    {applyTemplate.isPending ? 'Ekleniyor...' : 'Şablon Ekle'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Payments Section */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <CreditCard size={18} className="text-emerald-500" />
+                            Ödemeler ({payments.length})
+                        </h2>
+                        <button onClick={() => setPaymentModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
+                            <Plus size={14} /> Ekle
+                        </button>
+                    </div>
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                        {payments.map(p => (
+                            <div key={p.id} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
+                                <div>
+                                    <div className="font-semibold text-emerald-500">{formatCurrency(p.amount)}</div>
+                                    <div className="text-[11px] text-gray-500 mt-0.5">{formatDate(p.paymentDate || p.payment_date)} • {p.paymentType === 'ADVANCE' ? 'Avans' : p.paymentType === 'PARTIAL' ? 'Taksit' : 'Final'}</div>
+                                    {p.description && <div className="text-xs text-gray-400 mt-1">{p.description}</div>}
+                                </div>
+                                <button onClick={() => deletePayment.mutate(p.id)} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        ))}
+                        {payments.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz ödeme yok.</p>}
+                    </div>
+                </div>
+
+                {/* Files Section */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col min-h-full">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <File size={18} className="text-blue-500" />
+                            Dosyalar ({files.length})
+                        </h2>
+                        <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors">
+                            <Upload size={14} /> Yükle
+                            <input type="file" className="hidden" onChange={uploadFile} />
+                        </label>
+                    </div>
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                        {files.map(f => (
+                            <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
+                                <File size={20} className="text-gray-400 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{f.file_name || f.fileName}</div>
+                                    <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+                                        <Download size={14} />
+                                    </a>
+                                    <button onClick={() => deleteFile.mutate(f.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
-                            ))}
-                            {payments.length === 0 && <p className="text-center text-gray-400 py-4">Henüz ödeme yok.</p>}
-                        </div>
-                    )}
-
-                    {/* Files Tab */}
-                    {activeTab === 'files' && (
-                        <div className="space-y-3">
-                            <label className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium cursor-pointer transition-colors w-fit mb-4">
-                                <Upload size={16} /> Dosya Yükle
-                                <input type="file" className="hidden" onChange={uploadFile} />
-                            </label>
-                            {files.map(f => (
-                                <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-800 rounded-xl group">
-                                    <File size={20} className="text-gray-400 flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{f.file_name || f.fileName}</div>
-                                        <div className="text-xs text-gray-400">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
-                                            <Download size={14} />
-                                        </a>
-                                        <button onClick={() => deleteFile.mutate(f.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {files.length === 0 && <p className="text-center text-gray-400 py-4">Henüz dosya yok.</p>}
-                        </div>
-                    )}
-
-                    {/* Notes Tab */}
-                    {activeTab === 'notes' && (
-                        <div className="space-y-4">
-                            {job.jobdetail?.customer_requests && (
-                                <div>
-                                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Müşteri Talepleri</div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">{job.jobdetail.customer_requests}</p>
-                                </div>
-                            )}
-                            {job.jobdetail?.notes && (
-                                <div>
-                                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notlar</div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">{job.jobdetail.notes}</p>
-                                </div>
-                            )}
-                            {!job.jobdetail?.notes && !job.jobdetail?.customer_requests && (
-                                <p className="text-center text-gray-400 py-4">Not bulunamadı.</p>
-                            )}
-                        </div>
-                    )}
+                            </div>
+                        ))}
+                        {files.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz dosya yok.</p>}
+                    </div>
                 </div>
             </div>
 
@@ -309,6 +384,71 @@ export default function JobDetailPage() {
                         <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={addPayment.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {addPayment.isPending ? 'Ekleniyor...' : 'Ödeme Ekle'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Edit Job Modal */}
+            <Modal open={editModal} onClose={() => setEditModal(false)} title="İş Bilgilerini Düzenle" size="lg">
+                <form onSubmit={e => { e.preventDefault(); updateJob.mutate(editForm) }} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlık *</label>
+                            <input type="text" value={editForm.title || ''} onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Müşteri *</label>
+                            <select value={editForm.customerId || ''} onChange={e => setEditForm(p => ({ ...p, customerId: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">Seçin...</option>
+                                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hizmet</label>
+                            <select value={editForm.serviceId || ''} onChange={e => setEditForm(p => ({ ...p, serviceId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">Seçin...</option>
+                                {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Durum</label>
+                            <select value={editForm.status || 'PENDING'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                {Object.entries(statusConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İş Durumu</label>
+                            <select value={editForm.jobStatusId || ''} onChange={e => setEditForm(p => ({ ...p, jobStatusId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">Seçin...</option>
+                                {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplam Fiyat (₺) *</label>
+                            <input type="number" min="0" step="0.01" value={editForm.totalPrice || ''} onChange={e => setEditForm(p => ({ ...p, totalPrice: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlangıç Tarihi</label>
+                            <input type="date" value={editForm.startDate || ''} onChange={e => setEditForm(p => ({ ...p, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bitiş Tarihi</label>
+                            <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm(p => ({ ...p, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Müşteri Talepleri</label>
+                            <textarea value={editForm.customerRequests || ''} onChange={e => setEditForm(p => ({ ...p, customerRequests: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notlar</label>
+                            <textarea value={editForm.notes || ''} onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
+                        </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setEditModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="submit" disabled={updateJob.isPending} className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                            {updateJob.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
                     </div>
                 </form>

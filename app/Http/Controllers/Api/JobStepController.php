@@ -77,4 +77,39 @@ class JobStepController extends Controller
 
         return response()->json(['message' => 'Aşama silindi.']);
     }
+
+    public function applyTemplate(Request $request, int $id): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $validated = $request->validate([
+            'templateId' => 'required|integer',
+        ]);
+
+        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
+        $template = \App\Models\StepTemplate::where('tenant_id', $tenantId)
+            ->with(['defaultSteps' => function($q) {
+                $q->orderBy('order');
+            }])
+            ->findOrFail($validated['templateId']);
+
+        // İşe ait mevcut aşamaları sil
+        $job->jobSteps()->delete();
+        $maxOrder = 0;
+
+        $newSteps = [];
+        foreach ($template->defaultSteps as $defaultStep) {
+            $maxOrder++;
+            $step = JobStep::create([
+                'job_id' => $job->id,
+                'title'  => $defaultStep->title,
+                'order'  => $maxOrder,
+            ]);
+            $newSteps[] = $step;
+        }
+
+        ActivityLogService::log($request->user(), 'CREATE', 'STEP', $template->id, $job->title,
+            "{$job->title} işine \"{$template->name}\" şablonu eklendi.");
+
+        return response()->json(['message' => 'Şablon eklendi', 'steps' => $newSteps], 201);
+    }
 }

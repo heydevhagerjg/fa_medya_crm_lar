@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/steps/{id}', [JobStepController::class, 'update']);
     Route::post('/steps', [JobStepController::class, 'store']);
     Route::delete('/steps/{id}', [JobStepController::class, 'destroy']);
+    Route::post('/jobs/{id}/steps/template', [JobStepController::class, 'applyTemplate']);
 
     // Files
     Route::get('/files', [JobFileController::class, 'index']);
