@@ -76,10 +76,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Hesabınız henüz onaylanmamış.'], 403);
         }
 
-        // Revoke old tokens
-        $user->tokens()->delete();
+        // REMOVED: $user->tokens()->delete(); - allow multiple sessions
 
-        $token = $user->createToken('auth_token', ['*'], now()->addDays(30))->plainTextToken;
+        $device = $request->header('User-Agent', 'Unknown Device');
+        $token = $user->createToken($device, ['*'], now()->addDays(30))->plainTextToken;
 
         return response()->json([
             'user'  => $this->userResource($user->load('tenant')),
@@ -92,6 +92,36 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Çıkış yapıldı.']);
+    }
+
+    public function getSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $tokens = $user->tokens()->get()->map(function ($token) use ($request) {
+            $current = $request->user()->currentAccessToken()->id === $token->id;
+            return [
+                'id'         => $token->id,
+                'name'       => $token->name, // We use User-Agent as name
+                'last_used'  => $token->last_used_at,
+                'created_at' => $token->created_at,
+                'is_current' => $current,
+            ];
+        });
+
+        return response()->json($tokens);
+    }
+
+    public function revokeSession(Request $request, $id): JsonResponse
+    {
+        $request->user()->tokens()->where('id', $id)->delete();
+        return response()->json(['message' => 'Oturum sonlandırıldı.']);
+    }
+
+    public function revokeOtherSessions(Request $request): JsonResponse
+    {
+        $currentTokenId = $request->user()->currentAccessToken()->id;
+        $request->user()->tokens()->where('id', '!=', $currentTokenId)->delete();
+        return response()->json(['message' => 'Diğer tüm oturumlar kapatıldı.']);
     }
 
     public function me(Request $request): JsonResponse

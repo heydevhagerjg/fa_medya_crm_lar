@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 export default function SettingsPage() {
@@ -16,6 +16,7 @@ export default function SettingsPage() {
         { path: '/settings/cash-registers', label: 'Kasalar', icon: Wallet },
         { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen },
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
+        { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud },
     ]
 
     return (
@@ -54,6 +55,7 @@ export default function SettingsPage() {
                 <Route path="cash-registers" element={<CashRegistersTab />} />
                 <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
                 <Route path="api-keys" element={<ApiKeysTab />} />
+                <Route path="s3" element={<S3Tab />} />
             </Routes>
         </div>
     )
@@ -503,6 +505,134 @@ function ApiKeysTab() {
                     </div>
                 </div>
             </Modal>
+        </div>
+    )
+}
+
+function S3Tab() {
+    const qc = useQueryClient()
+    const [form, setForm] = useState({
+        name: '',
+        aws_access_key_id: '',
+        aws_secret_access_key: '',
+        aws_region: '',
+        aws_bucket_name: ''
+    })
+
+    const { data: tenant, isLoading } = useQuery({
+        queryKey: ['tenant-settings'],
+        queryFn: () => api.get('/settings/tenant').then(r => r.data),
+        onSuccess: (data) => {
+            setForm({
+                name: data.name || '',
+                aws_access_key_id: data.aws_access_key_id || '',
+                aws_secret_access_key: data.aws_secret_access_key || '',
+                aws_region: data.aws_region || '',
+                aws_bucket_name: data.aws_bucket_name || ''
+            })
+        }
+    })
+
+    // Fallback if onSuccess doesn't fire as expected (v4 vs v5 behavior)
+    useEffect(() => {
+        if (tenant) {
+            setForm({
+                name: tenant.name || '',
+                aws_access_key_id: tenant.aws_access_key_id || '',
+                aws_secret_access_key: tenant.aws_secret_access_key || '',
+                aws_region: tenant.aws_region || '',
+                aws_bucket_name: tenant.aws_bucket_name || ''
+            })
+        }
+    }, [tenant])
+
+    const updateMutation = useMutation({
+        mutationFn: (data) => api.put('/settings/tenant', data),
+        onSuccess: () => {
+            qc.invalidateQueries(['tenant-settings'])
+            toast.success('S3 ayarları güncellendi.')
+        },
+        onError: (err) => {
+            const msg = err.response?.data?.message || 'Ayarlar güncellenirken hata oluştu.'
+            toast.error(msg)
+        }
+    })
+
+    const testMutation = useMutation({
+        mutationFn: () => api.post('/settings/tenant/test', form),
+        onSuccess: (res) => {
+            toast.success(res.data.message || 'Bağlantı başarılı!')
+        },
+        onError: (err) => {
+            const msg = err.response?.data?.message || 'Bağlantı testi başarısız.'
+            toast.error(msg, { duration: 5000 })
+        }
+    })
+
+    if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
+
+    return (
+        <div className="max-w-2xl space-y-6">
+            <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-5 flex gap-4">
+                <Cloud className="text-indigo-500 flex-shrink-0" size={24} />
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                    <h4 className="font-bold mb-1">AWS S3 Yapılandırması</h4>
+                    <p className="opacity-80 leading-relaxed">
+                        Dosyalarınızın güvenli bir şekilde saklanması için AWS S3 bilgilerinizi buraya girin.
+                        Bu bilgiler sadece sizin dosyalarınızın yüklenmesi ve listelenmesi için kullanılacaktır.
+                    </p>
+                </div>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(form) }} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organizasyon Adı</label>
+                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AWS Access Key ID</label>
+                        <input type="text" value={form.aws_access_key_id} onChange={e => setForm(p => ({ ...p, aws_access_key_id: e.target.value }))} placeholder="AKIA..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AWS Secret Access Key</label>
+                        <input type="password" value={form.aws_secret_access_key} onChange={e => setForm(p => ({ ...p, aws_secret_access_key: e.target.value }))} placeholder="••••••••••••••••" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AWS Region</label>
+                        <input type="text" value={form.aws_region} onChange={e => setForm(p => ({ ...p, aws_region: e.target.value }))} placeholder="eu-central-1" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Bucket Name</label>
+                        <input type="text" value={form.aws_bucket_name} onChange={e => setForm(p => ({ ...p, aws_bucket_name: e.target.value }))} placeholder="my-crm-files" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4">
+                    <button
+                        type="button"
+                        onClick={() => testMutation.mutate()}
+                        disabled={testMutation.isPending || updateMutation.isPending}
+                        className="flex items-center gap-2 px-6 py-2.5 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                        {testMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                        Bağlantıyı Test Et
+                    </button>
+
+                    <button
+                        type="submit"
+                        disabled={updateMutation.isPending || testMutation.isPending}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 disabled:opacity-50"
+                    >
+                        {updateMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        Ayarları Kaydet
+                    </button>
+                </div>
+            </form>
         </div>
     )
 }

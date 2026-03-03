@@ -1,0 +1,300 @@
+import { useState, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '../lib/api.js'
+import {
+    FolderOpen, FileText, Search, Download, Trash2,
+    MoreVertical, ExternalLink, Image as ImageIcon,
+    File as FileIcon, ChevronRight, HardDrive, Filter,
+    Grid, List as ListIcon, Loader2, UploadCloud
+} from 'lucide-react'
+import toast from 'react-hot-toast'
+import Modal from '../components/ui/Modal.jsx'
+
+export default function FilesPage() {
+    const qc = useQueryClient()
+    const [search, setSearch] = useState('')
+    const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
+    const [selectedJob, setSelectedJob] = useState(null)
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
+
+    const { data: jobsWithFiles = [], isLoading } = useQuery({
+        queryKey: ['files'],
+        queryFn: () => api.get('/files').then(r => r.data)
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: ({ jobId, fileId }) => api.delete(`/jobs/${jobId}/files`, { data: { fileId } }),
+        onSuccess: () => {
+            qc.invalidateQueries(['files'])
+            toast.success('Dosya başarıyla silindi.')
+            setDeleteConfirm(null)
+        },
+        onError: () => toast.error('Dosya silinirken bir hata oluştu.')
+    })
+
+    // Filter logic
+    const filteredJobs = useMemo(() => {
+        // First filter out jobs that have no files
+        const jobsWithActualFiles = jobsWithFiles.filter(job => job.jobfile && job.jobfile.length > 0)
+
+        if (!search) return jobsWithActualFiles
+
+        return jobsWithActualFiles.map(job => {
+            const matchesJob = job.title.toLowerCase().includes(search.toLowerCase())
+            const matchedFiles = job.jobfile.filter(f =>
+                f.fileName.toLowerCase().includes(search.toLowerCase())
+            )
+
+            if (matchesJob || matchedFiles.length > 0) {
+                return { ...job, matchedFiles: matchedFiles.length > 0 ? matchedFiles : job.jobfile }
+            }
+            return null
+        }).filter(Boolean)
+    }, [jobsWithFiles, search])
+
+    const totalFiles = useMemo(() => {
+        return jobsWithFiles.reduce((acc, job) => acc + (job.jobfile?.length || 0), 0)
+    }, [jobsWithFiles])
+
+    const totalSize = useMemo(() => {
+        const bytes = jobsWithFiles.reduce((acc, job) => {
+            return acc + (job.jobfile?.reduce((fAcc, f) => fAcc + (parseInt(f.fileSize) || 0), 0) || 0)
+        }, 0)
+
+        if (bytes === 0) return '0 Bytes'
+        const k = 1024
+        const sizes = ['Bytes', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }, [jobsWithFiles])
+
+    const getFileIcon = (type) => {
+        if (type?.includes('image')) return <ImageIcon className="text-blue-500" size={20} />
+        if (type?.includes('pdf')) return <FileText className="text-red-500" size={20} />
+        return <FileIcon className="text-gray-500" size={20} />
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 font-medium">Dosyalarınız yükleniyor...</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <FolderOpen className="text-indigo-500" size={24} />
+                        Dosyalar
+                    </h1>
+                    <p className="text-sm text-gray-400 mt-1">AWS S3 üzerinde barındırılan tüm iş dosyalarınız</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Dosya veya iş ara..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all w-full md:w-64"
+                        />
+                    </div>
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <Grid size={18} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <ListIcon size={18} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <HardDrive size={24} />
+                    </div>
+                    <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Toplam Boyut</div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white">{totalSize}</div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <FileIcon size={24} />
+                    </div>
+                    <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Toplam Dosya</div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white">{totalFiles} Adet</div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <FolderOpen size={24} />
+                    </div>
+                    <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">İş Sayısı</div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white">{jobsWithFiles.length} Klasör</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Files Explorer */}
+            <div className="space-y-4">
+                {filteredJobs.length === 0 ? (
+                    <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
+                        <UploadCloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Dosya Bulunamadı</h3>
+                        <p className="text-gray-500 max-w-xs mx-auto">Henüz S3 üzerine yüklenmiş bir dosya bulunmuyor veya aramanızla eşleşen sonuç yok.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {filteredJobs.map(job => (
+                            <div key={job.id} className="space-y-3">
+                                <div className="flex items-center gap-2 px-2">
+                                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                        <FolderOpen size={16} className="text-indigo-400" />
+                                        {job.title}
+                                        <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded ml-2">
+                                            {job.customer?.name}
+                                        </span>
+                                    </h2>
+                                    <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800 ml-2" />
+                                </div>
+
+                                {viewMode === 'grid' ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                        {job.jobfile.map(file => (
+                                            <div
+                                                key={file.id}
+                                                className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-500/30 transition-all cursor-default"
+                                            >
+                                                <div className="aspect-square bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
+                                                    {file.fileType?.includes('image') ? (
+                                                        <img
+                                                            src={file.filePath}
+                                                            alt={file.fileName}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                    ) : (
+                                                        <FileIcon size={32} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                                                    )}
+
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <a
+                                                            href={file.filePath}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md transition-colors"
+                                                            title="Dosyayı Aç"
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </a>
+                                                        <button
+                                                            onClick={() => setDeleteConfirm({ jobId: job.id, fileId: file.id, fileName: file.fileName })}
+                                                            className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-lg backdrop-blur-md transition-colors"
+                                                            title="Sil"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate" title={file.fileName}>{file.fileName}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5 uppercase">
+                                                        {(parseInt(file.fileSize) / 1024).toFixed(1)} KB • {file.fileType.split('/')[1]?.toUpperCase()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                                    <th className="px-4 py-3 text-left font-semibold">Dosya Adı</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Tür</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Boyut</th>
+                                                    <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                                {job.jobfile.map(file => (
+                                                    <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-3">
+                                                                {getFileIcon(file.fileType)}
+                                                                <span className="font-medium text-gray-900 dark:text-white">{file.fileName}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-500 uppercase text-xs">{file.fileType.split('/')[1]}</td>
+                                                        <td className="px-4 py-3 text-gray-500">{(parseInt(file.fileSize) / 1024).toFixed(1)} KB</td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <a href={file.filePath} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors">
+                                                                    <ExternalLink size={16} />
+                                                                </a>
+                                                                <button onClick={() => setDeleteConfirm({ jobId: job.id, fileId: file.id, fileName: file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Delete Confirmation Modal */}
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Dosyayı Sil" size="sm">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full mx-auto text-red-600 dark:text-red-400">
+                        <Trash2 size={24} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-gray-900 dark:text-white font-medium mb-1">Dosyayı siliyorsunuz</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
+                            <span className="font-semibold text-gray-700 dark:text-gray-200">"{deleteConfirm?.fileName}"</span> isimli dosya kalıcı olarak silinecek. Bu işlem geri alınamaz.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        >
+                            İptal
+                        </button>
+                        <button
+                            onClick={() => deleteMutation.mutate(deleteConfirm)}
+                            disabled={deleteMutation.isLoading}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-600/20 transition-all disabled:opacity-50"
+                        >
+                            {deleteMutation.isLoading ? 'Siliniyor...' : 'Evet, Sil'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    )
+}

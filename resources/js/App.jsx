@@ -10,6 +10,7 @@ import JobsPage from './pages/JobsPage.jsx'
 import JobDetailPage from './pages/JobDetailPage.jsx'
 import PaymentsPage from './pages/PaymentsPage.jsx'
 import ExpensesPage from './pages/ExpensesPage.jsx'
+import FilesPage from './pages/FilesPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import LogsPage from './pages/LogsPage.jsx'
 import BackupPage from './pages/BackupPage.jsx'
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="jobs/:id" element={<JobDetailPage />} />
                 <Route path="payments" element={<PaymentsPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
+                <Route path="files" element={<FilesPage />} />
                 <Route path="settings/*" element={<SettingsPage />} />
                 <Route path="logs" element={<LogsPage />} />
                 <Route path="backup" element={<BackupPage />} />

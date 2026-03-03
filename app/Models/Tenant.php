@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tenant extends Model
 {
     protected $fillable = [
-        'id', 'name', 'slug', 'storage_limit', 'used_storage',
+        'id', 'name', 'slug', 'storage_used',
+        'aws_access_key_id', 'aws_secret_access_key', 'aws_region', 'aws_bucket_name',
     ];
 
     public $incrementing = false;

@@ -55,6 +55,35 @@ export default function DashboardPage() {
                 ))}
             </div>
 
+            {/* Cash Registers Section */}
+            <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Activity size={18} className="text-blue-500" />
+                    Giriş/Çıkış Özeti (Kasalar)
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {stats?.cashRegisters?.map((cr) => (
+                        <div key={cr.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                                <CreditCard size={20} className="text-gray-500" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">{cr.name}</div>
+                                    {cr.isDefault && (
+                                        <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-md font-medium">Varsayılan</span>
+                                    )}
+                                </div>
+                                <div className={`text-lg font-bold ${cr.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    {formatCurrency(cr.balance)}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {!stats?.cashRegisters?.length && <p className="text-sm text-gray-500">Henüz kasa kaydı yok.</p>}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Jobs */}
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
@@ -119,9 +148,14 @@ function LoadingSkeleton() {
     return (
         <div className="space-y-6 animate-pulse">
             <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-xl w-48" />
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {[...Array(6)].map((_, i) => (
                     <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-32" />
+                ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-20" />
                 ))}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

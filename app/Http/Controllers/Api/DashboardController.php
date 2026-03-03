@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\JobCrm;
 use App\Models\Payment;
 use App\Models\Expense;
+use App\Models\CashRegister;
 use App\Models\ActivityLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,17 @@ class DashboardController extends Controller
             ->get()
             ->pluck('count', 'status');
 
+        $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(function ($cr) use ($tenantId) {
+            $payments = Payment::where('tenant_id', $tenantId)->where('cash_register_id', $cr->id)->sum('amount');
+            $expenses = Expense::where('tenant_id', $tenantId)->where('cash_register_id', $cr->id)->sum('amount');
+            return [
+                'id'        => $cr->id,
+                'name'      => $cr->name,
+                'balance'   => $payments - $expenses,
+                'isDefault' => $cr->is_default,
+            ];
+        });
+
         return response()->json([
             'totalCustomers' => $totalCustomers,
             'activeJobs'     => $activeJobs,
@@ -76,6 +88,7 @@ class DashboardController extends Controller
             'recentJobs'     => $recentJobs,
             'recentPayments' => $recentPayments,
             'jobsByStatus'   => $jobsByStatus,
+            'cashRegisters'  => $cashRegisters,
         ]);
     }
 }

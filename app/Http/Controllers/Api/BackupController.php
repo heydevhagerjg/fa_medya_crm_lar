@@ -115,8 +115,10 @@ class BackupController extends Controller
         $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(fn($cr) => ['id' => $cr->id, 'name' => $cr->name, 'is_default' => $cr->is_default]);
 
 
+        $tenant = Tenant::find($tenantId);
+
         $backup = [
-            'version'   => '2.0',
+            'version'   => '2.1',
             'timestamp' => now()->toISOString(),
             'tenantId'  => $tenantId,
             'data'      => [
@@ -131,6 +133,12 @@ class BackupController extends Controller
                 'apikeys'           => $apiKeys,
                 'activitylogs'      => $activityLogs,
             ],
+            'tenant_settings' => [
+                'aws_access_key_id'     => $tenant->aws_access_key_id,
+                'aws_secret_access_key' => $tenant->aws_secret_access_key,
+                'aws_region'            => $tenant->aws_region,
+                'aws_bucket_name'       => $tenant->aws_bucket_name,
+            ]
         ];
 
         return response()->json($backup)->header('Content-Disposition', 'attachment; filename="crm-backup-' . now()->format('Y-m-d') . '.json"');
@@ -155,8 +163,19 @@ class BackupController extends Controller
         $user = $request->user();
         $tenantId = $user->tenant_id;
         $data = $backup['data'];
+        $settings = $backup['tenant_settings'] ?? [];
 
-        DB::transaction(function () use ($data, $tenantId) {
+        DB::transaction(function () use ($data, $tenantId, $settings) {
+            // Restore Tenant Settings (S3, etc.)
+            if (!empty($settings)) {
+                Tenant::where('id', $tenantId)->update([
+                    'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
+                    'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
+                    'aws_region'            => $settings['aws_region'] ?? null,
+                    'aws_bucket_name'       => $settings['aws_bucket_name'] ?? null,
+                ]);
+            }
+
             // Import services & custom fields
             $serviceIdMap = [];
             foreach (($data['services'] ?? []) as $s) {

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Settings\StepTemplateController;
 use App\Http\Controllers\Api\Settings\CashRegisterController;
 use App\Http\Controllers\Api\Settings\ExpenseCategoryController;
 use App\Http\Controllers\Api\Settings\ApiKeyController;
+use App\Http\Controllers\Api\TenantController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::patch('/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::get('/auth/sessions', [AuthController::class, 'getSessions']);
+    Route::delete('/auth/sessions/{id}', [AuthController::class, 'revokeSession']);
+    Route::post('/auth/sessions/revoke-others', [AuthController::class, 'revokeOtherSessions']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
@@ -66,9 +70,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/steps', [JobStepController::class, 'store']);
     Route::delete('/steps/{id}', [JobStepController::class, 'destroy']);
 
-    // Job Files
+    // Files
+    Route::get('/files', [JobFileController::class, 'index']);
+    Route::get('/files/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
+    Route::post('/jobs/{id}/files', [JobFileController::class, 'store']);
+    Route::delete('/jobs/{id}/files', [JobFileController::class, 'destroy']);
 
     // Logs
     Route::get('/logs', [LogController::class, 'index']);
@@ -99,5 +107,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // API Keys
         Route::apiResource('api-keys', ApiKeyController::class)->except(['show', 'update']);
+
+        // Tenant Settings (S3 etc)
+        Route::get('/tenant', [TenantController::class, 'show']);
+        Route::put('/tenant', [TenantController::class, 'update']);
+        Route::post('/tenant/test', [TenantController::class, 'testConnection']);
     });
 });
