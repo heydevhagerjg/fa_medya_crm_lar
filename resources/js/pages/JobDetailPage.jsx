@@ -21,7 +21,13 @@ export default function JobDetailPage() {
     const qc = useQueryClient()
     const [addStepTitle, setAddStepTitle] = useState('')
     const [paymentModal, setPaymentModal] = useState(false)
-    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '' })
+    const [editingPayment, setEditingPayment] = useState(null)
+    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+
+    const [expenseModal, setExpenseModal] = useState(false)
+    const [editingExpense, setEditingExpense] = useState(null)
+    const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+
     const [selectedTemplate, setSelectedTemplate] = useState('')
 
     const [editModal, setEditModal] = useState(false)
@@ -45,6 +51,11 @@ export default function JobDetailPage() {
     const { data: cashRegisters = [] } = useQuery({
         queryKey: ['cash-registers'],
         queryFn: () => api.get('/settings/cash-registers').then(r => r.data),
+    })
+
+    const { data: expenseCategories = [] } = useQuery({
+        queryKey: ['expense-categories'],
+        queryFn: () => api.get('/settings/expense-categories').then(r => r.data),
     })
 
     const { data: stepTemplates = [] } = useQuery({
@@ -88,13 +99,17 @@ export default function JobDetailPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Şablon eklenemedi.'),
     })
 
-    const addPayment = useMutation({
-        mutationFn: () => api.post('/payments', { ...paymentForm, jobId: parseInt(id) }),
+    const savePayment = useMutation({
+        mutationFn: () => {
+            if (editingPayment) return api.put(`/payments/${editingPayment}`, { ...paymentForm, jobId: parseInt(id) })
+            return api.post('/payments', { ...paymentForm, jobId: parseInt(id) })
+        },
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
-            toast.success('Ödeme eklendi.')
+            toast.success(editingPayment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
             setPaymentModal(false)
-            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '' })
+            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            setEditingPayment(null)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
@@ -106,6 +121,64 @@ export default function JobDetailPage() {
             toast.success('Ödeme silindi.')
         },
     })
+
+    const saveExpense = useMutation({
+        mutationFn: () => {
+            if (editingExpense) return api.put(`/expenses/${editingExpense}`, { ...expenseForm, jobId: parseInt(id) })
+            return api.post('/expenses', { ...expenseForm, jobId: parseInt(id) })
+        },
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success(editingExpense ? 'Masraf güncellendi.' : 'Masraf eklendi.')
+            setExpenseModal(false)
+            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            setEditingExpense(null)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
+
+    const deleteExpense = useMutation({
+        mutationFn: (eid) => api.delete(`/expenses/${eid}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success('Masraf silindi.')
+        },
+    })
+
+    const openPaymentModal = (p = null) => {
+        if (p) {
+            setPaymentForm({
+                amount: p.amount,
+                paymentDate: (p.paymentDate || p.payment_date).toString().substring(0, 10),
+                paymentType: p.paymentType || p.payment_type || 'FINAL',
+                description: p.description || '',
+                cashRegisterId: p.cashRegisterId || p.cash_register_id || ''
+            })
+            setEditingPayment(p.id)
+        } else {
+            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            setEditingPayment(null)
+        }
+        setPaymentModal(true)
+    }
+
+    const openExpenseModal = (e = null) => {
+        if (e) {
+            setExpenseForm({
+                title: e.title,
+                amount: e.amount,
+                date: (e.date || '').toString().substring(0, 10),
+                description: e.description || '',
+                categoryId: e.categoryId || e.category_id || '',
+                cashRegisterId: e.cashRegisterId || e.cash_register_id || ''
+            })
+            setEditingExpense(e.id)
+        } else {
+            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            setEditingExpense(null)
+        }
+        setExpenseModal(true)
+    }
 
     const uploadFiles = async (filesToUpload) => {
         if (!filesToUpload || filesToUpload.length === 0) return
@@ -240,7 +313,14 @@ export default function JobDetailPage() {
 
     const steps = job.jobstep || []
     const payments = job.payment || []
+    const expenses = job.expense || []
     const files = job.jobfile || []
+
+    const financialTransactions = [
+        ...payments.map(p => ({ ...p, _type: 'PAYMENT', _date: new Date(p.paymentDate || p.payment_date).getTime() })),
+        ...expenses.map(e => ({ ...e, _type: 'EXPENSE', _date: new Date(e.date).getTime() }))
+    ].sort((a, b) => b._date - a._date)
+
     const completedSteps = steps.filter(s => s.is_completed).length
     const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const totalPrice = parseFloat(job.totalPrice || job.total_price || 0)
@@ -413,31 +493,49 @@ export default function JobDetailPage() {
                     </div>
                 </div>
 
-                {/* Payments Section */}
+                {/* Payments & Expenses Section */}
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <CreditCard size={18} className="text-emerald-500" />
-                            Ödemeler ({payments.length})
+                            Ödemeler ({financialTransactions.length})
                         </h2>
-                        <button onClick={() => setPaymentModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
-                            <Plus size={14} /> Ekle
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => openPaymentModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                <Plus size={14} /> Tahsilat Ekle
+                            </button>
+                            <button onClick={() => openExpenseModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                <Plus size={14} /> Masraf Ekle
+                            </button>
+                        </div>
                     </div>
                     <div className="space-y-3 flex-1 overflow-y-auto pr-1">
-                        {payments.map(p => (
-                            <div key={p.id} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
+                        {financialTransactions.map(t => (
+                            <div key={`${t._type}-${t.id}`} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
                                 <div>
-                                    <div className="font-semibold text-emerald-500">{formatCurrency(p.amount)}</div>
-                                    <div className="text-[11px] text-gray-500 mt-0.5">{formatDate(p.paymentDate || p.payment_date)} • {p.paymentType === 'ADVANCE' ? 'Avans' : p.paymentType === 'PARTIAL' ? 'Taksit' : 'Final'}</div>
-                                    {p.description && <div className="text-xs text-gray-400 mt-1">{p.description}</div>}
+                                    <div className={`font-semibold ${t._type === 'PAYMENT' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                        {t._type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 mt-0.5">
+                                        {formatDate(t._type === 'PAYMENT' ? (t.paymentDate || t.payment_date) : t.date)} •
+                                        {t._type === 'PAYMENT' ?
+                                            ((t.paymentType || t.payment_type) === 'ADVANCE' ? 'Avans' : (t.paymentType || t.payment_type) === 'PARTIAL' ? 'Taksit' : 'Final')
+                                            : t.title
+                                        }
+                                    </div>
+                                    {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
                                 </div>
-                                <button onClick={() => deletePayment.mutate(p.id)} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
-                                    <Trash2 size={14} />
-                                </button>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button onClick={() => t._type === 'PAYMENT' ? deletePayment.mutate(t.id) : deleteExpense.mutate(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
-                        {payments.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz ödeme yok.</p>}
+                        {financialTransactions.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz işlem yok.</p>}
                     </div>
                 </div>
 
@@ -516,8 +614,8 @@ export default function JobDetailPage() {
             </div>
 
             {/* Payment Modal */}
-            <Modal open={paymentModal} onClose={() => setPaymentModal(false)} title="Ödeme Ekle">
-                <form onSubmit={e => { e.preventDefault(); addPayment.mutate() }} className="space-y-4">
+            <Modal open={paymentModal} onClose={() => setPaymentModal(false)} title={editingPayment ? 'Tahsilatı Düzenle' : 'Tahsilat Ekle'}>
+                <form onSubmit={e => { e.preventDefault(); savePayment.mutate() }} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺) *</label>
                         <input type="number" min="0" step="0.01" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
@@ -529,7 +627,7 @@ export default function JobDetailPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ödeme Tipi</label>
                         <select value={paymentForm.paymentType} onChange={e => setPaymentForm(p => ({ ...p, paymentType: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                            <option value="ADVANCE" selected>Avans</option>
+                            <option value="ADVANCE">Avans</option>
                             <option value="PARTIAL">Taksit</option>
                             <option value="FINAL">Final</option>
                         </select>
@@ -549,8 +647,56 @@ export default function JobDetailPage() {
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
-                        <button type="submit" disabled={addPayment.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-                            {addPayment.isPending ? 'Ekleniyor...' : 'Ödeme Ekle'}
+                        <button type="submit" disabled={savePayment.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                            {savePayment.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Expense Modal */}
+            <Modal open={expenseModal} onClose={() => setExpenseModal(false)} title={editingExpense ? 'Masrafı Düzenle' : 'Masraf Ekle'}>
+                <form onSubmit={e => { e.preventDefault(); saveExpense.mutate() }} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlık *</label>
+                        <input type="text" value={expenseForm.title} onChange={e => setExpenseForm(p => ({ ...p, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺) *</label>
+                            <input type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm(p => ({ ...p, amount: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tarih *</label>
+                            <input type="date" value={expenseForm.date} onChange={e => setExpenseForm(p => ({ ...p, date: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                    </div>
+                    {expenseCategories.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori</label>
+                            <select value={expenseForm.categoryId || ''} onChange={e => setExpenseForm(p => ({ ...p, categoryId: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">Kategori Seçin...</option>
+                                {expenseCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    {cashRegisters.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kasa</label>
+                            <select value={expenseForm.cashRegisterId || ''} onChange={e => setExpenseForm(p => ({ ...p, cashRegisterId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">Kasa Seçin...</option>
+                                {cashRegisters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
+                        <input type="text" value={expenseForm.description} onChange={e => setExpenseForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setExpenseModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="submit" disabled={saveExpense.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                            {saveExpense.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
                     </div>
                 </form>
