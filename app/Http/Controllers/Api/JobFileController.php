@@ -205,20 +205,45 @@ class JobFileController extends Controller
     {
         $fileId = $request->query('id');
         $tenantId = $request->user()->tenant_id;
+        $tenant = \App\Models\Tenant::find($tenantId);
 
         $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
             $q->where('tenant_id', $tenantId);
         })->findOrFail($fileId);
 
-        $response = \Illuminate\Support\Facades\Http::timeout(300)->withOptions(['verify' => false])->get($jobFile->file_path);
+        // 1. Check if S3
+        if ($this->setS3Config($tenant)) {
+            $urlPrefix = "https://{$tenant->aws_bucket_name}.s3.{$tenant->aws_region}.amazonaws.com/";
+            if (\Illuminate\Support\Str::startsWith($jobFile->file_path, $urlPrefix)) {
+                $path = \Illuminate\Support\Str::after($jobFile->file_path, $urlPrefix);
+                if (\Illuminate\Support\Facades\Storage::disk('s3_tenant')->exists($path)) {
+                    return \Illuminate\Support\Facades\Storage::disk('s3_tenant')->download($path, $jobFile->file_name);
+                }
+            }
+        }
 
-        if ($response->successful()) {
-            return response($response->body(), 200, [
-                'Content-Type' => $response->header('Content-Type') ?? 'application/octet-stream',
-                'Content-Length' => $response->header('Content-Length'),
-                'Content-Disposition' => 'attachment; filename="' . basename($jobFile->file_name) . '"',
-                'Access-Control-Allow-Origin' => '*',
-            ]);
+        // 2. Check Local Storage
+        $path = \Illuminate\Support\Str::after($jobFile->file_path, '/storage/');
+        if ($path != $jobFile->file_path) {
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                return \Illuminate\Support\Facades\Storage::disk('public')->download($path, $jobFile->file_name);
+            }
+        }
+
+        // 3. Fallback to Http
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->withOptions(['verify' => false])->get($jobFile->file_path);
+
+            if ($response->successful()) {
+                return response($response->body(), 200, [
+                    'Content-Type' => $response->header('Content-Type') ?? 'application/octet-stream',
+                    'Content-Length' => $response->header('Content-Length'),
+                    'Content-Disposition' => 'attachment; filename="' . basename($jobFile->file_name) . '"',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Proxy fetch error: " . $e->getMessage());
         }
 
         return response()->json(['error' => 'Dosya alınamadı.'], 404);
