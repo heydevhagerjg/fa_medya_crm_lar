@@ -8,11 +8,12 @@ import { Briefcase, User, Calendar, Plus, MoreVertical, GripVertical, CheckCircl
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
+import JobDetailDrawer from '../components/JobDetailDrawer.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
 // --- Sortable Item (Job Card) ---
-function SortableJobCard({ job }) {
+function SortableJobCard({ job, onOpenDetail }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: job.id,
         data: { type: 'Job', job }
@@ -27,9 +28,13 @@ function SortableJobCard({ job }) {
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing mb-3">
             <div className="flex justify-between items-start mb-2">
-                <Link to={`/jobs/${job.id}`} className="text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-2 pr-4" onPointerDown={e => e.stopPropagation()}>
+                <button
+                    onClick={() => onOpenDetail(job.id)}
+                    className="text-left text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-2 pr-4"
+                    onPointerDown={e => e.stopPropagation()}
+                >
                     {job.title}
-                </Link>
+                </button>
                 <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
                     <GripVertical size={16} />
                 </div>
@@ -61,7 +66,7 @@ function SortableJobCard({ job }) {
 }
 
 // --- Kanban Column ---
-function KanbanColumn({ status, jobs }) {
+function KanbanColumn({ status, jobs, onOpenDetail }) {
     const { setNodeRef } = useSortable({
         id: status.id,
         data: { type: 'Column', status }
@@ -88,7 +93,7 @@ function KanbanColumn({ status, jobs }) {
                 <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
                     <AnimatePresence>
                         {jobs.map(job => (
-                            <SortableJobCard key={job.id} job={job} />
+                            <SortableJobCard key={job.id} job={job} onOpenDetail={onOpenDetail} />
                         ))}
                     </AnimatePresence>
                 </SortableContext>
@@ -105,6 +110,7 @@ function KanbanColumn({ status, jobs }) {
 export default function KanbanPage() {
     const qc = useQueryClient()
     const [activeJob, setActiveJob] = useState(null)
+    const [selectedJobId, setSelectedJobId] = useState(null)
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -219,6 +225,7 @@ export default function KanbanPage() {
                                 key={status.id}
                                 status={status}
                                 jobs={jobs.filter(j => j.jobStatusId === status.id)}
+                                onOpenDetail={setSelectedJobId}
                             />
                         ))}
 
@@ -227,6 +234,7 @@ export default function KanbanPage() {
                             <KanbanColumn
                                 status={{ id: 'unassigned', name: 'Tanımsız', color: '#94a3b8' }}
                                 jobs={jobs.filter(j => !j.jobStatusId)}
+                                onOpenDetail={setSelectedJobId}
                             />
                         )}
 
@@ -257,6 +265,8 @@ export default function KanbanPage() {
                     </DragOverlay>
                 </DndContext>
             </div>
+
+            <JobDetailDrawer jobId={selectedJobId} isOpen={!!selectedJobId} onClose={() => setSelectedJobId(null)} />
 
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
