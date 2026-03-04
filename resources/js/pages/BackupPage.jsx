@@ -127,7 +127,7 @@ export default function BackupPage() {
                     </div>
 
                     <div className="space-y-3 mb-6">
-                        {['Müşteriler ve iş geçmişi', 'Tahsilatlar ve masraflar', 'Hizmetler ve ayarlar', 'Aktivite logları'].map(item => (
+                        {['Müşteriler ve iş geçmişi', 'Randevular ve Takvim', 'Tahsilatlar ve masraflar', 'Hizmetler ve ayarlar', 'Aktivite logları'].map(item => (
                             <div key={item} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                 <CheckCircle size={14} className="text-green-500 flex-shrink-0" />
                                 {item}

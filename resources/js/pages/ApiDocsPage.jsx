@@ -1,252 +1,309 @@
-import { FileCode, Shield, Users, Briefcase, CreditCard, Settings } from 'lucide-react'
+import { FileCode, Shield, Users, Briefcase, CreditCard, Settings, Calendar, ListChecks, FileText, Database, Activity } from 'lucide-react'
 
 export default function ApiDocsPage() {
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                    <FileCode className="text-indigo-500" />
-                    API Dokümantasyonu
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">
-                    Famedya CRM'in arka ucunda çalışan temel API servislerini nasıl kullanacağınıza dair yöntem ve parametre bilgileri.
-                </p>
-            </div>
-
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-                <div className="prose prose-indigo dark:prose-invert max-w-none">
-                    <p className="mb-6">
-                        Uygulamanın genel bir özelliği olarak yetki gerektiren her rotada <strong>Bearer Token</strong> gönderilmesi zorunludur.
+        <div className="space-y-8 pb-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                        <FileCode className="text-indigo-500" size={32} />
+                        API Dokümantasyonu
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">
+                        Famedya CRM altyapısını dış sistemlerle entegre etmek veya mobil uygulama üzerinden yönetmek için kullanabileceğiniz tüm endpoint listesi.
                     </p>
-
-                    {/* Auth Section */}
-                    <div className="mb-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2">
-                            <Shield className="text-purple-500" size={24} /> 1. Yetkilendirme (Auth) İşlemleri
-                        </h2>
-                        <p className="mb-4">Öncelikle sisteme giriş (Login) yapıp API rotalarını kullanabilmek için size ait benzersiz bir Token çekmeniz gereklidir. Gelen bu Token'i bir sonraki tüm sorgularda Header'a (<code>Authorization: Bearer BURAYA_TOKEN</code>) yerleştirmeyi unutmayın.</p>
-
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Kayıt Ol (Register)</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Seçtiğiniz plana/kiralama durumuna göre sıfırdan sistemde bir şirket/proje profili oluşturur.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/auth/register</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "name": "Şirketim LTD.",
-  "email": "yonetim@sirketim.com",
-  "password": "GucluSifre123"
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Giriş Yap (Login)</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Oluşturulan veya varolan kullanıcı adı ve şifreyle sisteme giriş yapmayı dener.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/auth/login</code>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 mb-2 uppercase">İstek (Request)</div>
-                                        <div className="bg-gray-950 rounded-lg p-4 h-full overflow-x-auto">
-                                            <pre className="text-sm text-green-400 font-mono">
-                                                {`{
-  "email": "yonetim@sirketim.com",
-  "password": "GucluSifre123"
-}`}
-                                            </pre>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 mb-2 uppercase">Başarılı Yanıt (Response 200)</div>
-                                        <div className="bg-gray-950 rounded-lg p-4 h-full overflow-x-auto">
-                                            <pre className="text-sm text-blue-400 font-mono">
-                                                {`{
-  "user": {
-      "id": 1,
-      "name": "Şirketim Yetkili",
-      "email": "yonetim@sirketim.com"
-  },
-  "token": "4|u87a..."
-}`}
-                                            </pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Customers Section */}
-                    <div className="mb-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2">
-                            <Users className="text-blue-500" size={24} /> 2. Müşteri (Customer) Yönetimi
-                        </h2>
-                        <p className="mb-4">Firmanıza kayıtlı kullanıcı veya kurum profil (Müşteri/Firma) kartlarını kontrol edebildiğiniz noktalardır.</p>
-
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Tüm Müşterileri Getir</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Mevcut müşterileri sayfalar halinde JSON listesi biçiminde getirir.</p>
-                                <div className="flex gap-2 mb-3 items-center flex-wrap">
-                                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs font-bold rounded">GET</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/customers</code>
-                                    <span className="text-sm text-gray-500">?page=1&per_page=10 (Opsiyonel)</span>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Yeni Müşteri Oluştur</h3>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/customers</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "type": "individual", // veya "corporate"
-  "name": "Ahmet Yılmaz", // veya firma adı
-  "email": "iletisim@ahmet.com",
-  "phone": "+905554443322",
-  "tax_number": "1234567890", // zorunlu değil
-  "address": "İstanbul, Türkiye"
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Jobs Section */}
-                    <div className="mb-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2">
-                            <Briefcase className="text-orange-500" size={24} /> 3. İş (Job, Proje) Yönetimi
-                        </h2>
-                        <p className="mb-4">Sistemdeki müşterilere bağladığınız aktif ya da tamamlanmış tüm çalışma ve servis paketlerini barındırır.</p>
-
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Yeni İş Ekleme</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Sistemde önceden kurulu olan bir Hizmeti (<code>service_id</code>) var olan bir Müşteriye (<code>customer_id</code>) atar.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/jobs</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "customer_id": 14,
-  "service_id": 2, // Yazılım, SEO vb. hizmet id'si
-  "title": "E-Ticaret Web Sitesi",
-  "total_price": 45000,
-  "start_date": "2026-04-01",
-  "end_date": "2026-05-15",
-  "status_id": 1 // Statü: Başlamadı / Devam Ediyor vb.
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">İş Durumunu Değiştirme</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Sadece statüyü (Tamamlandı, İptal vs) güncel tutmak için kullanılır.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-500 text-xs font-bold rounded">PATCH</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/jobs/{"{id}"}/status</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "status_id": 3
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Finans Section */}
-                    <div className="mb-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2">
-                            <CreditCard className="text-emerald-500" size={24} /> 4. Finans (Ödemeler & Giderler)
-                        </h2>
-
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Yeni Tahsilat Ekle (Gelir)</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Müşterinin işinin fiyatı üzerinden yapılan parçalı ya da tam tahsilatları girmenizi sağlar.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/payments</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "job_id": 25,
-  "amount": 15000,
-  "payment_type": "kredi_karti", // 'nakit', 'havale', 'kredi_karti'
-  "payment_date": "2026-03-04",
-  "cash_register_id": 1, // Kasa bağlantısı (Örn: İş Bankası TR12)
-  "description": "Ön peşinat ödemesi"
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Settings Section */}
-                    <div className="mb-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2">
-                            <Settings className="text-gray-600 dark:text-gray-400" size={24} /> 5. Ayarlar ve Güvenlik İşlemleri
-                        </h2>
-
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AWS S3 Ayarlarını Güncelle</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Firma dosyalarını ve CRM yedeklerini sunucu yerine S3'e yüklemek isteyen kiracıların AWS (vey Cloudflare R2 vs.) yetkilendirme bilgisini günceller.</p>
-                                <div className="flex gap-2 mb-3 items-center">
-                                    <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-500 text-xs font-bold rounded">PUT</span>
-                                    <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/settings/tenant</code>
-                                </div>
-                                <div className="bg-gray-950 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-sm text-green-400 font-mono">
-                                        {`{
-  "aws_access_key_id": "AKIA...",
-  "aws_secret_access_key": "M5Xv...",
-  "aws_region": "eu-central-1",
-  "aws_bucket_name": "famedya-backups-bucket"
-}`}
-                                    </pre>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Tüm Yedeği Al (Export) & Verileri Sıfırla (Reset)</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Şirketinizin tüm müşteri, proje, dosya, rapor, log ve faturalarını sistemden yedek olarak çekebilir veya komple sistemi sıfırlayabilirsiniz.</p>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs font-bold rounded">GET</span>
-                                        <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/settings/backup/export</code>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-                                        <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-pink-600 dark:text-pink-400">/api/settings/backup/reset</code>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-8">
+                {/* 1. AUTH SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-purple-50 dark:bg-purple-500/10 rounded-xl">
+                            <Shield className="text-purple-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">1. Yetkilendirme (Auth) & Profil</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <EndpointItem
+                            method="POST"
+                            path="/api/auth/login"
+                            label="Giriş Yap"
+                            desc="E-posta ve şifre ile token alır."
+                            req={`{ "email": "...", "password": "..." }`}
+                        />
+                        <EndpointItem
+                            method="POST"
+                            path="/api/auth/register"
+                            label="Kayıt Ol"
+                            desc="Yeni bir kiracı/şirket profili oluşturur."
+                            req={`{ "name": "...", "email": "...", "password": "..." }`}
+                        />
+                        <EndpointItem
+                            method="GET"
+                            path="/api/auth/me"
+                            label="Profil Bilgileri"
+                            desc="Giriş yapmış kullanıcının detaylarını döner."
+                            auth
+                        />
+                        <EndpointItem
+                            method="PATCH"
+                            path="/api/auth/profile"
+                            label="Profil Güncelle"
+                            desc="Kullanıcı adı ve e-postasını değiştirir."
+                            req={`{ "name": "Yeni İsim", "email": "yeni@mail.com" }`}
+                            auth
+                        />
+                        <EndpointItem
+                            method="POST"
+                            path="/api/auth/change-password"
+                            label="Şifre Değiştir"
+                            req={`{ "current_password": "...", "password": "...", "password_confirmation": "..." }`}
+                            auth
+                        />
+                    </div>
+                </section>
+
+                {/* 2. CUSTOMERS SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-xl">
+                            <Users className="text-blue-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">2. Müşteri (Customer) Yönetimi</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <EndpointItem
+                            method="GET"
+                            path="/api/customers"
+                            label="Müşteri Listesi"
+                            desc="Tüm müşterileri getirir (Sayfalama: ?page=1)."
+                            auth
+                        />
+                        <EndpointItem
+                            method="POST"
+                            path="/api/customers"
+                            label="Yeni Müşteri"
+                            req={`{ "type": "corporate|individual", "name": "...", "phone": "...", "email": "..." }`}
+                            auth
+                        />
+                        <EndpointItem
+                            method="GET"
+                            path="/api/customers/{id}"
+                            label="Müşteri Detayı"
+                            desc="Müşterinin işleri ve ödemeleriyle beraber tüm detayını döner."
+                            auth
+                        />
+                        <EndpointItem
+                            method="PUT"
+                            path="/api/customers/{id}"
+                            label="Müşteri Düzenle"
+                            auth
+                        />
+                        <EndpointItem
+                            method="DELETE"
+                            path="/api/customers/{id}"
+                            label="Müşteri Sil"
+                            auth
+                        />
+                    </div>
+                </section>
+
+                {/* 3. JOBS SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-orange-50 dark:bg-orange-500/10 rounded-xl">
+                            <Briefcase className="text-orange-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">3. İş (Job, Proje) Yönetimi</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <EndpointItem
+                            method="GET"
+                            path="/api/jobs"
+                            label="İş Listesi"
+                            desc="Sistemdeki tüm işleri statüleriyle beraber getirir."
+                            auth
+                        />
+                        <EndpointItem
+                            method="POST"
+                            path="/api/jobs"
+                            label="Yeni İş Ekle"
+                            req={`{ "customer_id": 1, "service_id": 2, "title": "...", "total_price": 5000 }`}
+                            auth
+                        />
+                        <EndpointItem
+                            method="PATCH"
+                            path="/api/jobs/{id}/status"
+                            label="Statü Güncelle"
+                            desc="İşin sadece durumunu (Hazırlanıyor vs) değiştirir."
+                            req={`{ "status_id": 3 }`}
+                            auth
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <EndpointItem method="GET" path="/api/jobs/{id}" label="İş Detayı" auth />
+                            <EndpointItem method="DELETE" path="/api/jobs/{id}" label="İşi Sil" auth />
+                        </div>
+                    </div>
+                </section>
+
+                {/* 4. APPOINTMENTS SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-rose-50 dark:bg-rose-500/10 rounded-xl">
+                            <Calendar className="text-rose-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">4. Randevu (Appointment) Yönetimi</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <EndpointItem
+                            method="GET"
+                            path="/api/appointments"
+                            label="Randevuları Sırala"
+                            desc="Takvimdeki aktivite ve görüşmeleri listeler."
+                            auth
+                        />
+                        <EndpointItem
+                            method="POST"
+                            path="/api/appointments"
+                            label="Randevu Planla"
+                            req={`{ "customer_id": 1, "title": "...", "start_time": "2026-03-04 10:00", "status": "PENDING" }`}
+                            auth
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <EndpointItem method="PUT" path="/api/appointments/{id}" label="Düzenle" auth />
+                            <EndpointItem method="DELETE" path="/api/appointments/{id}" label="Sil" auth />
+                            <EndpointItem method="GET" path="/api/settings/appointment-titles" label="Başlık Önerileri" auth />
+                        </div>
+                    </div>
+                </section>
+
+                {/* 5. FINANS SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
+                            <CreditCard className="text-emerald-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">5. Finans (Tahsilatlar & Giderler)</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Tahsilatlar (Gelir)</h4>
+                                <EndpointItem
+                                    method="POST"
+                                    path="/api/payments"
+                                    req={`{ "job_id": 1, "amount": 1000, "payment_type": "CASH", "cash_register_id": 1 }`}
+                                    auth
+                                />
+                                <EndpointItem method="GET" path="/api/payments" auth />
+                            </div>
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Giderler (Expenses)</h4>
+                                <EndpointItem
+                                    method="POST"
+                                    path="/api/expenses"
+                                    req={`{ "title": "Kira", "amount": 5000, "category_id": 1, "cash_register_id": 1 }`}
+                                    auth
+                                />
+                                <EndpointItem method="GET" path="/api/expenses" auth />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 6. ADVANCED SECTION */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                            <Settings className="text-gray-500" size={24} />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white">6. Gelişmiş Ayarlar & Sistem</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
+                            <h4 className="flex items-center gap-2 font-bold mb-4 text-gray-700 dark:text-gray-300">
+                                <Database size={16} className="text-indigo-500" /> Yedekleme
+                            </h4>
+                            <ul className="text-xs space-y-2 text-gray-500">
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">GET</code> /api/settings/backup/export</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">POST</code> /api/settings/backup/import</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">GET</code> /api/settings/backup/s3/list</li>
+                            </ul>
+                        </div>
+                        <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
+                            <h4 className="flex items-center gap-2 font-bold mb-4 text-gray-700 dark:text-gray-300">
+                                <ListChecks size={16} className="text-emerald-500" /> Tanımlamalar
+                            </h4>
+                            <ul className="text-xs space-y-2 text-gray-500">
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">POST</code> /api/settings/services</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">POST</code> /api/settings/statuses</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">POST</code> /api/settings/cash-registers</li>
+                            </ul>
+                        </div>
+                        <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
+                            <h4 className="flex items-center gap-2 font-bold mb-4 text-gray-700 dark:text-gray-300">
+                                <Activity size={16} className="text-amber-500" /> Sistem
+                            </h4>
+                            <ul className="text-xs space-y-2 text-gray-500">
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">GET</code> /api/logs (Aktivite Logları)</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">PUT</code> /api/settings/tenant (S3 Ayarları)</li>
+                                <li><code className="bg-gray-50 dark:bg-gray-800 px-1">POST</code> /api/settings/api-keys</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    )
+}
+
+function EndpointItem({ method, path, label, desc, req, auth = false }) {
+    return (
+        <div className="p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl transition-all hover:border-indigo-500/30 group">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight 
+                            ${method === 'GET' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
+                                method === 'POST' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' :
+                                    method === 'PUT' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' :
+                                        method === 'PATCH' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' :
+                                            'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'}`}
+                        >
+                            {method}
+                        </span>
+                        <code className="text-sm font-mono text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-500/5 px-2 py-0.5 rounded-lg border border-pink-100 dark:border-pink-500/10">
+                            {path}
+                        </code>
+                        {auth && (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700">
+                                <Shield size={10} /> Bearer
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{label}</span>
+                        {desc && <span className="text-xs text-gray-500 dark:text-gray-400">— {desc}</span>}
+                    </div>
+                </div>
+            </div>
+            {req && (
+                <div className="mt-4">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Örnek Parametreler (JSON)</div>
+                    <div className="bg-gray-950 rounded-xl p-4 overflow-x-auto ring-1 ring-white/10 shadow-inner">
+                        <pre className="text-[13px] text-green-400/90 font-mono leading-relaxed">
+                            {req}
+                        </pre>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

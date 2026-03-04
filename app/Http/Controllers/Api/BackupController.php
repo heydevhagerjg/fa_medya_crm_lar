@@ -118,7 +118,10 @@ class BackupController extends Controller
                 'totalPrice'       => $j->total_price,
                 'createdAt'        => $j->created_at,
                 'updatedAt'        => $j->updated_at,
-                'jobdetail'        => $j->jobDetail,
+                'jobdetail'        => $j->jobDetail ? [
+                    'customer_requests' => $j->jobDetail->customer_requests,
+                    'notes'             => $j->jobDetail->notes,
+                ] : null,
                 'jobfile'          => $j->jobFiles->map(fn($f) => ['id' => $f->id, 'jobId' => $f->job_id, 'fileName' => $f->file_name, 'filePath' => $f->file_path, 'fileType' => $f->file_type, 'fileSize' => $f->file_size, 'uploadedAt' => $f->uploaded_at]),
                 'jobstep'          => $j->jobSteps->map(fn($s) => ['id' => $s->id, 'jobId' => $s->job_id, 'title' => $s->title, 'isCompleted' => $s->is_completed, 'order' => $s->order, 'createdAt' => $s->created_at, 'updatedAt' => $s->updated_at]),
                 'payment'          => $j->payments->map(fn($p) => ['id' => $p->id, 'tenantId' => $p->tenant_id, 'jobId' => $p->job_id, 'amount' => $p->amount, 'paymentDate' => $p->payment_date, 'paymentType' => $p->payment_type, 'description' => $p->description, 'cashRegisterId' => $p->cash_register_id, 'createdAt' => $p->created_at, 'updatedAt' => $p->updated_at]),
@@ -133,9 +136,19 @@ class BackupController extends Controller
 
         $activityLogs = ActivityLog::where('tenant_id', $tenantId)
             ->orderByDesc('created_at')
-            ->limit(200)
+            ->limit(300)
             ->get()
-            ->map(fn($l) => ['id' => $l->id, 'tenantId' => $l->tenant_id, 'userId' => $l->user_id, 'action' => $l->action, 'entityType' => $l->entity_type, 'entityId' => $l->entity_id, 'entityName' => $l->entity_name, 'details' => $l->details, 'createdAt' => $l->created_at]);
+            ->map(fn($l) => [
+                'id' => $l->id, 
+                'tenantId' => $l->tenant_id, 
+                'userId' => $l->user_id, 
+                'action' => $l->action, 
+                'entityType' => $l->entity_type, 
+                'entityId' => $l->entity_id, 
+                'entityName' => $l->entity_name, 
+                'details' => $l->details, 
+                'createdAt' => $l->created_at
+            ]);
 
         $expenseCategories = ExpenseCategory::where('tenant_id', $tenantId)->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'tenantId' => $c->tenant_id]);
 
@@ -433,7 +446,10 @@ class BackupController extends Controller
                 if (!empty($j['jobdetail'])) {
                     $job->jobDetail()->updateOrCreate(
                         ['job_id' => $job->id],
-                        ['customer_requests' => $j['jobdetail']['customerRequests'] ?? null, 'notes' => $j['jobdetail']['notes'] ?? null]
+                        [
+                            'customer_requests' => $j['jobdetail']['customer_requests'] ?? $j['jobdetail']['customerRequests'] ?? null, 
+                            'notes'             => $j['jobdetail']['notes'] ?? null
+                        ]
                     );
                 }
 
@@ -609,6 +625,20 @@ class BackupController extends Controller
                         'updated_at'       => $e['updatedAt'] ?? now(),
                     ]
                 );
+            }
+
+            // Import Activity Logs
+            foreach (($data['activitylogs'] ?? $data['activity_logs'] ?? []) as $l) {
+                ActivityLog::create([
+                    'tenant_id'   => $tenantId,
+                    'user_id'     => $l['userId'] ?? $l['user_id'] ?? $user->id,
+                    'action'      => $l['action'] ?? 'BACKUP_IMPORT',
+                    'entity_type' => $l['entityType'] ?? $l['entity_type'] ?? 'SYSTEM',
+                    'entity_id'   => $l['entityId'] ?? $l['entity_id'] ?? null,
+                    'entity_name' => $l['entityName'] ?? $l['entity_name'] ?? '',
+                    'details'     => $l['details'] ?? '',
+                    'created_at'  => $l['createdAt'] ?? $l['created_at'] ?? now(),
+                ]);
             }
         });
         });
