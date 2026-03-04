@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import {
@@ -19,19 +19,16 @@ export default function FilesPage() {
     const [search, setSearch] = useState('')
     const [viewMode, setViewMode] = useState('list') // 'grid' or 'list'
 
-    const [searchParams, setSearchParams] = useSearchParams()
-    const activeFolderParam = searchParams.get('folder')
-    const activeFolderId = activeFolderParam ? Number(activeFolderParam) : null
+    const navigate = useNavigate()
+    const { folderId } = useParams()
+    const activeFolderId = folderId ? Number(folderId) : null
 
     const setActiveFolderId = (id) => {
-        setSearchParams(prev => {
-            if (id) {
-                prev.set('folder', id)
-            } else {
-                prev.delete('folder')
-            }
-            return prev
-        }, { replace: true }) // use replace: true or false? Let's not use replacing in case they want back button.
+        if (id) {
+            navigate(`/files/folder/${id}`)
+        } else {
+            navigate('/files')
+        }
     }
 
     const [currentPage, setCurrentPage] = useState(1)

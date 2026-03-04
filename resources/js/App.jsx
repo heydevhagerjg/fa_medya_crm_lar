@@ -44,6 +44,7 @@ export default function App() {
                 <Route path="payments" element={<PaymentsPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
                 <Route path="files" element={<FilesPage />} />
+                <Route path="files/folder/:folderId" element={<FilesPage />} />
                 <Route path="settings/*" element={<SettingsPage />} />
                 <Route path="logs" element={<LogsPage />} />
                 <Route path="backup" element={<BackupPage />} />
