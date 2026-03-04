@@ -80,7 +80,7 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
         >
             {/* Column Header */}
             <div className={`p-4 flex items-center justify-between ${isCollapsed ? 'flex-col gap-4 h-full' : ''}`}>
-                <div className={`flex items-center gap-2.5 ${isCollapsed ? 'flex-col mt-4' : ''}`}>
+                <div className={`flex items-center gap-3 ${isCollapsed ? 'flex-col mt-2' : ''}`}>
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color || '#6366f1' }} />
                     {!isCollapsed ? (
                         <>
@@ -90,9 +90,13 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
                             </span>
                         </>
                     ) : (
-                        <div className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-xs flex items-center gap-2">
-                            {status.name}
-                            <span className="px-1.5 py-0.5 bg-white dark:bg-gray-800 rounded-lg text-[20px] shadow-sm border border-gray-100 dark:border-gray-700">{jobs.length}</span>
+                        <div className="flex flex-col items-center gap-4">
+                            <span className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl text-lg font-black text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-gray-700">
+                                {jobs.length}
+                            </span>
+                            <span className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-md py-2">
+                                {status.name}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -278,6 +282,15 @@ export default function KanbanPage() {
                                 onToggle={toggleColumn}
                             />
                         )}
+
+                        {/* Add Another List (Redirect to Settings) */}
+                        <Link
+                            to="/settings/statuses"
+                            className="flex-shrink-0 w-64 h-14 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-600 hover:border-indigo-500 hover:bg-indigo-50/10 dark:hover:bg-indigo-500/5 transition-all group"
+                        >
+                            <Plus size={18} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-sm font-bold">Yeni Liste Ekle</span>
+                        </Link>
 
                         {sortedStatuses.length === 0 && (
                             <div className="w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 p-12 text-center text-gray-400">
