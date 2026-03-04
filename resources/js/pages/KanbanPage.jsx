@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, pointerWithin } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -66,11 +66,27 @@ function SortableJobCard({ job, onOpenDetail }) {
 }
 
 // --- Kanban Column ---
-function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
+function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
     const { setNodeRef } = useSortable({
         id: status.id,
         data: { type: 'Column', status }
     })
+
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading
+    } = useInfiniteQuery({
+        queryKey: ['jobs', 'column', status.id],
+        queryFn: ({ pageParam = 1 }) =>
+            api.get(`/jobs?jobStatusId=${status.id}&page=${pageParam}&limit=10`).then(r => r.data),
+        getNextPageParam: (lastPage) => lastPage.meta.current_page < lastPage.meta.last_page ? lastPage.meta.current_page + 1 : undefined,
+    })
+
+    const jobs = data?.pages.flatMap(page => page.data) || []
+    const totalCount = data?.pages[0]?.meta?.total || 0
 
     return (
         <div
@@ -86,13 +102,13 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
                         <>
                             <h3 className="font-bold text-gray-900 dark:text-white truncate max-w-[140px]">{status.name}</h3>
                             <span className="px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-500 rounded-full text-[11px] font-bold shadow-sm border border-gray-100 dark:border-gray-700">
-                                {jobs.length}
+                                {totalCount}
                             </span>
                         </>
                     ) : (
                         <div className="flex flex-col items-center gap-4">
                             <span className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl text-lg font-black text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-gray-700">
-                                {jobs.length}
+                                {totalCount}
                             </span>
                             <span className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-md py-2">
                                 {status.name}
@@ -110,18 +126,38 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
 
             {/* Scrollable List */}
             {!isCollapsed && (
-                <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px]">
-                    <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
-                        <AnimatePresence>
-                            {jobs.map(job => (
-                                <SortableJobCard key={job.id} job={job} onOpenDetail={onOpenDetail} />
-                            ))}
-                        </AnimatePresence>
-                    </SortableContext>
-                    {jobs.length === 0 && (
-                        <div className="h-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-gray-400 text-xs italic text-center px-4">
-                            İş bulunamadı
+                <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px] flex flex-col">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-50">
+                            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-[10px] font-bold text-gray-400">Yükleniyor...</span>
                         </div>
+                    ) : (
+                        <>
+                            <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
+                                <AnimatePresence>
+                                    {jobs.map(job => (
+                                        <SortableJobCard key={job.id} job={job} onOpenDetail={onOpenDetail} />
+                                    ))}
+                                </AnimatePresence>
+                            </SortableContext>
+
+                            {hasNextPage && (
+                                <button
+                                    onClick={() => fetchNextPage()}
+                                    disabled={isFetchingNextPage}
+                                    className="w-full py-3 mt-2 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-[11px] font-black text-gray-400 hover:text-indigo-600 hover:border-indigo-500 hover:bg-white dark:hover:bg-gray-900 transition-all mb-4 disabled:opacity-50"
+                                >
+                                    {isFetchingNextPage ? 'Yükleniyor...' : 'Daha Fazla Yükle'}
+                                </button>
+                            )}
+
+                            {jobs.length === 0 && (
+                                <div className="h-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-gray-400 text-xs italic text-center px-4">
+                                    İş bulunamadı
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             )}
@@ -160,11 +196,6 @@ export default function KanbanPage() {
         })
     )
 
-    const { data: jobs = [], isLoading: jobsLoading } = useQuery({
-        queryKey: ['jobs'],
-        queryFn: () => api.get('/jobs').then(r => r.data)
-    })
-
     const { data: statuses = [], isLoading: statusesLoading } = useQuery({
         queryKey: ['statuses'],
         queryFn: () => api.get('/settings/statuses').then(r => r.data)
@@ -177,11 +208,13 @@ export default function KanbanPage() {
 
     // Update status mutation
     const updateJobStatus = useMutation({
-        mutationFn: ({ jobId, statusId }) => api.patch(`/jobs/${jobId}/status`, { jobStatusId: statusId }),
-        onSuccess: (updatedJob) => {
-            // Optimistically update local cache is harder with dnd-kit auto-sorting, 
-            // but we can just invalidate to get server state.
-            qc.invalidateQueries(['jobs'])
+        mutationFn: ({ jobId, statusId, oldStatusId }) => api.patch(`/jobs/${jobId}/status`, { jobStatusId: statusId }),
+        onSuccess: (updatedJob, variables) => {
+            // Invalidate columns involved
+            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.statusId] })
+            if (variables.oldStatusId) {
+                qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.oldStatusId] })
+            }
             toast.success('İş durumu güncellendi.', { position: 'bottom-center' })
         },
         onError: () => toast.error('Durum güncellenemedi.')
@@ -202,9 +235,8 @@ export default function KanbanPage() {
 
         const activeId = active.id
         const overId = over.id
+        const job = active.data.current?.job
 
-        // Find the job that was dragged
-        const job = jobs.find(j => j.id === activeId)
         if (!job) return
 
         // Check if dropped over a column or another job card
@@ -218,14 +250,15 @@ export default function KanbanPage() {
 
         // Only update if the status actually changed
         if (targetStatusId !== null && targetStatusId !== job.jobStatusId) {
-            updateJobStatus.mutate({ jobId: activeId, statusId: targetStatusId })
-
-            // Optimistic update
-            qc.setQueryData(['jobs'], old => old.map(j => j.id === activeId ? { ...j, jobStatusId: targetStatusId } : j))
+            updateJobStatus.mutate({
+                jobId: activeId,
+                statusId: targetStatusId,
+                oldStatusId: job.jobStatusId
+            })
         }
     }
 
-    if (jobsLoading || statusesLoading) return <div className="flex items-center justify-center min-h-[60vh] text-gray-400">Yükleniyor...</div>
+    if (statusesLoading) return <div className="flex items-center justify-center min-h-[60vh] text-gray-400">Yükleniyor...</div>
 
     return (
         <div className="h-[calc(100vh-140px)] flex flex-col overflow-hidden">
@@ -265,23 +298,19 @@ export default function KanbanPage() {
                             <KanbanColumn
                                 key={status.id}
                                 status={status}
-                                jobs={jobs.filter(j => j.jobStatusId === status.id)}
                                 onOpenDetail={setSelectedJobId}
                                 isCollapsed={collapsedColumns.includes(status.id)}
                                 onToggle={toggleColumn}
                             />
                         ))}
 
-                        {/* Fallback column for jobs with no status */}
-                        {jobs.some(j => !j.jobStatusId) && (
-                            <KanbanColumn
-                                status={{ id: 'unassigned', name: 'Tanımsız', color: '#94a3b8' }}
-                                jobs={jobs.filter(j => !j.jobStatusId)}
-                                onOpenDetail={setSelectedJobId}
-                                isCollapsed={collapsedColumns.includes('unassigned')}
-                                onToggle={toggleColumn}
-                            />
-                        )}
+                        {/* Fallback column for unassigned jobs if they exist */}
+                        <KanbanColumn
+                            status={{ id: 'unassigned', name: 'Tanımsız', color: '#94a3b8' }}
+                            onOpenDetail={setSelectedJobId}
+                            isCollapsed={collapsedColumns.includes('unassigned')}
+                            onToggle={toggleColumn}
+                        />
 
                         {/* Add Another List (Redirect to Settings) */}
                         <Link

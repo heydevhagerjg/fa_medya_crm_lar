@@ -26,8 +26,31 @@ class JobController extends Controller
             $query->where('customer_id', $request->customerId);
         }
 
+        if ($request->has('jobStatusId')) {
+            if ($request->jobStatusId === 'unassigned') {
+                $query->whereNull('job_status_id');
+            } else {
+                $query->where('job_status_id', $request->jobStatusId);
+            }
+        }
+
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->has('page')) {
+            $limit = $request->input('limit', 15);
+            $paginated = $query->paginate($limit);
+            
+            return response()->json([
+                'data' => collect($paginated->items())->map(fn($j) => $this->jobResource($j)),
+                'meta' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'total' => $paginated->total(),
+                    'per_page' => $paginated->perPage(),
+                ]
+            ]);
         }
 
         return response()->json($query->get()->map(fn($j) => $this->jobResource($j)));
