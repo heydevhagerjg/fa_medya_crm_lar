@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects } from '@dnd-kit/core'
+import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, pointerWithin } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -73,7 +73,11 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
     })
 
     return (
-        <div className={`flex flex-col h-full bg-gray-100/50 dark:bg-gray-900/40 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-80'}`}>
+        <div
+            ref={setNodeRef}
+            onClick={() => isCollapsed && onToggle(status.id)}
+            className={`flex flex-col h-full bg-gray-100/50 dark:bg-gray-900/40 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-16 cursor-pointer hover:bg-gray-200/60 dark:hover:bg-gray-800/60' : 'w-80'}`}
+        >
             {/* Column Header */}
             <div className={`p-4 flex items-center justify-between ${isCollapsed ? 'flex-col gap-4 h-full' : ''}`}>
                 <div className={`flex items-center gap-2.5 ${isCollapsed ? 'flex-col mt-4' : ''}`}>
@@ -88,12 +92,12 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
                     ) : (
                         <div className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-xs flex items-center gap-2">
                             {status.name}
-                            <span className="px-1.5 py-0.5 bg-white dark:bg-gray-800 rounded-lg text-[10px] shadow-sm border border-gray-100 dark:border-gray-700">{jobs.length}</span>
+                            <span className="px-1.5 py-0.5 bg-white dark:bg-gray-800 rounded-lg text-[20px] shadow-sm border border-gray-100 dark:border-gray-700">{jobs.length}</span>
                         </div>
                     )}
                 </div>
                 <button
-                    onClick={() => onToggle(status.id)}
+                    onClick={(e) => { e.stopPropagation(); onToggle(status.id); }}
                     className="p-1.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
                 >
                     {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -102,7 +106,7 @@ function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
 
             {/* Scrollable List */}
             {!isCollapsed && (
-                <div ref={setNodeRef} className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px]">
+                <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px]">
                     <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
                         <AnimatePresence>
                             {jobs.map(job => (
@@ -125,7 +129,18 @@ export default function KanbanPage() {
     const qc = useQueryClient()
     const [activeJob, setActiveJob] = useState(null)
     const [selectedJobId, setSelectedJobId] = useState(null)
-    const [collapsedColumns, setCollapsedColumns] = useState([])
+    const [collapsedColumns, setCollapsedColumns] = useState(() => {
+        const saved = localStorage.getItem('kanban_collapsed_columns')
+        try {
+            return saved ? JSON.parse(saved) : []
+        } catch (e) {
+            return []
+        }
+    })
+
+    useEffect(() => {
+        localStorage.setItem('kanban_collapsed_columns', JSON.stringify(collapsedColumns))
+    }, [collapsedColumns])
 
     const toggleColumn = (id) => {
         setCollapsedColumns(prev =>
@@ -219,7 +234,7 @@ export default function KanbanPage() {
                         </div>
                         İş Takip (Kanban)
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">İşlerinizi sürükleyerek süreçlerini yönetin</p>
+                    <p className="text-gray-500 text-sm mt-1">İşlerinizi sürükleyerek durumlarını yönetin</p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -237,6 +252,7 @@ export default function KanbanPage() {
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 -mx-4 px-4 custom-scrollbar">
                 <DndContext
                     sensors={sensors}
+                    collisionDetection={pointerWithin}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                 >
