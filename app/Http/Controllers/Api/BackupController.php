@@ -138,8 +138,18 @@ class BackupController extends Controller
                 'aws_secret_access_key' => $tenant->aws_secret_access_key,
                 'aws_region'            => $tenant->aws_region,
                 'aws_bucket_name'       => $tenant->aws_bucket_name,
-            ]
+            ],
+            'exported_from' => 'famedya_crm',
         ];
+
+        $newImportKey = Str::random(40);
+        \App\Models\BackupKey::create([
+            'tenant_id' => $tenantId,
+            'key'       => $newImportKey,
+            'name'      => 'Yedek - ' . now()->format('d.m.Y H:i')
+        ]);
+
+        $backup['import_key'] = $newImportKey;
 
         return response()->json($backup)->header('Content-Disposition', 'attachment; filename="crm-backup-' . now()->format('Y-m-d') . '.json"');
     }
@@ -162,6 +172,25 @@ class BackupController extends Controller
 
         $user = $request->user();
         $tenantId = $user->tenant_id;
+        $tenant = Tenant::find($tenantId);
+
+        // Security check
+        $isFamedyaExport = isset($backup['exported_from']) && $backup['exported_from'] === 'famedya_crm';
+        $hasCorrectKey = false;
+        $importKeyFromBackup = $backup['import_key'] ?? null;
+
+        if ($importKeyFromBackup) {
+            $hasCorrectKey = \App\Models\BackupKey::where('tenant_id', $tenantId)
+                ->where('key', $importKeyFromBackup)
+                ->exists();
+        }
+
+        if (!$isFamedyaExport || !$hasCorrectKey) {
+            return response()->json([
+                'message' => 'Geçersiz veya yetkisiz yedek dosyası. Lütfen JSON dosyasının bu CRM sisteminden dışa aktarıldığından ve Özel İmport Key kaydının geçerli olduğundan emin olun.'
+            ], 403);
+        }
+
         $data = $backup['data'];
         $settings = $backup['tenant_settings'] ?? [];
 

@@ -25,6 +25,7 @@ class TenantController extends Controller
             'aws_secret_access_key' => $tenant->aws_secret_access_key,
             'aws_region'            => $tenant->aws_region,
             'aws_bucket_name'       => $tenant->aws_bucket_name,
+            'import_key'            => $tenant->import_key,
         ]);
     }
 
@@ -38,6 +39,7 @@ class TenantController extends Controller
             'aws_secret_access_key' => 'nullable|string|max:255',
             'aws_region'            => 'nullable|string|max:255',
             'aws_bucket_name'       => 'nullable|string|max:255',
+            'import_key'            => 'nullable|string|max:255',
         ]);
 
         $tenant->update($validated);

@@ -109,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // API Keys
         Route::apiResource('api-keys', ApiKeyController::class)->except(['show', 'update']);
 
+        // Backup Keys
+        Route::apiResource('backup-keys', \App\Http\Controllers\Api\Settings\BackupKeyController::class)->only(['index', 'store', 'destroy']);
+
         // Tenant Settings (S3 etc)
         Route::get('/tenant', [TenantController::class, 'show']);
         Route::put('/tenant', [TenantController::class, 'update']);

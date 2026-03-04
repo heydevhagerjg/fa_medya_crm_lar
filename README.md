@@ -1,90 +1,82 @@
 # Famedya CRM
 
-Famedya CRM, ajanslar ve işletmeler için modern, hızlı ve kullanıcı dostu bir müşteri ilişkileri yönetimi (CRM) sistemidir. Bu uygulama, müşterilerinizi, iş süreçlerinizi, ödemelerinizi ve masraflarınızı tek bir platformdan yönetmenize olanak tanır.
+Famedya CRM; dijital ajanslar, yazılım ofisleri ve genel müşteri-iş takibine ihtiyaç duyan her türlü işletme için baştan sona özenle hazırlanmış modern bir Müşteri İlişkileri Yönetimi (CRM) sistemidir. Tüm finansal ve operasyonel süreçlerinizi tek ekrandan verimli bir şekilde yönetebilmenizi sağlar.
 
-## 🚀 Özellikler
+## 🚀 Öne Çıkan Özellikler
 
-- **Gelişmiş Dashboard:** İş istatistiklerini, bekleyen ödemeleri ve güncel durumları anlık olarak takip edin.
-- **Çoklu Kiracı (Multi-tenancy) Desteği:** Tek bir kurulum üzerinden birden fazla organizasyonu veya şubeyi birbirinden bağımsız olarak yönetin.
-- **Müşteri Yönetimi:** Müşteri kayıtlarını oluşturun, detaylı bilgilerini saklayın ve tüm iş geçmişlerini görüntüleyin.
-- **İş ve Proje Takibi:**
-    - İş durumlarını (Hazırlanıyor, Onaylandı, Tamamlandı vb.) yönetin.
-    - Her iş için özel adımlar (Workflow) ve görevler tanımlayın.
-    - İş dosyalarını yükleyin ve organize edin.
-- **Finansal Yönetim:**
-    - **Ödemeler (Gelir):** Gelen ödemeleri kaydedin ve takip edin.
-    - **Masraflar (Gider):** İşletme masraflarını kategorize edin ve raporlayın.
-    - **Kasa Yönetimi:** Farklı kasa ve banka hesaplarını yönetin.
-- **Sistem Özellikleri:**
-    - **Rol ve Yetkilendirme:** Kullanıcılara farklı yetki seviyeleri tanımlayın.
-    - **Aktivite Logları:** Sistem üzerindeki tüm işlemleri izleyin.
-    - **Yedekleme ve Aktarma:** Verilerinizi dışa aktarın veya mevcut verilerinizi sisteme dahil edin.
-    - **API Anahtarı:** Dış entegrasyonlar için güvenli API anahtarları oluşturun.
+Sisteme entegre ettiğimiz başlıca özellikler şunlardır:
 
-## 🛠️ Teknolojiler
+- **Gelişmiş Dashboard:** Günlük iş istatistikleriniz, aylık gelir/gider bazında net kazancınız, bekleyen tahsilatlarınız hepsi tek bir ekranda derlenir. Ek olarak üst kısımdaki hızlı işlem menüsü sayesinde anında "Yeni İş", "Yeni Müşteri", "Yeni Tahsilat" gibi eylemleri tek tıkla başlatabilirsiniz.
+- **Dinamik Hizmet ve Özel Alan (Custom Field) Yapısı:** 
+  - Sunduğunuz her hizmete (Web Tasarım, SEO, Danışmanlık vb.) ayrı ayrı özel dinamik alanlar atayabilirsiniz.
+  - İş detaylarında sağdan açılan şık bir yan panel aracılığıyla bu özel alanları doldurabilir, anında güncelleyebilirsiniz.
+  - Eğer bir iş için o hizmete ait doldurulmamış özel alanlar varsa, sistem sizi küçük bir bildirim rozetiyle doğrudan işin içinde sayı vererek uyarır.
+- **Müşteri ve İş Yönetimi:** 
+  - Müşteri profillerini, iş durumlarını (Hazırlanıyor, İptal, Tamamlandı vb.) kolayca takip edin. 
+  - Liste görünümlerinde en son eklenen müşterileriniz ve işleriniz (ID ve tarih sırasına göre) standart olarak en üstte yer alır; güncel verilere anında erişirsiniz.
+- **Gelir ve Gider Takibi:** Şirketinize giren nakit/kredi kartı ödemeleri ve yaptığınız masrafları kasa bazlı olarak kategorize edin ve tutun.
+- **Gelişmiş Yedekleme ve İmport Doğrulama Sistemi:** 
+  - Ayarlar sayfasından veritabanınızı tüm dosyalarıyla beraber tek bir tıkla içeriğini eksiksiz koruyarak JSON formatında dışa aktarabilirsiniz.
+  - Yedekten geri dönme işlemleri sırasında orijinalliği bozmamak adına orijinal kayıt ve güncellenme tarihleri (created_at, updated_at) tamamen korunur.
+  - Yedeğin manipüle edilmesini veya farklı kişilerin kendi verilerini sisteminize yüklemesini engellemek için **"Özel İmport Key"** (İçe Aktarma Anahtarı) güvenlik duvarı mevcuttur. Çıkartılan her json dosyası size ait şifrelenmiş bir anahtar taşır ve veritabanıyla eşleşmeyen hiçbir veri içeri alınmaz. Bu key kayıtlarını ayarlar sayfasından şeffafça yönetebilirsiniz.
+- **Özelleştirilebilir S3 Depolama:** Sisteme yüklediğiniz proje/müşteri dosyalarını direkt kendi AWS S3, Cloudflare R2 veya benzeri s3 uyumlu bulut platformlarınıza aktarabilirsiniz. Bunun için modüle ait Access Key ve Secret Key bilgilerini arayüzden girmeniz ve test etmeniz yeterli.
+- **Multi-tenancy (Çoklu Kiracı):** Kurduğunuz tek bir sistem üstünden birbirinden tamamen izole şekilde farklı şirket ve şube hesapları barındırabilirsiniz.
 
-- **Backend:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
-- **Frontend:** [React 19](https://react.dev/), [Vite](https://vitejs.dev/)
-- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
-- **State Management:** [Zustand](https://github.com/pmndrs/zustand), [React Query](https://tanstack.com/query/latest)
-- **Database:** MySQL / PostgreSQL
-- **Diğer:** Lucide Icons, Headless UI, React Hot Toast
+## 🛠️ Kullanılan Teknolojiler
 
-## 📋 Gereksinimler
+Proje, güncel web mimarileri kullanılarak tam performanslı olarak çalışacak biçimde inşa edildi:
 
-- **PHP:** ^8.2
-- **Node.js:** ^18.x veya daha yeni
-- **Composer:** PHP bağımlılıkları için
-- **Veritabanı:** MySQL, MariaDB veya PostgreSQL
-- **PHP Eklentileri:** OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath, GD (Görsel işleme için)
+- **Backend:** Laravel 12 (PHP 8.2+) tabanlı RESTful API.
+- **Frontend:** React 19 ve Vite altyapılı SPA (Single Page Application).
+- **Arayüz (UI) / Tasarım:** Modern bir görünüm için Tailwind CSS 4, Headless UI bileşenleri, Lucide ikon setleri ve React Hot Toast bildirimleri kullanıldı.
+- **State & Veri Yönetimi:** Axios, Zustand ve tüm request trafiğimizi önbellekleyip optimize eden React Query (TanStack v5).
+- **Database:** MySQL / PostgreSQL tam destekli.
 
-## ⚙️ Kurulum
+## 📋 Sunucu Gereksinimleri
 
-1. **Projeyi Klonlayın:**
+- **PHP:** ^8.2 veya üzeri
+- **Node.js:** ^18.x npm ile
+- **Veritabanı:** MySQL 8+, MariaDB veya PostgreSQL
+- **PHP Eklentileri:** OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath, Fileinfo
+
+## ⚙️ Kurulum Adımları
+
+Projeyi kendi sunucunuza kolayca kurmak için şu adımları takip edin:
+
+1. **Projeyi sunucunuza çekin ve klasöre girin:**
    ```bash
    git clone <repository-url>
    cd famedya-crm
    ```
 
-2. **PHP Bağımlılıklarını Yükleyin:**
+2. **Backend (Laravel) paketlerini kurun ve ayar dosyasını (env) oluşturun:**
    ```bash
    composer install
-   ```
-
-3. **Frontend Bağımlılıklarını Yükleyin:**
-   ```bash
-   npm install
-   ```
-
-4. **Ortam Dosyasını Yapılandırın:**
-   `.env.example` dosyasını `.env` olarak kopyalayın ve veritabanı bilgilerinizi düzenleyin.
-   ```bash
    cp .env.example .env
-   ```
-
-5. **Uygulama Anahtarını Oluşturun:**
-   ```bash
    php artisan key:generate
    ```
 
-6. **Veritabanı Migrasyonlarını Çalıştırın:**
+3. **Veritabanınızı PHPMyAdmin veya konsoldan oluşturduktan sonra içerideki `.env` dosyasına DB_ değerlerinizi girin. Sonra veritabanı tablolarını ayağa kaldırın:**
    ```bash
    php artisan migrate
    ```
 
-7. **Frontend Varlıklarını Derleyin:**
+4. **Frontend kütüphanelerini yükleyip projeyi derleyin:**
    ```bash
-   # Geliştirme aşaması için
-   npm run dev
-
-   # Prodüksiyon aşaması için
+   npm install
+   
+   # Sistemi yayına (Canlı ortama / Prodüksiyona) hazırlamak için
    npm run build
+   
+   # Veya lokal bilgisayarınızda geliştirme yapmak / çalışmak isterseniz
+   npm run dev
    ```
 
-8. **Sunucuyu Başlatın:**
+5. **PHP sunucusunu test amaçlı lokalden ayağa kaldırın:**
    ```bash
    php artisan serve
    ```
+Artık ayarladığınız domain veya `localhost:8000` üzerinden sisteme giriş yapabilir, kiracılar oluşturabilir ve CRM'i arayüzünden kişiselleştirmeye başlayabilirsiniz.
 
 ---
 

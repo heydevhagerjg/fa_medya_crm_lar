@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-d
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 export default function SettingsPage() {
@@ -17,6 +17,7 @@ export default function SettingsPage() {
         { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen },
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
         { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud },
+        { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock },
     ]
 
     return (
@@ -56,6 +57,7 @@ export default function SettingsPage() {
                 <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
                 <Route path="api-keys" element={<ApiKeysTab />} />
                 <Route path="s3" element={<S3Tab />} />
+                <Route path="import-keys" element={<BackupKeysTab />} />
             </Routes>
         </div>
     )
@@ -528,7 +530,8 @@ function S3Tab() {
                 aws_access_key_id: data.aws_access_key_id || '',
                 aws_secret_access_key: data.aws_secret_access_key || '',
                 aws_region: data.aws_region || '',
-                aws_bucket_name: data.aws_bucket_name || ''
+                aws_bucket_name: data.aws_bucket_name || '',
+                import_key: data.import_key || ''
             })
         }
     })
@@ -541,7 +544,8 @@ function S3Tab() {
                 aws_access_key_id: tenant.aws_access_key_id || '',
                 aws_secret_access_key: tenant.aws_secret_access_key || '',
                 aws_region: tenant.aws_region || '',
-                aws_bucket_name: tenant.aws_bucket_name || ''
+                aws_bucket_name: tenant.aws_bucket_name || '',
+                import_key: tenant.import_key || ''
             })
         }
     }, [tenant])
@@ -610,6 +614,12 @@ function S3Tab() {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Bucket Name</label>
                         <input type="text" value={form.aws_bucket_name} onChange={e => setForm(p => ({ ...p, aws_bucket_name: e.target.value }))} placeholder="my-crm-files" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
+
+                    <div className="md:col-span-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Özel İmport Key (Opsiyonel)</label>
+                        <p className="text-xs text-gray-500 mb-2">Eğer bu alanı doldurursanız, yalnızca dışa aktarılan yedekleriniz bu key'i barındırırsa sisteme geri yüklenebilecektir. Ekstra güvenlik sağlar.</p>
+                        <input type="text" value={form.import_key} onChange={e => setForm(p => ({ ...p, import_key: e.target.value }))} placeholder="GizliGüvenlikAnahtarım123" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4">
@@ -636,3 +646,105 @@ function S3Tab() {
         </div>
     )
 }
+
+function BackupKeysTab() {
+    const qc = useQueryClient()
+    const [nameForm, setNameForm] = useState('')
+    const [isCreating, setIsCreating] = useState(false)
+
+    const { data: keys = [], isLoading } = useQuery({
+        queryKey: ['backup-keys'],
+        queryFn: () => api.get('/settings/backup-keys').then(r => r.data)
+    })
+
+    const createMutation = useMutation({
+        mutationFn: (data) => api.post('/settings/backup-keys', data),
+        onSuccess: () => {
+            qc.invalidateQueries(['backup-keys'])
+            toast.success('Yeni key oluşturuldu.')
+            setIsCreating(false)
+            setNameForm('')
+        },
+        onError: () => toast.error('Key oluşturulamadı')
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => api.delete(`/settings/backup-keys/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['backup-keys'])
+            toast.success('Yedek key silindi.')
+        },
+        onError: () => toast.error('Silinemedi')
+    })
+
+    if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed flex-1">
+                    Sistemden aldığınız her yedek (.json) dosyası otomatik olarak benzersiz bir Özel İmport Key ile imzalanır ve buraya kaydedilir.<br />
+                    Sistemi sıfırlayıp bir yedeği geri yüklemek istediğinizde (eğer S3 ayarlarında sabit bir Özel İmport Key belirlemediyseniz), sistem <strong>sadece bu listedeki key'lerden birine sahip olan</strong> yedek dosyalarını kabul edecektir.
+                </p>
+                <button
+                    onClick={() => setIsCreating(true)}
+                    className="shrink-0 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                    <Plus size={16} /> Yeni Key Oluştur
+                </button>
+            </div>
+
+            {isCreating && (
+                <form
+                    onSubmit={e => { e.preventDefault(); createMutation.mutate({ name: nameForm }) }}
+                    className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3"
+                >
+                    <input
+                        autoFocus
+                        value={nameForm}
+                        onChange={e => setNameForm(e.target.value)}
+                        placeholder="Key Adı (Opsiyonel, örn: Manuel Yedekleme)"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    />
+                    <div className="flex items-center gap-2">
+                        <button type="submit" disabled={createMutation.isPending} className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex justify-center">Oluştur</button>
+                        <button type="button" onClick={() => setIsCreating(false)} className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 flex justify-center">İptal</button>
+                    </div>
+                </form>
+            )}
+
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {keys.map((k) => (
+                        <div key={k.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
+                            <div>
+                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white capitalize">{k.name}</h4>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <span className="text-xs font-mono px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-700 select-all">
+                                        {k.key}
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { if (window.confirm('Bu keyi silmek istediğinize emin misiniz? Bu key ile üretilmiş yedekler artık yüklenemez.')) deleteMutation.mutate(k.id) }}
+                                disabled={deleteMutation.isPending}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                title="Keyi Sil"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    ))}
+                    {keys.length === 0 && (
+                        <div className="p-12 text-center">
+                            <Lock size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Henüz alınmış bir yedek ve oluşturulmuş bir key bulunmuyor.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
