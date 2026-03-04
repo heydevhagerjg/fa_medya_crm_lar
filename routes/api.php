@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Files
     Route::get('/files', [JobFileController::class, 'index']);
     Route::get('/files/download', [JobFileController::class, 'download']);
+    Route::get('/files/proxy', [JobFileController::class, 'proxyDownload']);
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
     Route::post('/jobs/{id}/files', [JobFileController::class, 'store']);

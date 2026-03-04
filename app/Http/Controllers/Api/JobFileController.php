@@ -197,4 +197,30 @@ class JobFileController extends Controller
         // Simple redirect to the stored full URL (S3 or local)
         return redirect($jobFile->file_path);
     }
+
+    /**
+     * Proxy download to avoid CORS issues for JSZip
+     */
+    public function proxyDownload(Request $request)
+    {
+        $fileId = $request->query('id');
+        $tenantId = $request->user()->tenant_id;
+
+        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        })->findOrFail($fileId);
+
+        $response = \Illuminate\Support\Facades\Http::timeout(300)->withOptions(['verify' => false])->get($jobFile->file_path);
+
+        if ($response->successful()) {
+            return response($response->body(), 200, [
+                'Content-Type' => $response->header('Content-Type') ?? 'application/octet-stream',
+                'Content-Length' => $response->header('Content-Length'),
+                'Content-Disposition' => 'attachment; filename="' . basename($jobFile->file_name) . '"',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
+        }
+
+        return response()->json(['error' => 'Dosya alınamadı.'], 404);
+    }
 }

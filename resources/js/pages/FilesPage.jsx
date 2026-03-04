@@ -1,22 +1,47 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import {
     FolderOpen, FileText, Search, Download, Trash2,
     MoreVertical, ExternalLink, Image as ImageIcon,
     File as FileIcon, ChevronRight, HardDrive, Filter,
-    Grid, List as ListIcon, Loader2, UploadCloud
+    Grid, List as ListIcon, Loader2, UploadCloud,
+    ChevronLeft, ArrowLeft
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal.jsx'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 
 export default function FilesPage() {
     const qc = useQueryClient()
     const [search, setSearch] = useState('')
     const [viewMode, setViewMode] = useState('list') // 'grid' or 'list'
-    const [selectedJob, setSelectedJob] = useState(null)
+
+    const [searchParams, setSearchParams] = useSearchParams()
+    const activeFolderParam = searchParams.get('folder')
+    const activeFolderId = activeFolderParam ? Number(activeFolderParam) : null
+
+    const setActiveFolderId = (id) => {
+        setSearchParams(prev => {
+            if (id) {
+                prev.set('folder', id)
+            } else {
+                prev.delete('folder')
+            }
+            return prev
+        }, { replace: true }) // use replace: true or false? Let's not use replacing in case they want back button.
+    }
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const [fileSortMode, setFileSortMode] = useState('name')
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [downloadingZip, setDownloadingZip] = useState(false)
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search, activeFolderId])
 
     const { data: jobsWithFiles = [], isLoading } = useQuery({
         queryKey: ['files'],
@@ -33,10 +58,49 @@ export default function FilesPage() {
         onError: () => toast.error('Dosya silinirken bir hata oluştu.')
     })
 
+    const handleDownloadAll = async (job, filesToDownload) => {
+        if (!filesToDownload || filesToDownload.length === 0) {
+            toast.error('İndirilecek dosya bulunamadı.')
+            return
+        }
+
+        setDownloadingZip(true)
+        const toastId = toast.loading('Dosyalar hazırlanıyor, lütfen bekleyin...')
+
+        try {
+            const zip = new JSZip()
+
+            const promises = filesToDownload.map(async (file) => {
+                try {
+                    const response = await api.get(`/files/proxy?id=${file.id}`, { responseType: 'blob' })
+                    if (!response.data) throw new Error('Ağ hatası')
+                    zip.file(file.fileName, response.data)
+                } catch (err) {
+                    console.error('Dosya indirilemedi:', file.fileName, err)
+                }
+            })
+
+            await Promise.all(promises)
+
+            const content = await zip.generateAsync({ type: 'blob' })
+            saveAs(content, `${job.title}_dosyalar.zip`)
+
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error(error)
+            toast.error('Toplu indirme sırasında bir hata oluştu.', { id: toastId })
+        } finally {
+            setDownloadingZip(false)
+        }
+    }
+
     // Filter logic
     const filteredJobs = useMemo(() => {
         // First filter out jobs that have no files
-        const jobsWithActualFiles = jobsWithFiles.filter(job => job.jobfile && job.jobfile.length > 0)
+        let jobsWithActualFiles = jobsWithFiles.filter(job => job.jobfile && job.jobfile.length > 0)
+
+        // Sınıfları alfabetik olarak isme göre A'dan Z'ye sırala
+        jobsWithActualFiles = jobsWithActualFiles.sort((a, b) => a.title.localeCompare(b.title, 'tr'))
 
         if (!search) return jobsWithActualFiles
 
@@ -162,34 +226,142 @@ export default function FilesPage() {
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Dosya Bulunamadı</h3>
                         <p className="text-gray-500 max-w-xs mx-auto">Henüz S3 üzerine yüklenmiş bir dosya bulunmuyor veya aramanızla eşleşen sonuç yok.</p>
                     </div>
-                ) : (
-                    <div className="space-y-6">
-                        {filteredJobs.map(job => (
-                            <div key={job.id} className="space-y-3">
-                                <div className="flex items-center gap-2 px-2">
-                                    <Link to={`/jobs/${job.id}`} className="group flex items-center gap-2 hover:opacity-80 transition-opacity">
-                                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                            <FolderOpen size={16} className="text-indigo-400" />
-                                            {job.title}
-                                            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded ml-2">
-                                                {job.customer?.name}
-                                            </span>
-                                        </h2>
-                                    </Link>
-                                    <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800 ml-2" />
-                                    <Link
-                                        to={`/jobs/${job.id}`}
-                                        className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-indigo-500 transition-colors"
-                                        title="İş Detayına Git"
+                ) : !activeFolderId ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {filteredJobs.slice((currentPage - 1) * 10, currentPage * 10).map(job => (
+                                <button
+                                    key={job.id}
+                                    onClick={() => setActiveFolderId(job.id)}
+                                    className="flex flex-col text-left p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group"
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
+                                            <FolderOpen className="text-indigo-500" size={24} />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={job.title}>
+                                                {job.title}
+                                            </h3>
+                                            <p className="text-xs text-gray-500 truncate" title={job.customer?.name}>
+                                                {job.customer?.name || 'Müşterisiz'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                            {(job.matchedFiles || job.jobfile).length} Dosya
+                                        </span>
+                                        <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Pagination for Folders */}
+                        {Math.ceil(filteredJobs.length / 10) > 1 && (
+                            <div className="flex items-center justify-between px-5 py-3 border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    Toplam <strong>{filteredJobs.length}</strong> klasörden <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, filteredJobs.length)}</strong> arası gösteriliyor
+                                </span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                                     >
-                                        İşe Git
-                                        <ChevronRight size={14} />
-                                    </Link>
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredJobs.length / 10), p + 1))}
+                                        disabled={currentPage === Math.ceil(filteredJobs.length / 10)}
+                                        className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    (() => {
+                        const activeJob = filteredJobs.find(j => j.id === activeFolderId || String(j.id) === String(activeFolderId))
+                        if (!activeJob) return <div className="text-center py-10">Klasör bulunamadı veya arama kriterlerine uymuyor.</div>
+
+                        let files = [...(activeJob.matchedFiles || activeJob.jobfile)]
+
+                        // Sort files based on selected mode
+                        files.sort((a, b) => {
+                            if (fileSortMode === 'name') {
+                                return a.fileName.localeCompare(b.fileName, 'tr')
+                            }
+                            if (fileSortMode === 'size') {
+                                return (parseInt(b.fileSize) || 0) - (parseInt(a.fileSize) || 0)
+                            }
+                            if (fileSortMode === 'date') {
+                                const dateA = new Date(a.uploaded_at || a.uploadedAt || 0).getTime()
+                                const dateB = new Date(b.uploaded_at || b.uploadedAt || 0).getTime()
+                                return dateB - dateA
+                            }
+                            return 0
+                        })
+
+                        const totalPages = Math.ceil(files.length / 10)
+                        const paginatedFiles = files.slice((currentPage - 1) * 10, currentPage * 10)
+
+                        return (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex-wrap gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => { setActiveFolderId(null); setSearch(''); }}
+                                            className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        >
+                                            <ArrowLeft size={18} />
+                                        </button>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <FolderOpen className="text-indigo-500" size={20} />
+                                                <h2 className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">{activeJob.title}</h2>
+                                            </div>
+                                            <p className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                                                <span>Müşteri: {activeJob.customer?.name || '-'}</span>
+                                                <span>•</span>
+                                                <Link to={`/jobs/${activeJob.id}`} className="text-indigo-500 hover:underline">İş Detayına Git</Link>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => handleDownloadAll(activeJob, files)}
+                                            disabled={downloadingZip || files.length === 0}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {downloadingZip ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                            <span className="hidden sm:inline">{downloadingZip ? 'Hazırlanıyor...' : 'Toplu İndir'}</span>
+                                        </button>
+
+                                        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500 font-medium hidden sm:block">Sırala:</span>
+                                            <select
+                                                value={fileSortMode}
+                                                onChange={e => setFileSortMode(e.target.value)}
+                                                className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                                            >
+                                                <option value="name">Ad (A-Z)</option>
+                                                <option value="date">Tarih (En Yeni)</option>
+                                                <option value="size">Boyut (Büyükten Küçüğe)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {viewMode === 'grid' ? (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                        {job.jobfile.map(file => (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                        {paginatedFiles.map(file => (
                                             <div
                                                 key={file.id}
                                                 className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-500/30 transition-all cursor-default"
@@ -216,7 +388,7 @@ export default function FilesPage() {
                                                             <ExternalLink size={16} />
                                                         </a>
                                                         <button
-                                                            onClick={() => setDeleteConfirm({ jobId: job.id, fileId: file.id, fileName: file.fileName })}
+                                                            onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })}
                                                             className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-lg backdrop-blur-md transition-colors"
                                                             title="Sil"
                                                         >
@@ -241,11 +413,12 @@ export default function FilesPage() {
                                                     <th className="px-4 py-3 text-left font-semibold">Dosya Adı</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Tür</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Boyut</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Tarih</th>
                                                     <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                                {job.jobfile.map(file => (
+                                                {paginatedFiles.map(file => (
                                                     <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-3">
@@ -255,12 +428,13 @@ export default function FilesPage() {
                                                         </td>
                                                         <td className="px-4 py-3 text-gray-500 uppercase text-xs">{file.fileType.split('/')[1]}</td>
                                                         <td className="px-4 py-3 text-gray-500">{(parseInt(file.fileSize) / 1024).toFixed(1)} KB</td>
+                                                        <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 <a href={file.filePath} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors">
                                                                     <ExternalLink size={16} />
                                                                 </a>
-                                                                <button onClick={() => setDeleteConfirm({ jobId: job.id, fileId: file.id, fileName: file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             </div>
@@ -271,9 +445,34 @@ export default function FilesPage() {
                                         </table>
                                     </div>
                                 )}
+
+                                {/* Pagination for Files */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between px-5 py-3 border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 mt-4">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            Toplam <strong>{files.length}</strong> dosyadan <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, files.length)}</strong> arası gösteriliyor
+                                        </span>
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                <ChevronLeft size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                <ChevronRight size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        ))}
-                    </div>
+                        )
+                    })()
                 )}
             </div>
 

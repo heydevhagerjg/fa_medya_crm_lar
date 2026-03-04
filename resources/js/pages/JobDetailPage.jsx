@@ -33,6 +33,9 @@ export default function JobDetailPage() {
     // Not düzenleme State
     const [editField, setEditField] = useState(null)
     const [editValue, setEditValue] = useState('')
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragCounter, setDragCounter] = useState(0)
+    const [uploadingFiles, setUploadingFiles] = useState([])
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -104,20 +107,71 @@ export default function JobDetailPage() {
         },
     })
 
-    const uploadFile = async (e) => {
-        const file = e.target.files[0]
-        if (!file) return
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('jobId', id)
-        try {
-            await api.post('/files', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            qc.invalidateQueries(['job', id])
-            toast.success('Dosya yüklendi.')
-        } catch {
-            toast.error('Dosya yüklenemedi.')
+    const uploadFiles = async (filesToUpload) => {
+        if (!filesToUpload || filesToUpload.length === 0) return
+
+        const newUploads = Array.from(filesToUpload).map(f => ({
+            id: Math.random().toString(36).substring(7),
+            file: f,
+            name: f.name,
+            size: f.size,
+            progress: 0
+        }))
+
+        setUploadingFiles(prev => [...prev, ...newUploads])
+
+        for (const uf of newUploads) {
+            const formData = new FormData()
+            formData.append('file', uf.file)
+            formData.append('jobId', id)
+
+            try {
+                await api.post('/files', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                        setUploadingFiles(prev => prev.map(p => p.id === uf.id ? { ...p, progress: percentCompleted } : p))
+                    }
+                })
+                qc.invalidateQueries(['job', id])
+                toast.success(`"${uf.name}" yüklendi.`)
+            } catch {
+                toast.error(`"${uf.name}" yüklenemedi.`)
+            }
+
+            setUploadingFiles(prev => prev.filter(p => p.id !== uf.id))
         }
-        e.target.value = ''
+    }
+
+    const handleDragEnter = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragCounter(prev => prev + 1)
+        setIsDragging(true)
+    }
+
+    const handleDragLeave = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragCounter(prev => prev - 1)
+        if (dragCounter - 1 === 0) {
+            setIsDragging(false)
+        }
+    }
+
+    const handleDragOver = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    const handleDrop = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+        setDragCounter(0)
+
+        const files = e.dataTransfer.files
+        if (files && files.length > 0) uploadFiles(files)
     }
 
     const deleteFile = useMutation({
@@ -388,18 +442,51 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Files Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
+                <div
+                    className={`bg-white dark:bg-gray-900 border ${isDragging ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-inner' : 'border-gray-200 dark:border-gray-800'} rounded-2xl p-5 flex flex-col relative transition-all duration-200 overflow-hidden min-h-[300px]`}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                >
+                    {isDragging && (
+                        <div className="absolute inset-0 z-30 bg-blue-50/90 dark:bg-gray-900/90 flex flex-col items-center justify-center backdrop-blur-[2px]" onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
+                            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mb-3 animate-bounce pointer-events-none">
+                                <Upload size={28} className="text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 pointer-events-none">Dosyaları Buraya Bırakın</h3>
+                            <p className="text-sm text-blue-500/70 dark:text-blue-400/70 mt-1 pointer-events-none">Çoklu yükleme başlatılacak</p>
+                        </div>
+                    )}
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <File size={18} className="text-blue-500" />
                             Dosyalar ({files.length})
                         </h2>
-                        <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors">
+                        <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors relative z-20" onClick={e => e.stopPropagation()}>
                             <Upload size={14} /> Yükle
-                            <input type="file" className="hidden" onChange={uploadFile} />
+                            <input type="file" multiple className="hidden" onChange={e => {
+                                if (e.target.files.length > 0) uploadFiles(e.target.files);
+                                e.target.value = '';
+                            }} />
                         </label>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-2 max-h-[650px] custom-scrollbar">
+                        {uploadingFiles.map(uf => (
+                            <div key={uf.id} className="flex flex-col gap-2 p-3 border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                    <File size={20} className="text-blue-400 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm text-blue-700 dark:text-blue-300 truncate">{uf.name}</div>
+                                        <div className="text-[11px] text-blue-400 mt-0.5">{(uf.size / 1024).toFixed(1)} KB</div>
+                                    </div>
+                                    <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{uf.progress}%</div>
+                                </div>
+                                <div className="h-1.5 w-full bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${uf.progress}%` }}></div>
+                                </div>
+                            </div>
+                        ))}
                         {files.map(f => (
                             <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
                                 <File size={20} className="text-gray-400 flex-shrink-0" />
@@ -408,16 +495,22 @@ export default function JobDetailPage() {
                                     <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+                                    <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
                                         <Download size={14} />
                                     </a>
-                                    <button onClick={() => deleteFile.mutate(f.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                                    <button onClick={() => deleteFile.mutate(f.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
                             </div>
                         ))}
-                        {files.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz dosya yok.</p>}
+                        {files.length === 0 && (
+                            <div className="text-center py-8">
+                                <File size={32} className="text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-400 text-sm">Henüz dosya yok.</p>
+                                <p className="text-gray-400 text-xs mt-1">Dosyaları buraya sürükleyebilirsiniz</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
