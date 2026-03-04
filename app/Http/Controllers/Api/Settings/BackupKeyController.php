@@ -40,4 +40,11 @@ class BackupKeyController extends Controller
 
         return response()->json(['message' => 'Yedek anahtarı silindi.']);
     }
+
+    public function clearAll(Request $request): JsonResponse
+    {
+        BackupKey::where('tenant_id', $request->user()->tenant_id)->delete();
+
+        return response()->json(['message' => 'Tüm yedek anahtarları temizlendi.']);
+    }
 }

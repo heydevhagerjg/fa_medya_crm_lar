@@ -677,6 +677,15 @@ function BackupKeysTab() {
         onError: () => toast.error('Silinemedi')
     })
 
+    const clearAllMutation = useMutation({
+        mutationFn: () => api.post('/settings/backup-keys/clear'),
+        onSuccess: () => {
+            qc.invalidateQueries(['backup-keys'])
+            toast.success('Tüm keyler temizlendi.')
+        },
+        onError: () => toast.error('Temizleme işlemi başarısız.')
+    })
+
     if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
 
     return (
@@ -686,12 +695,23 @@ function BackupKeysTab() {
                     Sistemden aldığınız her yedek (.json) dosyası otomatik olarak benzersiz bir Özel İmport Key ile imzalanır ve buraya kaydedilir.<br />
                     Sistemi sıfırlayıp bir yedeği geri yüklemek istediğinizde (eğer S3 ayarlarında sabit bir Özel İmport Key belirlemediyseniz), sistem <strong>sadece bu listedeki key'lerden birine sahip olan</strong> yedek dosyalarını kabul edecektir.
                 </p>
-                <button
-                    onClick={() => setIsCreating(true)}
-                    className="shrink-0 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                    <Plus size={16} /> Yeni Key Oluştur
-                </button>
+                <div className="shrink-0 flex items-center gap-2">
+                    {keys.length > 0 && (
+                        <button
+                            onClick={() => { if (window.confirm('TÜM keyleri silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve önceden alınmış yedeklerin sisteme yüklenmesini çöpe atar.')) clearAllMutation.mutate() }}
+                            disabled={clearAllMutation.isPending}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                            <Trash2 size={16} /> Tümünü Temizle
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors"
+                    >
+                        <Plus size={16} /> Yeni Key Oluştur
+                    </button>
+                </div>
             </div>
 
             {isCreating && (

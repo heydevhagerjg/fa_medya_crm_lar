@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import LogsPage from './pages/LogsPage.jsx'
 import BackupPage from './pages/BackupPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
+import ApiDocsPage from './pages/ApiDocsPage.jsx'
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated } = useAuthStore()
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="logs" element={<LogsPage />} />
                 <Route path="backup" element={<BackupPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="api-docs" element={<ApiDocsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

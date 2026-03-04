@@ -112,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('api-keys', ApiKeyController::class)->except(['show', 'update']);
 
         // Backup Keys
+        Route::post('/backup-keys/clear', [\App\Http\Controllers\Api\Settings\BackupKeyController::class, 'clearAll']);
         Route::apiResource('backup-keys', \App\Http\Controllers\Api\Settings\BackupKeyController::class)->only(['index', 'store', 'destroy']);
 
         // Tenant Settings (S3 etc)

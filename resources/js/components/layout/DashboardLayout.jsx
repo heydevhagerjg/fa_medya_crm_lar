@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Users, Briefcase, CreditCard, TrendingDown,
     Settings, FileText, Database, LogOut, Menu, X, Sun, Moon,
-    ChevronRight, Bell, User, FolderOpen
+    ChevronRight, Bell, User, FolderOpen, FileCode
 } from 'lucide-react'
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
     { to: '/files', icon: FolderOpen, label: 'Dosyalar' },
     { to: '/logs', icon: FileText, label: 'Aktivite Logları' },
     { to: '/backup', icon: Database, label: 'Yedek' },
+    { to: '/api-docs', icon: FileCode, label: 'API Dokümanı' },
     { to: '/settings', icon: Settings, label: 'Ayarlar' },
 ]
 

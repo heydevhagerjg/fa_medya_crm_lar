@@ -82,30 +82,45 @@ Artık ayarladığınız domain veya `localhost:8000` üzerinden sisteme giriş 
 
 Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public auth haricinde) Sanctum token'ı ile çalışır.
 
+### 🔐 Kimlik Doğrulama (Auth)
 | Method | Endpoint | Açıklama |
 | :--- | :--- | :--- |
 | **POST** | `/auth/register` | Yeni kullanıcı/kiracı kaydı oluşturur. |
 | **POST** | `/auth/login` | Sisteme giriş yapar ve token döner. |
 | **GET** | `/auth/me` | Giriş yapmış kullanıcının profil bilgilerini getirir. |
 | **POST** | `/auth/logout` | Mevcut oturumu kapatır (token silinir). |
+
+### 📊 Temel Çekirdek Modüller (Dashboard, İşler, Müşteriler)
+| Method | Endpoint | Açıklama |
+| :--- | :--- | :--- |
 | **GET** | `/dashboard/stats` | Dashboard üzerindeki gelişmiş istatistik verilerini getirir. |
 | **GET/POST/PUT** | `/customers` | Müşterileri listeler, detaylarını getirir, düzenler. |
 | **GET/POST/PUT** | `/jobs` | Sistemdeki iş kayıtlarını listeler ve düzenler. |
 | **PATCH** | `/jobs/{id}/status` | Sadece belirli bir işin durumunu günceller. |
-| **GET/POST/PUT** | `/payments` | Ödeme ve tahsilat işlemlerini yönetir. |
-| **GET/POST/PUT** | `/expenses` | Masraf / gider eklentilerini yönetir. |
 | **POST/PATCH** | `/steps` | İşler için belirlenen adım/workflow oluşturur veya durum günceller. |
 | **GET** | `/files` | Sisteme yüklenmiş tüm dosya eklerini getirir. |
 | **POST/DELETE** | `/jobs/{id}/files` | İşe özel dosya ekler veya mevcut dosyayı siler. |
+
+### 💰 Finans (Tahsilat & Masraf)
+| Method | Endpoint | Açıklama |
+| :--- | :--- | :--- |
+| **GET/POST/PUT** | `/payments` | Ödeme ve tahsilat işlemlerini yönetir. |
+| **GET/POST/PUT** | `/expenses` | Masraf / gider eklentilerini yönetir. |
+
+### ⚙️ Ayarlar & Sistem (Yedekler, S3, Tanımlamalar)
+| Method | Endpoint | Açıklama |
+| :--- | :--- | :--- |
 | **GET** | `/logs` | Sistemde yapılan tüm işlemlerin geçmiş aktivite logunu listeler. |
 | **GET** | `/settings/backup/export` | Sistemin veritabanı yedeğini JSON olarak indirir ve S3'e kaydeder. |
 | **POST** | `/settings/backup/import` | İmzalanmış JSON yedek dosyasından sistemi geri yükler. |
 | **GET** | `/settings/backup/s3/list` | Buluttaki mevcut (önceki) yedekleri listeler. |
+| **POST** | `/settings/backup-keys` | Özel İmport Key veritabanı şifreleri ekler. |
 | **GET/POST/PUT** | `/settings/services` | Dinamik hizmetleri ve hizmet özel alanlarını ayarlardan yönetir. |
 | **GET/POST/PUT** | `/settings/statuses` | İşler için kullanılan etiketleri ve durumları (Hazırlanıyor vs) yönetir. |
-| **POST** | `/settings/backup-keys` | Özel İmport Key veritabanı şifreleri ekler. |
 | **PUT** | `/settings/tenant` | Güncel kiracı / AWS S3 depolama ayarlarını kaydeder. |
 | **POST** | `/settings/tenant/test` | Girilen AWS S3 depolama ayarlarını test eder. |
+
+💡 **Daha detaylı bilgi, paramere ve kullanım örnekleri için [API_DOKUMANTASYON.md](API_DOKUMANTASYON.md) dosyasını inceleyebilirsiniz.**
 
 ---
 
