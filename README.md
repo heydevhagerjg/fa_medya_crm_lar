@@ -15,6 +15,11 @@ Sisteme entegre ettiğimiz başlıca özellikler şunlardır:
   - Müşteri profillerini, iş durumlarını (Hazırlanıyor, İptal, Tamamlandı vb.) kolayca takip edin. 
   - Liste görünümlerinde en son eklenen müşterileriniz ve işleriniz (ID ve tarih sırasına göre) standart olarak en üstte yer alır; güncel verilere anında erişirsiniz.
 - **Gelir ve Gider Takibi:** Şirketinize giren nakit/kredi kartı ödemeleri ve yaptığınız masrafları kasa bazlı olarak kategorize edin ve tutun.
+- **Gelişmiş Randevu ve Takvim Yönetimi:**
+  - **Dinamik Aciliyet (Urgency) Sistemi:** Dashboard üzerindeki randevular kalan sürelerine göre görsel olarak farklılaşır (>6 saat: Beyaz, <6 saat: Yumuşak Sarı Parlama, <1.5 saat: Hızlı Sarı Uyarı, Gecikmiş: Kırmızı Alarm).
+  - **Kalıcı Takvim Görünümleri:** Takvimi "Bugün", "Bu Hafta" veya "Bu Ay" olarak filtreleyebilir, bu tercihinizi tarayıcı kapatılsa dahi koruyabilirsiniz.
+  - **URL Tabanlı Modal Erişimi:** Her randevunun kendine özel bir URL kimliği vardır; sayfayı yenileseniz (F5) bile açık olan randevu düzenleme ekranı anında geri gelir.
+  - **İnteraktif Navigasyon:** Randevuların içindeki müşteri isimlerine tıklayarak doğrudan müşteri detayına gidebilir, randevu listelerini "Bekleyenler Önce" olacak şekilde akıllıca sıralanmış halde görebilirsiniz.
 - **Gelişmiş Yedekleme ve İmport Doğrulama Sistemi:** 
   - Ayarlar sayfasından veritabanınızı tüm dosyalarıyla beraber tek bir tıkla içeriğini eksiksiz koruyarak JSON formatında dışa aktarabilirsiniz.
   - Yedekten geri dönme işlemleri sırasında orijinalliği bozmamak adına orijinal kayıt ve güncellenme tarihleri (created_at, updated_at) tamamen korunur.
@@ -115,6 +120,7 @@ Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public aut
 | **GET** | `/dashboard/stats` | Dashboard üzerindeki gelişmiş istatistik verilerini getirir. |
 | **GET/POST/PUT** | `/customers` | Müşterileri listeler, detaylarını getirir, düzenler. |
 | **GET/POST/PUT** | `/jobs` | Sistemdeki iş kayıtlarını listeler ve düzenler. |
+| **GET/POST/PUT** | `/appointments` | Randevuları listeler, detaylarını getirir ve yönetir. |
 | **PATCH** | `/jobs/{id}/status` | Sadece belirli bir işin durumunu günceller. |
 | **POST/PATCH** | `/steps` | İşler için belirlenen adım/workflow oluşturur veya durum günceller. |
 | **GET** | `/files` | Sisteme yüklenmiş tüm dosya eklerini getirir. |
