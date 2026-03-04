@@ -3,8 +3,11 @@ import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-d
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export default function SettingsPage() {
     const location = useLocation()
@@ -173,13 +176,64 @@ function ServicesTab() {
 }
 
 // ---- Statuses Tab ----
+function StatusItem({ s, openModal, setDeleteConfirm, isLocked = false }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: s.id,
+        disabled: isLocked
+    })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 'auto',
+        opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-3 ${isDragging ? 'shadow-xl border-indigo-500' : ''}`}
+        >
+            {!isLocked ? (
+                <button {...attributes} {...listeners} className="p-1 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing">
+                    <GripVertical size={16} />
+                </button>
+            ) : (
+                <div className="w-6 flex items-center justify-center text-gray-300">
+                    <Lock size={14} />
+                </div>
+            )}
+            <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: s.color }} />
+            <span className="flex-1 font-medium text-gray-900 dark:text-white">
+                {s.name}
+                {isLocked && <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full font-normal">Varsayılan</span>}
+            </span>
+            <div className="flex gap-1">
+                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
+                {!isLocked && (
+                    <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                )}
+            </div>
+        </div>
+    )
+}
+
 function StatusesTab() {
     const qc = useQueryClient()
     const [modal, setModal] = useState({ open: false, status: null })
     const [form, setForm] = useState({ name: '', color: '#3b82f6', order: 0 })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-    const { data: statuses = [] } = useQuery({ queryKey: ['job-statuses'], queryFn: () => api.get('/settings/statuses').then(r => r.data) })
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    )
+
+    const { data: statuses = [] } = useQuery({
+        queryKey: ['job-statuses'],
+        queryFn: () => api.get('/settings/statuses').then(r => r.data)
+    })
 
     const saveMutation = useMutation({
         mutationFn: () => modal.status ? api.put(`/settings/statuses/${modal.status.id}`, form) : api.post('/settings/statuses', form),
@@ -188,12 +242,40 @@ function StatusesTab() {
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/settings/statuses/${id}`),
         onSuccess: () => { qc.invalidateQueries(['job-statuses']); toast.success('Durum silindi.'); setDeleteConfirm(null) },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.')
     })
+
+    const reorderMutation = useMutation({
+        mutationFn: (newOrder) => api.post('/settings/statuses/reorder', { statuses: newOrder }),
+        onSuccess: () => qc.invalidateQueries(['job-statuses']),
+        onError: () => toast.error('Sıralama güncellenemedi.')
+    })
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        const defaultStatus = statuses.find(s => s.name === 'Varsayılan')
+        const otherStatuses = statuses.filter(s => s.name !== 'Varsayılan')
+
+        const oldIndex = otherStatuses.findIndex(i => i.id === active.id)
+        const newIndex = otherStatuses.findIndex(i => i.id === over.id)
+
+        const reorderedOthers = arrayMove(otherStatuses, oldIndex, newIndex)
+
+        // Final array: Varsayılan (order 0) + others (starting from order 1)
+        const finalArr = [defaultStatus, ...reorderedOthers]
+        const payload = finalArr.map((s, idx) => ({ id: s.id, order: idx }))
+        reorderMutation.mutate(payload)
+    }
 
     const openModal = (status = null) => {
         setForm(status ? { name: status.name, color: status.color || '#3b82f6', order: status.order || 0 } : { name: '', color: '#3b82f6', order: statuses.length })
         setModal({ open: true, status })
     }
+
+    const defaultStatus = statuses.find(s => s.name === 'Varsayılan')
+    const otherStatuses = statuses.filter(s => s.name !== 'Varsayılan')
 
     return (
         <div className="space-y-4">
@@ -202,23 +284,31 @@ function StatusesTab() {
                     <Plus size={16} /> Durum Ekle
                 </button>
             </div>
+
             <div className="space-y-3">
-                {statuses.map(s => (
-                    <div key={s.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                        <span className="flex-1 font-medium text-gray-900 dark:text-white">{s.name}</span>
-                        <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
-                        <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
-                    </div>
-                ))}
-                {statuses.length === 0 && <p className="text-center text-gray-400 py-8">Henüz durum yok.</p>}
+                {/* Always render Varsayılan at the top, outside of DndContext for movement but inside for visual consistency if needed, 
+                    actually best to just render it static and move context below it */}
+                {defaultStatus && (
+                    <StatusItem s={defaultStatus} openModal={openModal} setDeleteConfirm={setDeleteConfirm} isLocked={true} />
+                )}
+
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={otherStatuses.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-3">
+                            {otherStatuses.map(s => (
+                                <StatusItem key={s.id} s={s} openModal={openModal} setDeleteConfirm={setDeleteConfirm} />
+                            ))}
+                            {statuses.length === 0 && <p className="text-center text-gray-400 py-8">Henüz durum yok.</p>}
+                        </div>
+                    </SortableContext>
+                </DndContext>
             </div>
 
             <Modal open={modal.open} onClose={() => setModal({ open: false, status: null })} title={modal.status ? 'Durumu Düzenle' : 'Durum Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adı *</label>
-                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required disabled={modal.status?.name === 'Varsayılan'} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50" />
                     </div>
                     <div className="flex items-center gap-3">
                         <div>
@@ -227,7 +317,8 @@ function StatusesTab() {
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sıra</label>
-                            <input type="number" value={form.order} onChange={e => setForm(p => ({ ...p, order: parseInt(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                            <input type="number" value={form.order} readOnly className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800/50 text-gray-500 focus:outline-none" />
+                            <p className="text-[10px] text-gray-400 mt-1">Sıralamayı listeden sürükleyerek değiştirebilirsiniz.</p>
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">

@@ -71,11 +71,26 @@ class JobController extends Controller
         $tenantId = $request->user()->tenant_id;
 
         $job = DB::transaction(function () use ($validated, $tenantId, $request) {
+            $jobStatusId = $validated['jobStatusId'] ?? null;
+            if (!$jobStatusId) {
+                // Fetch first status for tenant
+                $ds = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
+                if (!$ds) {
+                    $ds = JobStatus::create([
+                        'tenant_id' => $tenantId,
+                        'name'      => 'Varsayılan',
+                        'color'     => '#6366f1',
+                        'order'     => 0,
+                    ]);
+                }
+                $jobStatusId = $ds->id;
+            }
+
             $job = JobCrm::create([
                 'tenant_id'     => $tenantId,
                 'customer_id'   => $validated['customerId'],
                 'service_id'    => $validated['serviceId'] ?? null,
-                'job_status_id' => $validated['jobStatusId'] ?? null,
+                'job_status_id' => $jobStatusId,
                 'title'         => $validated['title'],
                 'description'   => $validated['description'] ?? null,
                 'status'        => $validated['status'] ?? 'PENDING',

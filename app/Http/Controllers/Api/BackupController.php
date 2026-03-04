@@ -372,11 +372,27 @@ class BackupController extends Controller
                 $customerId = $customerIdMap[$j['customerId']] ?? null;
                 if (!$customerId) continue;
 
+                $jsId = (isset($j['jobStatusId']) && isset($statusIdMap[$j['jobStatusId']])) ? $statusIdMap[$j['jobStatusId']] : null;
+                
+                if (!$jsId) {
+                    // Try to pick first status for tenant
+                    $ds = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
+                    if (!$ds) {
+                        $ds = JobStatus::create([
+                            'tenant_id' => $tenantId,
+                            'name'      => 'Varsayılan',
+                            'color'     => '#6366f1',
+                            'order'     => 0,
+                        ]);
+                    }
+                    $jsId = $ds->id;
+                }
+
                 $job = JobCrm::updateOrCreate(
                     ['tenant_id' => $tenantId, 'title' => $j['title'], 'customer_id' => $customerId],
                     [
                         'service_id'    => isset($j['serviceId']) && isset($serviceIdMap[$j['serviceId']]) ? $serviceIdMap[$j['serviceId']] : null,
-                        'job_status_id' => isset($j['jobStatusId']) && isset($statusIdMap[$j['jobStatusId']]) ? $statusIdMap[$j['jobStatusId']] : null,
+                        'job_status_id' => $jsId,
                         'description'   => $j['description'],
                         'status'        => $j['status'] ?? 'PENDING',
                         'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),

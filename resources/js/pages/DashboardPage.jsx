@@ -4,13 +4,6 @@ import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Cl
 import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 
-const statusLabel = {
-    PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10' },
-    IN_PROGRESS: { label: 'Devam Ediyor', color: 'text-blue-500 bg-blue-500/10' },
-    COMPLETED: { label: 'Tamamlandı', color: 'text-green-500 bg-green-500/10' },
-    CANCELLED: { label: 'İptal', color: 'text-red-500 bg-red-500/10' },
-}
-
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
@@ -38,6 +31,7 @@ export default function DashboardPage() {
         { label: 'Toplam Müşteri', value: stats?.totalCustomers || 0, icon: Users, color: 'from-blue-500 to-blue-600', bg: 'bg-blue-500/10 dark:bg-blue-500/10', iconColor: 'text-blue-500' },
         { label: 'Aktif İşler', value: stats?.activeJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
         { label: 'Tamamlanan', value: stats?.completedJobs || 0, icon: CheckSquare, color: 'from-green-500 to-green-600', bg: 'bg-green-500/10', iconColor: 'text-green-500' },
+        { label: 'Toplam İş', value: stats?.totalJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
         { label: 'Toplam Tahsilat', value: formatCurrency(stats?.totalPayments), icon: CreditCard, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', isText: true },
         { label: 'Toplam Masraf', value: formatCurrency(stats?.totalExpenses), icon: TrendingDown, color: 'from-red-500 to-red-600', bg: 'bg-red-500/10', iconColor: 'text-red-500', isText: true },
         { label: 'Net Kâr', value: formatCurrency(stats?.netProfit), icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
@@ -151,21 +145,23 @@ export default function DashboardPage() {
                         <Link to="/jobs" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium">Tümü →</Link>
                     </div>
                     <div className="space-y-3">
-                        {(stats?.recentJobs || []).map(job => {
-                            const s = statusLabel[job.status] || statusLabel.PENDING
-                            return (
-                                <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
-                                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                                        <Briefcase size={16} className="text-indigo-500" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{job.title}</div>
-                                        <div className="text-xs text-gray-500 truncate">{job.customer?.name} • {formatDate(job.createdAt)}</div>
-                                    </div>
-                                    <span className={`text-xs font-medium px-2 py-1 rounded-lg flex-shrink-0 ${s.color}`}>{s.label}</span>
-                                </Link>
-                            )
-                        })}
+                        {(stats?.recentJobs || []).map(job => (
+                            <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                                <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                                    <Briefcase size={16} className="text-indigo-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{job.title}</div>
+                                    <div className="text-xs text-gray-500 truncate">{job.customer?.name} • {formatDate(job.createdAt)}</div>
+                                </div>
+                                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tight">
+                                        {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
+                                    </span>
+                                </div>
+                            </Link>
+                        ))}
                         {!stats?.recentJobs?.length && <p className="text-center text-gray-400 text-sm py-4">Henüz iş yok.</p>}
                     </div>
                 </div>

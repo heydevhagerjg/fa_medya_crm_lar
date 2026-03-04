@@ -21,8 +21,15 @@ class DashboardController extends Controller
         $totalCustomers = Customer::where('tenant_id', $tenantId)->count();
 
         $activeJobs = JobCrm::where('tenant_id', $tenantId)
-            ->whereIn('status', ['PENDING', 'IN_PROGRESS'])
+            ->whereHas('jobStatus', function($q) {
+                $q->where('name', 'NOT LIKE', '%Tamamlandı%')
+                  ->where('name', 'NOT LIKE', '%İptal%')
+                  ->where('name', 'NOT LIKE', '%Bitti%');
+            })
             ->count();
+        // If the above is too complex, we can just say total jobs or let user define.
+        // But let's try a simple heuristic for now or just return total.
+        $totalJobs = JobCrm::where('tenant_id', $tenantId)->count();
 
         $totalRevenue = JobCrm::where('tenant_id', $tenantId)
             ->sum('total_price');
@@ -39,7 +46,7 @@ class DashboardController extends Controller
             ->map(fn($j) => [
                 'id'        => $j->id,
                 'title'     => $j->title,
-                'status'    => $j->status,
+                'status'    => $j->job_status_id,
                 'customer'  => ['name' => $j->customer?->name],
                 'jobStatus' => $j->jobStatus,
                 'createdAt' => $j->created_at,
@@ -58,13 +65,23 @@ class DashboardController extends Controller
                 'job'         => ['title' => $p->job?->title],
             ]);
 
-        $completedJobs = JobCrm::where('tenant_id', $tenantId)->where('status', 'COMPLETED')->count();
+        $completedJobs = JobCrm::where('tenant_id', $tenantId)
+            ->whereHas('jobStatus', function($q) {
+                $q->where('name', 'LIKE', '%Tamamlandı%')
+                  ->orWhere('name', 'LIKE', '%Bitti%');
+            })
+            ->count();
 
         $jobsByStatus = JobCrm::where('tenant_id', $tenantId)
-            ->selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
+            ->with('jobStatus')
+            ->selectRaw('job_status_id, COUNT(*) as count')
+            ->groupBy('job_status_id')
             ->get()
-            ->pluck('count', 'status');
+            ->map(fn($item) => [
+                'name' => $item->jobStatus->name ?? 'Belirtilmemiş',
+                'color' => $item->jobStatus->color ?? '#94a3b8',
+                'count' => $item->count
+            ]);
 
         $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(function ($cr) use ($tenantId) {
             $payments = Payment::where('tenant_id', $tenantId)->where('cash_register_id', $cr->id)->sum('amount');
@@ -79,6 +96,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'totalCustomers' => $totalCustomers,
+            'totalJobs'      => $totalJobs,
             'activeJobs'     => $activeJobs,
             'completedJobs'  => $completedJobs,
             'totalRevenue'   => $totalRevenue,

@@ -6,13 +6,6 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
-const statusConfig = {
-    PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10' },
-    IN_PROGRESS: { label: 'Devam Ediyor', color: 'text-blue-500 bg-blue-500/10' },
-    COMPLETED: { label: 'Tamamlandı', color: 'text-green-500 bg-green-500/10' },
-    CANCELLED: { label: 'İptal', color: 'text-red-500 bg-red-500/10' },
-}
-
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
@@ -270,7 +263,6 @@ export default function JobDetailPage() {
             title: job.title,
             customerId: job.customerId || job.customer_id || '',
             serviceId: job.serviceId || job.service_id || '',
-            status: job.status || 'PENDING',
             jobStatusId: job.jobStatusId || job.job_status_id || '',
             totalPrice: job.totalPrice || job.total_price || '',
             startDate: (job.startDate || job.start_date || '').toString().substring(0, 10),
@@ -327,7 +319,7 @@ export default function JobDetailPage() {
     const remaining = totalPrice - totalPaid
     const paymentPerformance = totalPrice > 0 ? Math.round((totalPaid / totalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
     const completionProgress = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0
-    const statusConf = statusConfig[job.status] || statusConfig.PENDING
+    // const statusConf = statusConfig[job.status] || statusConfig.PENDING // Removed
 
     const matchedService = services.find(s => s.id === (job.serviceId || job.service_id))
     const definedCustomFields = matchedService?.customfield || []
@@ -345,10 +337,12 @@ export default function JobDetailPage() {
                     <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">{job.title}</h1>
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <Link to={`/customers/${job.customerId || job.customer_id}`} className="text-sm text-indigo-500 hover:underline">{job.customer?.name}</Link>
-                        <span className={`text-xs px-2 py-1 rounded-lg font-medium ${statusConf.color}`}>{statusConf.label}</span>
-                        {job.jobStatus && (
-                            <span className="text-xs px-2 py-1 rounded-lg font-medium" style={{ background: job.jobStatus.color + '20', color: job.jobStatus.color, border: `1px solid ${job.jobStatus.color}40` }}>{job.jobStatus.name}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors" title="İşi Düzenle">
@@ -724,18 +718,26 @@ export default function JobDetailPage() {
                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Durum</label>
-                            <select value={editForm.status || 'PENDING'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                                {Object.entries(statusConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İş Durumu</label>
-                            <select value={editForm.jobStatusId || ''} onChange={e => setEditForm(p => ({ ...p, jobStatusId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                                <option value="">Seçin...</option>
-                                {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">İş Durumu / Aşama</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {statuses.map(s => (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => setEditForm(f => ({ ...f, jobStatusId: s.id }))}
+                                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${editForm.jobStatusId === s.id
+                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                            {s.name}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplam Fiyat (₺) *</label>

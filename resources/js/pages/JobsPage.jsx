@@ -8,13 +8,6 @@ import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useEffect } from 'react'
 
-const statusConfig = {
-    PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10 border border-yellow-500/20' },
-    IN_PROGRESS: { label: 'Devam Ediyor', color: 'text-blue-500 bg-blue-500/10 border border-blue-500/20' },
-    COMPLETED: { label: 'Tamamlandı', color: 'text-green-500 bg-green-500/10 border border-green-500/20' },
-    CANCELLED: { label: 'İptal', color: 'text-red-500 bg-red-500/10 border border-red-500/20' },
-}
-
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
@@ -60,7 +53,6 @@ export default function JobsPage() {
             jobStatusId: job.jobStatusId || job.job_status_id || '',
             title: job.title,
             description: job.description || '',
-            status: job.status || 'PENDING',
             totalPrice: job.totalPrice || job.total_price || 0,
             startDate: job.startDate || job.start_date ? (job.startDate || job.start_date).toString().substring(0, 10) : '',
             endDate: job.endDate || job.end_date ? (job.endDate || job.end_date).toString().substring(0, 10) : '',
@@ -68,10 +60,9 @@ export default function JobsPage() {
         } : {
             customerId: customers[0]?.id || '',
             serviceId: '',
-            jobStatusId: '',
+            jobStatusId: statuses[0]?.id || '',
             title: '',
             description: '',
-            status: 'PENDING',
             totalPrice: 0,
             startDate: new Date().toISOString().substring(0, 10),
             endDate: '',
@@ -103,7 +94,7 @@ export default function JobsPage() {
 
     const filtered = jobs.filter(j => {
         const matchSearch = j.title?.toLowerCase().includes(search.toLowerCase()) || j.customer?.name?.toLowerCase().includes(search.toLowerCase())
-        const matchStatus = !filterStatus || j.status === filterStatus
+        const matchStatus = !filterStatus || (j.jobStatusId || j.job_status_id) == filterStatus
         return matchSearch && matchStatus
     }).sort((a, b) => b.id - a.id)
 
@@ -132,20 +123,25 @@ export default function JobsPage() {
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İş veya müşteri ara..." className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400" />
                 </div>
                 <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-indigo-500">
-                    <option value="">Tüm Durumlar</option>
-                    {Object.entries(statusConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    <option value="">Tüm Durumlar/Aşamalar</option>
+                    {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
 
             {/* Status summary */}
             <div className="flex gap-2 flex-wrap">
-                {Object.entries(statusConfig).map(([k, v]) => {
-                    const count = jobs.filter(j => j.status === k).length
+                {statuses.map(s => {
+                    const count = jobs.filter(j => (j.jobStatusId || j.job_status_id) == s.id).length
                     return (
-                        <button key={k} onClick={() => setFilterStatus(filterStatus === k ? '' : k)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterStatus === k ? v.color : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}
+                        <button key={s.id} onClick={() => setFilterStatus(filterStatus == s.id ? '' : s.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterStatus == s.id
+                                ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-200 dark:hover:border-gray-700'}`}
                         >
-                            {v.label}: {count}
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+                                {s.name}: {count}
+                            </div>
                         </button>
                     )
                 })}
@@ -174,8 +170,6 @@ export default function JobsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {paginatedData.map(job => {
-                                    const statusConf = statusConfig[job.status] || statusConfig.PENDING
-                                    const customStatus = statuses.find(s => s.id === (job.jobStatusId || job.job_status_id))
                                     return (
                                         <tr key={job.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                             <td className="px-5 py-4">
@@ -192,11 +186,11 @@ export default function JobsPage() {
                                                 <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(job.totalPrice || job.total_price)}</span>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className={`text-xs font-medium px-2 py-1 rounded-lg inline-flex w-fit ${statusConf.color}`}>{statusConf.label}</span>
-                                                    {customStatus && (
-                                                        <span className="text-xs px-2 py-0.5 rounded-md inline-flex w-fit" style={{ background: customStatus.color + '20', color: customStatus.color, border: `1px solid ${customStatus.color}40` }}>{customStatus.name}</span>
-                                                    )}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                        {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
@@ -242,18 +236,26 @@ export default function JobsPage() {
                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Durum</label>
-                            <select value={form.status || 'PENDING'} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                                {Object.entries(statusConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İş Durumu</label>
-                            <select value={form.jobStatusId || ''} onChange={e => setForm(p => ({ ...p, jobStatusId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                                <option value="">Seçin...</option>
-                                {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">İş Durumu / Aşama</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {statuses.map(s => (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => setForm(f => ({ ...f, jobStatusId: s.id }))}
+                                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${form.jobStatusId === s.id
+                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                            {s.name}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplam Fiyat (₺)</label>

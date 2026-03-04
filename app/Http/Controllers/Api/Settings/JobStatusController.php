@@ -12,7 +12,17 @@ class JobStatusController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
-        return response()->json(JobStatus::where('tenant_id', $tenantId)->orderBy('order')->get());
+        $statuses = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->get();
+        if ($statuses->isEmpty()) {
+            $default = JobStatus::create([
+                'tenant_id' => $tenantId,
+                'name'      => 'Varsayılan',
+                'color'     => '#6366f1',
+                'order'     => 0,
+            ]);
+            $statuses = collect([$default]);
+        }
+        return response()->json($statuses);
     }
 
     public function store(Request $request): JsonResponse
@@ -34,9 +44,34 @@ class JobStatusController extends Controller
         return response()->json($status);
     }
 
+    public function reorder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'statuses' => 'required|array',
+            'statuses.*.id' => 'required|integer|exists:job_statuses,id',
+            'statuses.*.order' => 'required|integer',
+        ]);
+
+        $tenantId = $request->user()->tenant_id;
+
+        foreach ($request->statuses as $s) {
+            JobStatus::where('id', $s['id'])
+                ->where('tenant_id', $tenantId)
+                ->update(['order' => $s['order']]);
+        }
+
+        return response()->json(['message' => 'Sıralama güncellendi.']);
+    }
+
     public function destroy(Request $request, int $id): JsonResponse
     {
-        JobStatus::where('tenant_id', $request->user()->tenant_id)->findOrFail($id)->delete();
+        $status = JobStatus::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+        
+        if ($status->name === 'Varsayılan') {
+            return response()->json(['message' => 'Varsayılan durum silinemez.'], 403);
+        }
+
+        $status->delete();
         return response()->json(['message' => 'Durum silindi.']);
     }
 }

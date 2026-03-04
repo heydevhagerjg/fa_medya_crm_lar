@@ -98,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('services', ServiceController::class);
 
         // Job Statuses
+        Route::post('/statuses/reorder', [JobStatusController::class, 'reorder']);
         Route::apiResource('statuses', JobStatusController::class);
 
         // Step Templates

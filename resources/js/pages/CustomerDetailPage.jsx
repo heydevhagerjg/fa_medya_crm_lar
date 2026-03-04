@@ -3,13 +3,6 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
 import { ArrowLeft, Briefcase, Phone, Mail, FileText } from 'lucide-react'
 
-const statusConfig = {
-    PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10' },
-    IN_PROGRESS: { label: 'Devam Ediyor', color: 'text-blue-500 bg-blue-500/10' },
-    COMPLETED: { label: 'Tamamlandı', color: 'text-green-500 bg-green-500/10' },
-    CANCELLED: { label: 'İptal', color: 'text-red-500 bg-red-500/10' },
-}
-
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
@@ -92,7 +85,6 @@ export default function CustomerDetailPage() {
                         {(customer.job || []).length === 0 ? (
                             <p className="text-center text-gray-400 py-8">Henüz iş yok.</p>
                         ) : (customer.job || []).map(job => {
-                            const s = statusConfig[job.status] || statusConfig.PENDING
                             const paid = (job.payment || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
                             const remaining = parseFloat(job.total_price || 0) - paid
                             return (
@@ -103,7 +95,12 @@ export default function CustomerDetailPage() {
                                             <div className="text-xs text-gray-500 mt-0.5">{formatDate(job.start_date)} • {formatCurrency(job.total_price)}</div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <span className={`text-xs px-2 py-1 rounded-lg font-medium ${s.color}`}>{s.label}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
+                                                </span>
+                                            </div>
                                             {remaining > 0 && <span className="text-xs text-red-500">{formatCurrency(remaining)} kalan</span>}
                                         </div>
                                     </div>
