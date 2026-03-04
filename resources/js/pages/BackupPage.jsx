@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud } from 'lucide-react'
 
 export default function BackupPage() {
     const [importing, setImporting] = useState(false)
@@ -16,12 +17,25 @@ export default function BackupPage() {
             const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }))
             const a = document.createElement('a')
             a.href = url
-            a.download = `crm-backup-${new Date().toISOString().substring(0, 10)}.json`
+
+            // Try to extract filename from content-disposition header
+            let filename = `${new Date().toISOString().substring(0, 10)}.json`
+            const disposition = response.headers['content-disposition']
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+                const matches = filenameRegex.exec(disposition)
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '')
+                }
+            }
+
+            a.download = filename
             document.body.appendChild(a)
             a.click()
             a.remove()
             URL.revokeObjectURL(url)
             toast.success('Yedek başarıyla indirildi.')
+            s3BackupsRefetch()
         } catch {
             toast.error('Yedek alınamadı.')
         } finally {
@@ -57,6 +71,30 @@ export default function BackupPage() {
             toast.error(err.response?.data?.message || 'Sıfırlama işlemi başarısız.')
         } finally {
             setResetting(false)
+        }
+    }
+
+    const { data: s3Backups = [], isLoading: isLoadingS3, refetch: s3BackupsRefetch } = useQuery({
+        queryKey: ['s3-backups'],
+        queryFn: () => api.get('/settings/backup/s3/list').then(r => r.data),
+        retry: false, // In case S3 isn't set up, it will just fail gracefully
+    })
+
+    const handleS3Download = async (filename) => {
+        try {
+            const toastId = toast.loading('İndiriliyor...')
+            const response = await api.get(`/settings/backup/s3/download?filename=${encodeURIComponent(filename)}`, { responseType: 'blob' })
+            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }))
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            URL.revokeObjectURL(url)
+            toast.success('Yedek indirildi.', { id: toastId })
+        } catch {
+            toast.error('Buluttan indirme başarısız.')
         }
     }
 
@@ -177,6 +215,65 @@ export default function BackupPage() {
                     {resetting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <AlertCircle size={16} />}
                     {resetting ? 'Sıfırlanıyor...' : 'Tüm Verileri Şimdi Sil'}
                 </button>
+            </div>
+
+            {/* S3 Backups Section */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                            <Cloud size={20} className="text-indigo-500" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-gray-900 dark:text-white">Bulut Yedekleri (AWS S3)</h2>
+                            <p className="text-sm text-gray-500">Geçmişte dışa aktarılan yedeklemeler</p>
+                        </div>
+                    </div>
+                    <button onClick={() => s3BackupsRefetch()} className="text-sm text-indigo-500 hover:text-indigo-600 transition-colors">Yenile</button>
+                </div>
+
+                <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mt-6">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800 text-left">
+                                <th className="px-5 py-3 font-semibold text-gray-500">Dosya Adı</th>
+                                <th className="px-5 py-3 font-semibold text-gray-500">Boyut</th>
+                                <th className="px-5 py-3 font-semibold text-gray-500">Tarih</th>
+                                <th className="px-5 py-3 font-semibold text-gray-500 text-right">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                            {isLoadingS3 ? (
+                                <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400">Yedekler yükleniyor...</td></tr>
+                            ) : s3Backups.length > 0 ? (
+                                s3Backups.map((backup, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                                        <td className="px-5 py-4 font-medium text-gray-900 dark:text-gray-300 flex items-center gap-2">
+                                            <Database size={14} className="text-gray-400" />
+                                            {backup.name}
+                                        </td>
+                                        <td className="px-5 py-4 text-gray-500">{(backup.size / 1024).toFixed(2)} KB</td>
+                                        <td className="px-5 py-4 text-gray-500">{new Date(backup.last_modified * 1000).toLocaleString('tr-TR')}</td>
+                                        <td className="px-5 py-4 text-right">
+                                            <button
+                                                onClick={() => handleS3Download(backup.name)}
+                                                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                                            >
+                                                İndir
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="4" className="px-5 py-8 text-center text-gray-500">
+                                        Herhangi bir bulut yedeği bulunamadı. AWS S3 ayarlarınız eksik olabilir veya hiç yedek almamış olabilirsiniz.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     )

@@ -90,6 +90,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/backup/export', [BackupController::class, 'export']);
         Route::post('/backup/import', [BackupController::class, 'import']);
         Route::post('/backup/reset', [BackupController::class, 'reset']);
+        Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
+        Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
 
         // Services
         Route::apiResource('services', ServiceController::class);

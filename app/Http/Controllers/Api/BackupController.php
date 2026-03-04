@@ -25,13 +25,38 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
+use App\Services\ActivityLogService;
 
 class BackupController extends Controller
 {
+    private function setS3Config($tenant)
+    {
+        if (!$tenant || !$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
+            return false;
+        }
+
+        $region = $tenant->aws_region ?? 'eu-central-1';
+
+        Config::set('filesystems.disks.s3_tenant', [
+            'driver' => 's3',
+            'key'    => $tenant->aws_access_key_id,
+            'secret' => $tenant->aws_secret_access_key,
+            'region' => $region,
+            'bucket' => $tenant->aws_bucket_name,
+            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'use_path_style_endpoint' => false,
+            'throw'  => true,
+        ]);
+
+        return true;
+    }
+
     /**
      * Export all tenant data as JSON (the same format as Next.js backup)
      */
-    public function export(Request $request): JsonResponse
+    public function export(Request $request)
     {
         $user = $request->user();
         $tenantId = $user->tenant_id;
@@ -150,8 +175,86 @@ class BackupController extends Controller
         ]);
 
         $backup['import_key'] = $newImportKey;
+        $jsonContent = json_encode($backup, JSON_UNESCAPED_UNICODE);
+        $filename = Str::slug($tenant->name ?? 'yedek', '_') . '_' . now()->timestamp . ".json";
 
-        return response()->json($backup)->header('Content-Disposition', 'attachment; filename="crm-backup-' . now()->format('Y-m-d') . '.json"');
+        if ($this->setS3Config($tenant)) {
+            try {
+                Storage::disk('s3_tenant')->put("backups/{$filename}", $jsonContent);
+                ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem yedeği AWS S3 üzerine aktarıldı: ' . $filename);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("S3 Backup upload failed: " . $e->getMessage());
+            }
+        }
+
+        return response($jsonContent)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    /**
+     * List backups directly from S3.
+     */
+    public function listS3Backups(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $tenant = Tenant::find($tenantId);
+
+        if (!$this->setS3Config($tenant)) {
+            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        }
+
+        try {
+            $files = Storage::disk('s3_tenant')->files('backups');
+            $backups = [];
+            foreach ($files as $file) {
+                if (Str::endsWith($file, '.json')) {
+                    $backups[] = [
+                        'name' => basename($file),
+                        'size' => Storage::disk('s3_tenant')->size($file),
+                        'last_modified' => Storage::disk('s3_tenant')->lastModified($file),
+                    ];
+                }
+            }
+
+            usort($backups, fn($a, $b) => $b['last_modified'] <=> $a['last_modified']);
+
+            return response()->json($backups);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("S3 Backup List error: " . $e->getMessage());
+            return response()->json(['message' => 'Yedekler listelenirken S3 hatası oluştu.'], 500);
+        }
+    }
+
+    /**
+     * Download backup directly from S3
+     */
+    public function downloadS3Backup(Request $request)
+    {
+        $filename = $request->query('filename');
+        if (!$filename) {
+            return response()->json(['message' => 'Geçersiz dosya adı.'], 400);
+        }
+
+        $tenantId = $request->user()->tenant_id;
+        $tenant = Tenant::find($tenantId);
+
+        if (!$this->setS3Config($tenant)) {
+            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        }
+
+        try {
+            $path = "backups/" . basename($filename);
+            
+            if (!Storage::disk('s3_tenant')->exists($path)) {
+                return response()->json(['message' => 'Yedek dosyası S3 üzerinde bulunamadı.'], 404);
+            }
+
+            return Storage::disk('s3_tenant')->download($path);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("S3 Backup Download error: " . $e->getMessage());
+            return response()->json(['message' => 'Yedek dosyası indirilirken hata oluştu.'], 500);
+        }
     }
 
     /**
