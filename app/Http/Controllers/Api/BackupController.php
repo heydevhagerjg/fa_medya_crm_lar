@@ -165,9 +165,10 @@ class BackupController extends Controller
         $data = $backup['data'];
         $settings = $backup['tenant_settings'] ?? [];
 
-        DB::transaction(function () use ($data, $tenantId, $settings) {
-            // Restore Tenant Settings (S3, etc.)
-            if (!empty($settings)) {
+        \Illuminate\Database\Eloquent\Model::unguarded(function () use ($data, $tenantId, $settings) {
+            DB::transaction(function () use ($data, $tenantId, $settings) {
+                // Restore Tenant Settings (S3, etc.)
+                if (!empty($settings)) {
                 Tenant::where('id', $tenantId)->update([
                     'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
                     'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
@@ -178,18 +179,22 @@ class BackupController extends Controller
 
             // Import services & custom fields
             $serviceIdMap = [];
+            $customFieldIdMap = [];
             foreach (($data['services'] ?? []) as $s) {
                 $service = Service::updateOrCreate(
                     ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['config' => $s['config'] ?? '{}']
+                    ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
                 );
                 $serviceIdMap[$s['id']] = $service->id;
 
                 foreach (($s['customfield'] ?? []) as $cf) {
-                    $service->customFields()->updateOrCreate(
+                    $newCf = $service->customFields()->updateOrCreate(
                         ['label' => $cf['label'], 'service_id' => $service->id],
-                        ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0]
+                        ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
                     );
+                    if (isset($cf['id'])) {
+                        $customFieldIdMap[$cf['id']] = $newCf->id;
+                    }
                 }
             }
 
@@ -198,7 +203,7 @@ class BackupController extends Controller
             foreach (($data['jobstatuses'] ?? []) as $s) {
                 $status = JobStatus::updateOrCreate(
                     ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['color' => $s['color'], 'order' => $s['order'] ?? 0]
+                    ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
                 );
                 $statusIdMap[$s['id']] = $status->id;
             }
@@ -207,12 +212,12 @@ class BackupController extends Controller
             foreach (($data['steptemplates'] ?? []) as $t) {
                 $template = StepTemplate::updateOrCreate(
                     ['tenant_id' => $tenantId, 'name' => $t['name']],
-                    []
+                    ['created_at' => $t['createdAt'] ?? now(), 'updated_at' => $t['updatedAt'] ?? now()]
                 );
                 foreach (($t['defaultstep'] ?? []) as $step) {
                     $template->defaultSteps()->updateOrCreate(
                         ['title' => $step['title'], 'template_id' => $template->id],
-                        ['order' => $step['order'] ?? 0, 'tenant_id' => $tenantId]
+                        ['order' => $step['order'] ?? 0, 'tenant_id' => $tenantId, 'created_at' => $step['createdAt'] ?? now(), 'updated_at' => $step['updatedAt'] ?? now()]
                     );
                 }
             }
@@ -222,7 +227,7 @@ class BackupController extends Controller
             foreach (($data['customers'] ?? []) as $c) {
                 $customer = Customer::updateOrCreate(
                     ['tenant_id' => $tenantId, 'name' => $c['name'], 'phone' => $c['phone']],
-                    ['email' => $c['email'], 'notes' => $c['notes']]
+                    ['email' => $c['email'], 'notes' => $c['notes'], 'created_at' => $c['createdAt'] ?? now(), 'updated_at' => $c['updatedAt'] ?? now()]
                 );
                 $customerIdMap[$c['id']] = $customer->id;
             }
@@ -243,6 +248,8 @@ class BackupController extends Controller
                         'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),
                         'end_date'      => isset($j['endDate']) ? substr($j['endDate'], 0, 10) : null,
                         'total_price'   => $j['totalPrice'] ?? 0,
+                        'created_at'    => $j['createdAt'] ?? now(),
+                        'updated_at'    => $j['updatedAt'] ?? now(),
                     ]
                 );
                 $jobIdMap[$j['id']] = $job->id;
@@ -259,7 +266,7 @@ class BackupController extends Controller
                 if (!empty($j['jobstep'])) {
                     $job->jobSteps()->delete();
                     foreach ($j['jobstep'] as $step) {
-                        $job->jobSteps()->create(['title' => $step['title'], 'is_completed' => $step['isCompleted'] ?? false, 'order' => $step['order'] ?? 0]);
+                        $job->jobSteps()->create(['title' => $step['title'], 'is_completed' => $step['isCompleted'] ?? false, 'order' => $step['order'] ?? 0, 'created_at' => $step['createdAt'] ?? now(), 'updated_at' => $step['updatedAt'] ?? now()]);
                     }
                 }
 
@@ -274,6 +281,24 @@ class BackupController extends Controller
                             'file_size' => $file['fileSize'] ?? $file['file_size'] ?? 0,
                             'uploaded_at' => $file['uploadedAt'] ?? $file['uploaded_at'] ?? now(),
                         ]);
+                    }
+                }
+
+                // Restore custom field values
+                if (!empty($j['customfieldvalue'])) {
+                    $job->customFieldValues()->delete();
+                    foreach ($j['customfieldvalue'] as $cfv) {
+                        $oldCfId = $cfv['customFieldId'] ?? $cfv['custom_field_id'] ?? null;
+                        $newCfId = $oldCfId && isset($customFieldIdMap[$oldCfId]) ? $customFieldIdMap[$oldCfId] : null;
+
+                        if ($newCfId) {
+                            $job->customFieldValues()->create([
+                                'custom_field_id' => $newCfId,
+                                'value'           => $cfv['value'] ?? '',
+                                'created_at'      => $cfv['createdAt'] ?? now(),
+                                'updated_at'      => $cfv['updatedAt'] ?? now(),
+                            ]);
+                        }
                     }
                 }
             }
@@ -294,7 +319,7 @@ class BackupController extends Controller
 
                     $category = ExpenseCategory::updateOrCreate(
                         ['tenant_id' => $tenantId, 'name' => $catName],
-                        []
+                        ['created_at' => $ec['createdAt'] ?? now(), 'updated_at' => $ec['updatedAt'] ?? now()]
                     );
                     
                     $oldId = $ec['id'] ?? $ec['categoryId'] ?? $ec['category_id'] ?? null;
@@ -321,7 +346,7 @@ class BackupController extends Controller
 
                     $cashRegister = CashRegister::updateOrCreate(
                         ['tenant_id' => $tenantId, 'name' => $regName],
-                        ['is_default' => $cr['is_default'] ?? $cr['isDefault'] ?? false]
+                        ['is_default' => $cr['is_default'] ?? $cr['isDefault'] ?? false, 'created_at' => $cr['createdAt'] ?? now(), 'updated_at' => $cr['updatedAt'] ?? now()]
                     );
                     
                     $oldId = $cr['id'] ?? $cr['cashRegisterId'] ?? $cr['cash_register_id'] ?? null;
@@ -352,6 +377,8 @@ class BackupController extends Controller
                             'payment_type'     => $p['paymentType'] ?? $p['payment_type'] ?? 'CASH',
                             'description'      => $p['description'] ?? null,
                             'cash_register_id' => $cashRegisterId,
+                            'created_at'       => $p['createdAt'] ?? now(),
+                            'updated_at'       => $p['updatedAt'] ?? now(),
                         ]
                     );
                 }
@@ -377,10 +404,13 @@ class BackupController extends Controller
                         'job_id'           => $jobId,
                         'description'      => $e['description'] ?? null,
                         'category_id'      => $categoryId,
-                        'cash_register_id' => $cashRegisterId
+                        'cash_register_id' => $cashRegisterId,
+                        'created_at'       => $e['createdAt'] ?? now(),
+                        'updated_at'       => $e['updatedAt'] ?? now(),
                     ]
                 );
             }
+        });
         });
 
         return response()->json(['message' => 'Yedek başarıyla içe aktarıldı.']);

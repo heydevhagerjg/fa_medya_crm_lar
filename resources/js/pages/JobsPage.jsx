@@ -105,7 +105,7 @@ export default function JobsPage() {
         const matchSearch = j.title?.toLowerCase().includes(search.toLowerCase()) || j.customer?.name?.toLowerCase().includes(search.toLowerCase())
         const matchStatus = !filterStatus || j.status === filterStatus
         return matchSearch && matchStatus
-    })
+    }).sort((a, b) => b.id - a.id)
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -166,7 +166,7 @@ export default function JobsPage() {
                             <thead>
                                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">İş</th>
-                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Müşteri</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Tarih</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Fiyat</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
                                     <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlem</th>
@@ -180,13 +180,13 @@ export default function JobsPage() {
                                         <tr key={job.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                             <td className="px-5 py-4">
                                                 <Link to={`/jobs/${job.id}`} className="font-medium text-gray-900 dark:text-white hover:text-indigo-500 transition-colors block">{job.title}</Link>
+                                                <Link to={`/customers/${job.customerId || job.customer_id}`} className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-500">{job.customer?.name || '-'}</Link>
                                                 <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
-                                                    <Calendar size={10} />
-                                                    {formatDate(job.startDate || job.start_date)}
+
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4 hidden md:table-cell">
-                                                <Link to={`/customers/${job.customerId || job.customer_id}`} className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-500">{job.customer?.name || '-'}</Link>
+                                                {formatDate(job.startDate || job.start_date)}
                                             </td>
                                             <td className="px-5 py-4 hidden lg:table-cell">
                                                 <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(job.totalPrice || job.total_price)}</span>

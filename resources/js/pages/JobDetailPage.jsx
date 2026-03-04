@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 const statusConfig = {
@@ -26,6 +26,9 @@ export default function JobDetailPage() {
 
     const [editModal, setEditModal] = useState(false)
     const [editForm, setEditForm] = useState({})
+
+    const [customFieldSidebar, setCustomFieldSidebar] = useState(false)
+    const [customFieldForm, setCustomFieldForm] = useState({})
 
     // Not düzenleme State
     const [editField, setEditField] = useState(null)
@@ -165,6 +168,19 @@ export default function JobDetailPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
 
+    const saveCustomFields = useMutation({
+        mutationFn: () => api.put(`/jobs/${id}`, {
+            customerId: job.customerId || job.customer_id,
+            customFields: customFieldForm
+        }),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success('Özel alanlar güncellendi.')
+            setCustomFieldSidebar(false)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
+
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
 
@@ -178,6 +194,11 @@ export default function JobDetailPage() {
     const paymentPerformance = totalPrice > 0 ? Math.round((totalPaid / totalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
     const completionProgress = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0
     const statusConf = statusConfig[job.status] || statusConfig.PENDING
+
+    const matchedService = services.find(s => s.id === (job.serviceId || job.service_id))
+    const definedCustomFields = matchedService?.customfield || []
+    const filledCustomFieldsCount = job.customfieldvalue?.filter(cf => cf.value && cf.value.trim() !== '').length || 0
+    const emptyCustomFieldsCount = definedCustomFields.length - filledCustomFieldsCount
 
     return (
         <div className="space-y-6">
@@ -196,9 +217,22 @@ export default function JobDetailPage() {
                         )}
                     </div>
                 </div>
-                <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
+                <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors" title="İşi Düzenle">
                     <Edit2 size={18} />
                 </button>
+                <div className="relative">
+                    <button onClick={() => {
+                        setCustomFieldForm(job.customfieldvalue ? Object.fromEntries(job.customfieldvalue.map(cf => [cf.custom_field_id, cf.value])) : {})
+                        setCustomFieldSidebar(true)
+                    }} className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors" title="Özel Alanlar">
+                        <LayoutList size={18} />
+                    </button>
+                    {emptyCustomFieldsCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-gray-900 border border-transparent">
+                            {emptyCustomFieldsCount}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Stats bar */}
@@ -495,6 +529,44 @@ export default function JobDetailPage() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Custom Fields Sidebar */}
+            {customFieldSidebar && (
+                <>
+                    <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setCustomFieldSidebar(false)} />
+                    <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white dark:bg-gray-900 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out font-sans border-l border-gray-200 dark:border-gray-800">
+                        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <LayoutList size={20} className="text-purple-500" />
+                                Özel Alanlar
+                            </h2>
+                            <button onClick={() => setCustomFieldSidebar(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-5 flex-1 overflow-y-auto space-y-4">
+                            {services.find(s => s.id === (job.serviceId || job.service_id))?.customfield?.map(cf => (
+                                <div key={cf.id}>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
+                                    {cf.type === 'textarea' ? (
+                                        <textarea value={customFieldForm[cf.id] || ''} onChange={e => setCustomFieldForm(p => ({ ...p, [cf.id]: e.target.value }))} required={cf.required} rows={3} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
+                                    ) : (
+                                        <input type={cf.type || 'text'} value={customFieldForm[cf.id] || ''} onChange={e => setCustomFieldForm(p => ({ ...p, [cf.id]: e.target.value }))} required={cf.required} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                                    )}
+                                </div>
+                            ))}
+                            {(!services.find(s => s.id === (job.serviceId || job.service_id))?.customfield || services.find(s => s.id === (job.serviceId || job.service_id))?.customfield.length === 0) && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">Bu iş için hizmet seçimi yapılmamış.</p>
+                            )}
+                        </div>
+                        <div className="p-5 border-t border-gray-200 dark:border-gray-800">
+                            <button onClick={() => saveCustomFields.mutate()} disabled={saveCustomFields.isPending} className="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                                {saveCustomFields.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

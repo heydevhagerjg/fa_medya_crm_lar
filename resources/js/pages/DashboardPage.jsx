@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
-import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3, ArrowUpRight, Activity } from 'lucide-react'
+import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3, ArrowUpRight, Activity, Plus, ChevronDown, UserPlus } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
 
 const statusLabel = {
     PENDING: { label: 'Bekliyor', color: 'text-yellow-500 bg-yellow-500/10' },
@@ -20,6 +21,19 @@ export default function DashboardPage() {
         refetchInterval: 60000,
     })
 
+    const [dropdownOpen, setDropdownOpen] = useState(false)
+    const dropdownRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setDropdownOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
     const statCards = [
         { label: 'Toplam Müşteri', value: stats?.totalCustomers || 0, icon: Users, color: 'from-blue-500 to-blue-600', bg: 'bg-blue-500/10 dark:bg-blue-500/10', iconColor: 'text-blue-500' },
         { label: 'Aktif İşler', value: stats?.activeJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
@@ -34,9 +48,51 @@ export default function DashboardPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ana Sayfa</h1>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Genel bakış ve istatistikler</p>
+            <div className="flex justify-between items-center relative z-20">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ana Sayfa</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Genel bakış ve istatistikler</p>
+                </div>
+
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/30"
+                    >
+                        <Plus size={18} />
+                        Yeni
+                        <ChevronDown size={16} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {dropdownOpen && (
+                        <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-2 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                            <Link to="/customers?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                    <UserPlus size={16} className="text-blue-500" />
+                                </div>
+                                <span className="font-medium">Yeni Müşteri</span>
+                            </Link>
+                            <Link to="/jobs?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                    <Briefcase size={16} className="text-indigo-500" />
+                                </div>
+                                <span className="font-medium">Yeni İş / Proje</span>
+                            </Link>
+                            <Link to="/payments?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                    <CreditCard size={16} className="text-emerald-500" />
+                                </div>
+                                <span className="font-medium">Yeni Tahsilat</span>
+                            </Link>
+                            <Link to="/expenses?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                                    <TrendingDown size={16} className="text-red-500" />
+                                </div>
+                                <span className="font-medium">Yeni Masraf</span>
+                            </Link>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Stat cards */}
