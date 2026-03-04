@@ -11,10 +11,10 @@ import {
 
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa' },
+    { to: '/customers', icon: Users, label: 'Müşteriler' },
     { to: '/appointments', icon: Calendar, label: 'Randevular' },
     { to: '/jobs', icon: Briefcase, label: 'İşler' },
     { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)' },
-    { to: '/customers', icon: Users, label: 'Müşteriler' },
     { to: '/payments', icon: CreditCard, label: 'Tahsilatlar' },
     { to: '/expenses', icon: TrendingDown, label: 'Masraflar' },
     { to: '/files', icon: FolderOpen, label: 'Dosyalar' },
