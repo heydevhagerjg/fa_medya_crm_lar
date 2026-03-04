@@ -95,7 +95,8 @@ class DashboardController extends Controller
         });
 
         $upcomingAppointments = \App\Models\Appointment::where('tenant_id', $tenantId)
-            ->where('start_time', '>=', now()->startOfDay())
+            ->where('status', 'PENDING')
+            ->where('start_time', '>=', now())
             ->where('start_time', '<=', now()->addDays(3)->endOfDay())
             ->with('customer')
             ->orderBy('start_time')

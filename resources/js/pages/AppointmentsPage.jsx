@@ -11,16 +11,19 @@ import {
     MoreHorizontal,
     X,
     CheckCircle2,
-    CalendarDays
+    CalendarDays,
+    ChevronDown
 } from 'lucide-react'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday, addHours } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday, addHours, addWeeks, subWeeks, addDays, subDays } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
 export default function AppointmentsPage() {
     const qc = useQueryClient()
-    const [currentMonth, setCurrentMonth] = useState(new Date())
+    const [currentDate, setCurrentDate] = useState(new Date())
+    const [viewMode, setViewMode] = useState(() => localStorage.getItem('calendarViewMode') || 'month') // 'day', 'week', 'month'
+    const [showViewDropdown, setShowViewDropdown] = useState(false)
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [showModal, setShowModal] = useState(false)
     const [editingAppointment, setEditingAppointment] = useState(null)
@@ -132,13 +135,38 @@ export default function AppointmentsPage() {
 
     // Calendar logic
     const days = useMemo(() => {
-        const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 })
-        const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 })
+        if (viewMode === 'day') {
+            return [currentDate]
+        }
+        if (viewMode === 'week') {
+            const start = startOfWeek(currentDate, { weekStartsOn: 1 })
+            const end = endOfWeek(currentDate, { weekStartsOn: 1 })
+            return eachDayOfInterval({ start, end })
+        }
+        // month
+        const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 })
+        const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
         return eachDayOfInterval({ start, end })
-    }, [currentMonth])
+    }, [currentDate, viewMode])
 
-    const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
-    const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
+    const next = () => {
+        if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1))
+        else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1))
+        else setCurrentDate(addMonths(currentDate, 1))
+    }
+
+    const prev = () => {
+        if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1))
+        else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1))
+        else setCurrentDate(subMonths(currentDate, 1))
+    }
+
+    const handleViewChange = (mode) => {
+        setViewMode(mode)
+        localStorage.setItem('calendarViewMode', mode)
+        setCurrentDate(new Date())
+        setShowViewDropdown(false)
+    }
 
     return (
         <div className="space-y-6">
@@ -162,32 +190,59 @@ export default function AppointmentsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Calendar Detail / List View */}
-                <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col min-h-[600px]">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30 rounded-t-3xl">
                         <div className="flex items-center gap-4">
                             <h2 className="text-lg font-black text-gray-900 dark:text-white capitalize">
-                                {format(currentMonth, 'MMMM yyyy', { locale: tr })}
+                                {viewMode === 'day' ? format(currentDate, 'd MMMM yyyy', { locale: tr }) : format(currentDate, 'MMMM yyyy', { locale: tr })}
                             </h2>
-                            <div className="flex items-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden p-0.5">
-                                <button onClick={prevMonth} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
-                                <button onClick={() => setCurrentMonth(new Date())} className="px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-x border-gray-100 dark:border-gray-700">Bugün</button>
-                                <button onClick={nextMonth} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronRight size={18} /></button>
+                            <div className="flex items-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-0.5">
+                                <button onClick={prev} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
+
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowViewDropdown(!showViewDropdown)}
+                                        className="px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-x border-gray-100 dark:border-gray-700 flex items-center gap-1"
+                                    >
+                                        {viewMode === 'day' ? 'Bugün' : viewMode === 'week' ? 'Bu Hafta' : 'Bu Ay'}
+                                        <ChevronDown size={14} className={`transition-transform ${showViewDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {showViewDropdown && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setShowViewDropdown(false)}></div>
+                                            <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
+                                                <button onClick={() => handleViewChange('day')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'day' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bugün</button>
+                                                <button onClick={() => handleViewChange('week')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'week' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Hafta</button>
+                                                <button onClick={() => handleViewChange('month')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'month' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Ay</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <button onClick={next} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronRight size={18} /></button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-auto">
-                        <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800">
-                            {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
-                                <div key={day} className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
-                                    {day}
+                        <div className={`grid border-b border-gray-100 dark:border-gray-800 ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
+                            {viewMode === 'day' ? (
+                                <div className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
+                                    {format(currentDate, 'EEEE', { locale: tr })}
                                 </div>
-                            ))}
+                            ) : (
+                                ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
+                                    <div key={day} className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
+                                        {day}
+                                    </div>
+                                ))
+                            )}
                         </div>
-                        <div className="grid grid-cols-7">
+                        <div className={`grid ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
                             {days.map((day, idx) => {
                                 const dayAppointments = appointments.filter(apt => isSameDay(parseISO(apt.startTime), day))
-                                const isCurrentMonth = isSameMonth(day, currentMonth)
+                                const isCurrentMonth = isSameMonth(day, currentDate)
                                 const isTodayDay = isToday(day)
 
 

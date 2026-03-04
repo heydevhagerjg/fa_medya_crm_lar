@@ -20,6 +20,8 @@ use App\Models\ActivityLog;
 use App\Models\CustomFieldValue;
 use App\Models\ExpenseCategory;
 use App\Models\CashRegister;
+use App\Models\Appointment;
+use App\Models\AppointmentTitle;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -138,6 +140,27 @@ class BackupController extends Controller
         $expenseCategories = ExpenseCategory::where('tenant_id', $tenantId)->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'tenantId' => $c->tenant_id]);
 
         $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(fn($cr) => ['id' => $cr->id, 'name' => $cr->name, 'is_default' => $cr->is_default]);
+        
+        $appointments = Appointment::where('tenant_id', $tenantId)->get()->map(fn($a) => [
+            'id' => $a->id,
+            'tenantId' => $a->tenant_id,
+            'customerId' => $a->customer_id,
+            'title' => $a->title,
+            'description' => $a->description,
+            'startTime' => $a->start_time,
+            'endTime' => $a->end_time,
+            'status' => $a->status,
+            'createdAt' => $a->created_at,
+            'updatedAt' => $a->updated_at
+        ]);
+
+        $appointmentTitles = AppointmentTitle::where('tenant_id', $tenantId)->get()->map(fn($at) => [
+            'id' => $at->id,
+            'tenantId' => $at->tenant_id,
+            'name' => $at->name,
+            'createdAt' => $at->created_at,
+            'updatedAt' => $at->updated_at
+        ]);
 
 
         $tenant = Tenant::find($tenantId);
@@ -157,6 +180,8 @@ class BackupController extends Controller
                 'cash_registers'    => $cashRegisters,
                 'apikeys'           => $apiKeys,
                 'activitylogs'      => $activityLogs,
+                'appointments'      => $appointments,
+                'appointment_titles'=> $appointmentTitles,
             ],
             'tenant_settings' => [
                 'aws_access_key_id'     => $tenant->aws_access_key_id,
@@ -517,7 +542,6 @@ class BackupController extends Controller
                 foreach ($payments as $p) {
                     $oldCRId = $p['cashRegisterId'] ?? $p['cash_register_id'] ?? null;
                     $cashRegisterId = $oldCRId && isset($cashRegisterIdMap[$oldCRId]) ? $cashRegisterIdMap[$oldCRId] : null;
-                    
                     $pDate = $p['paymentDate'] ?? $p['payment_date'] ?? now()->toDateString();
                     $pAmount = $p['amount'] ?? 0;
 
@@ -532,6 +556,32 @@ class BackupController extends Controller
                         ]
                     );
                 }
+            }
+
+            // Import Appointment Titles
+            foreach (($data['appointment_titles'] ?? []) as $at) {
+                AppointmentTitle::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'name' => $at['name']],
+                    ['created_at' => $at['createdAt'] ?? now(), 'updated_at' => $at['updatedAt'] ?? now()]
+                );
+            }
+
+            // Import Appointments
+            foreach (($data['appointments'] ?? []) as $a) {
+                $customerId = isset($a['customerId']) && isset($customerIdMap[$a['customerId']]) ? $customerIdMap[$a['customerId']] : null;
+                if (!$customerId) continue;
+
+                Appointment::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'customer_id' => $customerId, 'start_time' => $a['startTime']],
+                    [
+                        'title'       => $a['title'],
+                        'description' => $a['description'] ?? null,
+                        'end_time'    => $a['endTime'] ?? null,
+                        'status'      => $a['status'] ?? 'PENDING',
+                        'created_at'  => $a['createdAt'] ?? now(),
+                        'updated_at'  => $a['updatedAt'] ?? now(),
+                    ]
+                );
             }
 
             // Import expenses
@@ -610,6 +660,8 @@ class BackupController extends Controller
             // Delete activity logs and api keys
             ActivityLog::where('tenant_id', $tenantId)->delete();
             ApiKey::where('tenant_id', $tenantId)->delete();
+            Appointment::where('tenant_id', $tenantId)->delete();
+            AppointmentTitle::where('tenant_id', $tenantId)->delete();
         });
 
         return response()->json(['message' => 'Tüm verileriniz başarıyla sıfırlandı.']);

@@ -114,34 +114,38 @@ export default function DashboardPage() {
                     </h2>
                     <Link to="/appointments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takvim →</Link>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                     {(stats?.upcomingAppointments || []).map((apt) => (
-                        <div key={apt.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500">
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{apt.title}</div>
-                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                                        <Users size={12} className="flex-shrink-0" />
-                                        <span className="truncate">{apt.customer?.name}</span>
+                        <div key={apt.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full">
+                            <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate leading-tight">{apt.title}</div>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 font-medium">
+                                            <Users size={12} className="flex-shrink-0" />
+                                            <span className="truncate">{apt.customer?.name}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3 mt-3">
-                                        <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-lg">
-                                            <CalendarIcon size={12} />
-                                            {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                                        </div>
-                                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-gray-700">
-                                            <Clock size={12} />
-                                            {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
+                                    <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase border flex items-center gap-1 shadow-sm h-fit ${apt.status === 'COMPLETED'
+                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                        : apt.status === 'CANCELLED'
+                                            ? 'bg-red-50 text-red-600 border-red-100'
+                                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                                        }`}>
+                                        <Clock size={10} />
+                                        <Countdown targetDate={apt.startTime} />
                                     </div>
                                 </div>
-                                <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tight border ${apt.status === 'COMPLETED'
-                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                    : apt.status === 'CANCELLED'
-                                        ? 'bg-red-50 text-red-600 border-red-100'
-                                        : 'bg-amber-50 text-amber-600 border-amber-100'
-                                    }`}>
-                                    {apt.status === 'PENDING' ? 'BEKLE' : apt.status === 'COMPLETED' ? 'BİTTİ' : 'İPTAL'}
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-4">
+                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg">
+                                    <CalendarIcon size={12} />
+                                    {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    <Clock size={12} />
+                                    {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                 </div>
                             </div>
                         </div>
@@ -243,6 +247,40 @@ export default function DashboardPage() {
             </div>
         </div>
     )
+}
+
+function Countdown({ targetDate }) {
+    const [timeLeft, setTimeLeft] = useState('')
+
+    useEffect(() => {
+        const calculate = () => {
+            const now = new Date()
+            const target = new Date(targetDate)
+            const diffMs = target - now
+
+            if (diffMs <= 0) {
+                setTimeLeft('BAŞLADI')
+                return
+            }
+
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+
+            let parts = []
+            if (days > 0) parts.push(`${days}g`)
+            if (hours > 0) parts.push(`${hours}sa`)
+            parts.push(`${mins}dk`)
+
+            setTimeLeft(parts.join(' '))
+        }
+
+        calculate()
+        const timer = setInterval(calculate, 60000)
+        return () => clearInterval(timer)
+    }, [targetDate])
+
+    return <span>{timeLeft}</span>
 }
 
 function LoadingSkeleton() {
