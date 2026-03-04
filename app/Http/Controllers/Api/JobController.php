@@ -7,53 +7,64 @@ use App\Models\JobCrm;
 use App\Models\JobDetail;
 use App\Models\JobStep;
 use App\Models\CustomFieldValue;
+use App\Models\JobStatus;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class JobController extends Controller
 {
+    use HasTenantCache;
+
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $cacheKey = $this->getTenantCacheKey('jobs');
 
-        $query = JobCrm::where('tenant_id', $tenantId)
-            ->with(['customer', 'service', 'jobStatus', 'jobSteps', 'payments'])
-            ->orderByDesc('created_at');
+        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
+            $tenantId = $request->user()->tenant_id;
 
-        if ($request->has('customerId')) {
-            $query->where('customer_id', $request->customerId);
-        }
+            $query = JobCrm::where('tenant_id', $tenantId)
+                ->with(['customer', 'service', 'jobStatus', 'jobSteps', 'payments'])
+                ->orderByDesc('created_at');
 
-        if ($request->has('jobStatusId')) {
-            if ($request->jobStatusId === 'unassigned') {
-                $query->whereNull('job_status_id');
-            } else {
-                $query->where('job_status_id', $request->jobStatusId);
+            if ($request->has('customerId')) {
+                $query->where('customer_id', $request->customerId);
             }
-        }
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
+            if ($request->has('jobStatusId')) {
+                if ($request->jobStatusId === 'unassigned') {
+                    $query->whereNull('job_status_id');
+                } else {
+                    $query->where('job_status_id', $request->jobStatusId);
+                }
+            }
 
-        if ($request->has('page')) {
-            $limit = $request->input('limit', 15);
-            $paginated = $query->paginate($limit);
-            
-            return response()->json([
-                'data' => collect($paginated->items())->map(fn($j) => $this->jobResource($j)),
-                'meta' => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page' => $paginated->lastPage(),
-                    'total' => $paginated->total(),
-                    'per_page' => $paginated->perPage(),
-                ]
-            ]);
-        }
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
 
-        return response()->json($query->get()->map(fn($j) => $this->jobResource($j)));
+            if ($request->has('page')) {
+                $limit = $request->input('limit', 15);
+                $paginated = $query->paginate($limit);
+                
+                return [
+                    'data' => collect($paginated->items())->map(fn($j) => $this->jobResource($j))->toArray(),
+                    'meta' => [
+                        'current_page' => $paginated->currentPage(),
+                        'last_page' => $paginated->lastPage(),
+                        'total' => $paginated->total(),
+                        'per_page' => $paginated->perPage(),
+                    ]
+                ];
+            }
+
+            return $query->get()->map(fn($j) => $this->jobResource($j))->toArray();
+        });
+
+        return response()->json($data);
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -159,6 +170,9 @@ class JobController extends Controller
             return $job;
         });
 
+        $this->clearTenantCache('jobs');
+        $this->clearTenantCache('customers'); // Jobs count might change
+
         ActivityLogService::log($request->user(), 'CREATE', 'JOB', $job->id, $job->title,
             "{$job->title} isimli iş/proje oluşturuldu.");
 
@@ -218,6 +232,8 @@ class JobController extends Controller
             }
         });
 
+        $this->clearTenantCache('jobs');
+
         ActivityLogService::log($request->user(), 'UPDATE', 'JOB', $job->id, $job->title,
             "{$job->title} işinin bilgileri/durumu güncellendi.");
 
@@ -235,6 +251,8 @@ class JobController extends Controller
 
         $job->update(['job_status_id' => $validated['jobStatusId']]);
 
+        $this->clearTenantCache('jobs');
+
         ActivityLogService::log($request->user(), 'UPDATE', 'JOB', $job->id, $job->title,
             "{$job->title} işinin durumu güncellendi.");
 
@@ -250,6 +268,8 @@ class JobController extends Controller
             "{$job->title} işi sistemden silindi.");
 
         $job->delete();
+        $this->clearTenantCache('jobs');
+        $this->clearTenantCache('customers');
 
         return response()->json(['message' => 'İş silindi.']);
     }

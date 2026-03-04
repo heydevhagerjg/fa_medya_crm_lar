@@ -6,11 +6,12 @@ import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Users, Briefcase, CreditCard, TrendingDown,
     Settings, FileText, Database, LogOut, Menu, X, Sun, Moon,
-    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList
+    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar
 } from 'lucide-react'
 
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa' },
+    { to: '/appointments', icon: Calendar, label: 'Randevular' },
     { to: '/jobs', icon: Briefcase, label: 'İşler' },
     { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)' },
     { to: '/customers', icon: Users, label: 'Müşteriler' },

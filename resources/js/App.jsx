@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import ApiDocsPage from './pages/ApiDocsPage.jsx'
 import KanbanPage from './pages/KanbanPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
+import AppointmentsPage from './pages/AppointmentsPage.jsx'
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated } = useAuthStore()
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/jobs" element={<JobsPage />} />
                 <Route path="/jobs/:id" element={<JobDetailPage />} />
                 <Route path="/kanban" element={<KanbanPage />} />
+                <Route path="/appointments" element={<AppointmentsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/expenses" element={<ExpensesPage />} />
                 <Route path="/files" element={<FilesPage />} />

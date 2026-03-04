@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
-import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3, ArrowUpRight, Activity, Plus, ChevronDown, UserPlus } from 'lucide-react'
+import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3, ArrowUpRight, Activity, Plus, ChevronDown, UserPlus, Calendar as CalendarIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         { label: 'Toplam İş', value: stats?.totalJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
         { label: 'Toplam Tahsilat', value: formatCurrency(stats?.totalPayments), icon: CreditCard, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', isText: true },
         { label: 'Toplam Masraf', value: formatCurrency(stats?.totalExpenses), icon: TrendingDown, color: 'from-red-500 to-red-600', bg: 'bg-red-500/10', iconColor: 'text-red-500', isText: true },
-        { label: 'Net Kâr', value: formatCurrency(stats?.netProfit), icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
+        //', value: formatCurrency(stats?.netProfit), icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
     ]
 
     if (isLoading) return <LoadingSkeleton />
@@ -105,11 +105,60 @@ export default function DashboardPage() {
                 ))}
             </div>
 
+            {/* Upcoming Appointments */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Clock size={18} className="text-indigo-500" />
+                        Yaklaşan Randevular (3 Gün)
+                    </h2>
+                    <Link to="/appointments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takvim →</Link>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {(stats?.upcomingAppointments || []).map((apt) => (
+                        <div key={apt.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{apt.title}</div>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+                                        <Users size={12} className="flex-shrink-0" />
+                                        <span className="truncate">{apt.customer?.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-3">
+                                        <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-lg">
+                                            <CalendarIcon size={12} />
+                                            {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                                            <Clock size={12} />
+                                            {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tight border ${apt.status === 'COMPLETED'
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                    : apt.status === 'CANCELLED'
+                                        ? 'bg-red-50 text-red-600 border-red-100'
+                                        : 'bg-amber-50 text-amber-600 border-amber-100'
+                                    }`}>
+                                    {apt.status === 'PENDING' ? 'BEKLE' : apt.status === 'COMPLETED' ? 'BİTTİ' : 'İPTAL'}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {!stats?.upcomingAppointments?.length && (
+                        <div className="col-span-full py-8 text-center bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-3xl">
+                            <p className="text-sm text-gray-400">Önümüzdeki 3 gün için randevu bulunmuyor.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Cash Registers Section */}
             <div>
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <Activity size={18} className="text-blue-500" />
-                    Giriş/Çıkış Özeti (Kasalar)
+                    Kasa Özeti
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {stats?.cashRegisters?.map((cr) => (

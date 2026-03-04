@@ -5,43 +5,59 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CustomerController extends Controller
 {
+    use HasTenantCache;
+
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $cacheKey = $this->getTenantCacheKey('customers');
 
-        $customers = Customer::where('tenant_id', $tenantId)
-            ->withCount('jobs')
-            ->orderByDesc('created_at')
-            ->get();
+        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
+            $tenantId = $request->user()->tenant_id;
 
-        return response()->json($customers->map(function ($c) {
-            return [
-                'id'         => $c->id,
-                'tenantId'   => $c->tenant_id,
-                'name'       => $c->name,
-                'phone'      => $c->phone,
-                'email'      => $c->email,
-                'notes'      => $c->notes,
-                'createdAt'  => $c->created_at,
-                'updatedAt'  => $c->updated_at,
-                '_count'     => ['job' => $c->jobs_count],
-            ];
-        }));
+            $customers = Customer::where('tenant_id', $tenantId)
+                ->withCount('jobs')
+                ->orderByDesc('created_at')
+                ->get();
+
+            return $customers->map(function ($c) {
+                return [
+                    'id'         => $c->id,
+                    'tenantId'   => $c->tenant_id,
+                    'name'       => $c->name,
+                    'phone'      => $c->phone,
+                    'email'      => $c->email,
+                    'notes'      => $c->notes,
+                    'createdAt'  => $c->created_at,
+                    'updatedAt'  => $c->updated_at,
+                    '_count'     => ['job' => $c->jobs_count],
+                ];
+            })->toArray();
+        });
+
+        return response()->json($data);
     }
 
     public function show(Request $request, int $id): JsonResponse
     {
+        // ... (show is usually unique enough not to cache or can be cached too, but index is the main concern for user)
+        // Actually user said "Müşteriler .... cache ekle", usually means the lists.
+        // I will only cache index to keep it simple and avoid complex invalidation for unique IDs unless asked.
+        
         $tenantId = $request->user()->tenant_id;
 
         $customer = Customer::where('tenant_id', $tenantId)
             ->with(['jobs' => function ($q) {
                 $q->with(['jobStatus', 'jobSteps', 'payments'])
                   ->orderByDesc('created_at');
+            }, 'appointments' => function ($q) {
+                $q->orderByDesc('start_time');
             }])
             ->findOrFail($id);
 
@@ -64,6 +80,14 @@ class CustomerController extends Controller
                 'payment'     => $j->payments->map(fn($p) => ['id' => $p->id, 'amount' => $p->amount]),
                 'jobstep'     => $j->jobSteps->map(fn($s) => ['id' => $s->id, 'is_completed' => $s->is_completed]),
             ]),
+            'appointment' => $customer->appointments->map(fn($a) => [
+                'id'          => $a->id,
+                'title'       => $a->title,
+                'description' => $a->description,
+                'startTime'   => $a->start_time,
+                'endTime'     => $a->end_time,
+                'status'      => $a->status,
+            ]),
         ]);
     }
 
@@ -78,6 +102,8 @@ class CustomerController extends Controller
 
         $tenantId = $request->user()->tenant_id;
         $customer = Customer::create(array_merge($validated, ['tenant_id' => $tenantId]));
+
+        $this->clearTenantCache('customers');
 
         ActivityLogService::log($request->user(), 'CREATE', 'CUSTOMER', $customer->id, $customer->name,
             "{$customer->name} isimli müşteri oluşturuldu.");
@@ -98,6 +124,7 @@ class CustomerController extends Controller
         ]);
 
         $customer->update($validated);
+        $this->clearTenantCache('customers');
 
         ActivityLogService::log($request->user(), 'UPDATE', 'CUSTOMER', $customer->id, $customer->name,
             "{$customer->name} isimli müşteri güncellendi.");
@@ -114,6 +141,7 @@ class CustomerController extends Controller
             "{$customer->name} isimli müşteri silindi.");
 
         $customer->delete();
+        $this->clearTenantCache('customers');
 
         return response()->json(['message' => 'Müşteri silindi.']);
     }

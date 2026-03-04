@@ -76,51 +76,77 @@ export default function CustomerDetailPage() {
                 </div>
 
                 {/* Jobs */}
-                <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
-                        <Briefcase size={18} className="text-indigo-500" />
-                        İşler ({(customer.job || []).length})
-                    </h2>
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                        {(customer.job || []).length === 0 ? (
-                            <p className="text-center text-gray-400 py-8">Henüz iş yok.</p>
-                        ) : (customer.job || []).map(job => {
-                            const paid = (job.payment || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
-                            const remaining = parseFloat(job.total_price || 0) - paid
-                            return (
-                                <Link key={job.id} to={`/jobs/${job.id}`} className="block p-4 border border-gray-100 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Jobs List */}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                            <Briefcase size={18} className="text-indigo-500" />
+                            İşler ({(customer.job || []).length})
+                        </h2>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            {(customer.job || []).length === 0 ? (
+                                <p className="text-center text-gray-400 py-8 text-sm">Henüz iş yok.</p>
+                            ) : (customer.job || []).map(job => {
+                                const paid = (job.payment || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
+                                const remaining = parseFloat(job.total_price || 0) - paid
+                                return (
+                                    <Link key={job.id} to={`/jobs/${job.id}`} className="block p-4 border border-gray-100 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-gray-900 dark:text-white truncate text-sm">{job.title}</div>
+                                                <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{formatDate(job.start_date)} • {formatCurrency(job.total_price)}</div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                                                    <span className="text-[10px] font-black uppercase tracking-tight text-gray-700 dark:text-gray-300">
+                                                        {job.jobStatus?.name || 'BELİRSİZ'}
+                                                    </span>
+                                                </div>
+                                                {remaining > 0 && <span className="text-[10px] text-red-500 font-bold">{formatCurrency(remaining)} kalan</span>}
+                                            </div>
+                                        </div>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Appointments List */}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                            <FileText size={18} className="text-indigo-500" />
+                            Randevular ({(customer.appointment || []).length})
+                        </h2>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            {(customer.appointment || []).length === 0 ? (
+                                <p className="text-center text-gray-400 py-8 text-sm">Henüz randevu yok.</p>
+                            ) : (customer.appointment || []).map(apt => (
+                                <div key={apt.id} className="p-4 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/30 dark:bg-gray-800/20">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-gray-900 dark:text-white truncate">{job.title}</div>
-                                            <div className="text-xs text-gray-500 mt-0.5">{formatDate(job.start_date)} • {formatCurrency(job.total_price)}</div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
-                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                                                    {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
-                                                </span>
+                                            <div className="font-medium text-gray-900 dark:text-white text-sm">{apt.title}</div>
+                                            <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-1 font-medium">
+                                                <span>{formatDate(apt.startTime)}</span>
+                                                <span>•</span>
+                                                <span>{apt.startTime ? new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                                             </div>
-                                            {remaining > 0 && <span className="text-xs text-red-500">{formatCurrency(remaining)} kalan</span>}
+                                            {apt.description && (
+                                                <p className="text-xs text-gray-400 mt-2 italic leading-relaxed">{apt.description}</p>
+                                            )}
+                                        </div>
+                                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border ${apt.status === 'COMPLETED'
+                                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-100 dark:border-emerald-500/20'
+                                            : apt.status === 'CANCELLED'
+                                                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-100 dark:border-red-500/20'
+                                                : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 border-indigo-100 dark:border-indigo-500/20'
+                                            }`}>
+                                            {apt.status === 'PENDING' ? 'BEKLİYOR' : apt.status === 'COMPLETED' ? 'TAMAMLANDI' : 'İPTAL'}
                                         </div>
                                     </div>
-                                    {(job.jobstep || []).length > 0 && (
-                                        <div className="mt-3">
-                                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                                                <span>İlerleme</span>
-                                                <span>{job.jobstep.filter(s => s.is_completed).length}/{job.jobstep.length}</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
-                                                <div
-                                                    className="bg-indigo-500 h-1.5 rounded-full transition-all"
-                                                    style={{ width: `${(job.jobstep.filter(s => s.is_completed).length / job.jobstep.length) * 100}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </Link>
-                            )
-                        })}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

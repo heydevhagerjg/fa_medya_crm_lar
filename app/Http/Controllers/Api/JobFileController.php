@@ -7,17 +7,22 @@ use App\Models\JobFile;
 use App\Models\JobCrm;
 use App\Models\Tenant;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class JobFileController extends Controller
 {
+    use HasTenantCache;
+
     /**
      * Set S3 configuration dynamically for the current tenant
      */
+// ... existing setS3Config ...
     private function setS3Config($tenant)
     {
         if (!$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
@@ -45,26 +50,30 @@ class JobFileController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $cacheKey = $this->getTenantCacheKey('files');
 
-        $jobs = JobCrm::where('tenant_id', $tenantId)
-            ->with(['customer', 'jobFiles'])
-            ->get()
-            ->map(fn($j) => [
-                'id'       => $j->id,
-                'title'    => $j->title,
-                'customer' => ['name' => $j->customer?->name],
-                'jobfile'  => $j->jobFiles->map(fn($f) => [
-                    'id'         => $f->id,
-                    'fileName'   => $f->file_name,
-                    'filePath'   => $f->file_path,
-                    'fileType'   => $f->file_type,
-                    'fileSize'   => $f->file_size,
-                    'uploadedAt' => $f->uploaded_at,
-                ])
-            ]);
+        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
+            $tenantId = $request->user()->tenant_id;
 
-        return response()->json($jobs);
+            return JobCrm::where('tenant_id', $tenantId)
+                ->with(['customer', 'jobFiles'])
+                ->get()
+                ->map(fn($j) => [
+                    'id'       => $j->id,
+                    'title'    => $j->title,
+                    'customer' => ['name' => $j->customer?->name],
+                    'jobfile'  => $j->jobFiles->map(fn($f) => [
+                        'id'         => $f->id,
+                        'fileName'   => $f->file_name,
+                        'filePath'   => $f->file_path,
+                        'fileType'   => $f->file_type,
+                        'fileSize'   => $f->file_size,
+                        'uploadedAt' => $f->uploaded_at,
+                    ])
+                ])->toArray();
+        });
+
+        return response()->json($data);
     }
 
     /**
@@ -119,6 +128,9 @@ class JobFileController extends Controller
             'file_size' => $file->getSize(),
             'uploaded_at' => now(),
         ]);
+
+        $this->clearTenantCache('files');
+        $this->clearTenantCache('jobs');
 
         ActivityLogService::log($user, 'CREATE', 'FILE', $jobFile->id, $job->title,
             "{$job->title} işine yeni bir dosya yüklendi: {$fileName}");
@@ -178,6 +190,8 @@ class JobFileController extends Controller
             "{$job->title} işinden \"{$jobFile->file_name}\" isimli dosya silindi.");
 
         $jobFile->delete();
+        $this->clearTenantCache('files');
+        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Dosya silindi.']);
     }

@@ -94,19 +94,34 @@ class DashboardController extends Controller
             ];
         });
 
+        $upcomingAppointments = \App\Models\Appointment::where('tenant_id', $tenantId)
+            ->where('start_time', '>=', now()->startOfDay())
+            ->where('start_time', '<=', now()->addDays(3)->endOfDay())
+            ->with('customer')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn($a) => [
+                'id'         => $a->id,
+                'title'      => $a->title,
+                'startTime'  => $a->start_time,
+                'customer'   => ['name' => $a->customer?->name],
+                'status'     => $a->status,
+            ]);
+
         return response()->json([
-            'totalCustomers' => $totalCustomers,
-            'totalJobs'      => $totalJobs,
-            'activeJobs'     => $activeJobs,
-            'completedJobs'  => $completedJobs,
-            'totalRevenue'   => $totalRevenue,
-            'totalPayments'  => $totalPayments,
-            'totalExpenses'  => $totalExpenses,
-            'netProfit'      => $totalPayments - $totalExpenses,
-            'recentJobs'     => $recentJobs,
-            'recentPayments' => $recentPayments,
-            'jobsByStatus'   => $jobsByStatus,
-            'cashRegisters'  => $cashRegisters,
+            'totalCustomers'       => $totalCustomers,
+            'totalJobs'            => $totalJobs,
+            'activeJobs'           => $activeJobs,
+            'completedJobs'        => $completedJobs,
+            'totalRevenue'         => $totalRevenue,
+            'totalPayments'        => $totalPayments,
+            'totalExpenses'        => $totalExpenses,
+            'netProfit'            => $totalPayments - $totalExpenses,
+            'recentJobs'           => $recentJobs,
+            'recentPayments'       => $recentPayments,
+            'jobsByStatus'         => $jobsByStatus,
+            'cashRegisters'        => $cashRegisters,
+            'upcomingAppointments' => $upcomingAppointments,
         ]);
     }
 }

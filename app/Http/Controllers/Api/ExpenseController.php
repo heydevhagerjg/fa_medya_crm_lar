@@ -5,24 +5,34 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ExpenseController extends Controller
 {
+    use HasTenantCache;
+
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $cacheKey = $this->getTenantCacheKey('expenses');
 
-        $query = Expense::where('tenant_id', $tenantId)
-            ->with(['job', 'category', 'cashRegister'])
-            ->orderByDesc('date');
+        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
+            $tenantId = $request->user()->tenant_id;
 
-        if ($request->has('jobId')) {
-            $query->where('job_id', $request->jobId);
-        }
+            $query = Expense::where('tenant_id', $tenantId)
+                ->with(['job', 'category', 'cashRegister'])
+                ->orderByDesc('date');
 
-        return response()->json($query->get());
+            if ($request->has('jobId')) {
+                $query->where('job_id', $request->jobId);
+            }
+
+            return $query->get()->toArray();
+        });
+
+        return response()->json($data);
     }
 
     public function store(Request $request): JsonResponse
@@ -49,6 +59,9 @@ class ExpenseController extends Controller
             'description'      => $validated['description'] ?? null,
             'cash_register_id' => $validated['cashRegisterId'] ?? null,
         ]);
+
+        $this->clearTenantCache('expenses');
+        $this->clearTenantCache('jobs'); // Expenses affect job profit
 
         ActivityLogService::log($request->user(), 'CREATE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->amount} TL tutarında {$expense->title} masrafı eklendi.");
@@ -81,6 +94,9 @@ class ExpenseController extends Controller
             'cash_register_id' => array_key_exists('cashRegisterId', $validated) ? $validated['cashRegisterId'] : $expense->cash_register_id,
         ]);
 
+        $this->clearTenantCache('expenses');
+        $this->clearTenantCache('jobs');
+
         ActivityLogService::log($request->user(), 'UPDATE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->title} masrafı güncellendi.");
 
@@ -96,6 +112,8 @@ class ExpenseController extends Controller
             "{$expense->amount} TL tutarındaki {$expense->title} masrafı silindi.");
 
         $expense->delete();
+        $this->clearTenantCache('expenses');
+        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Masraf silindi.']);
     }

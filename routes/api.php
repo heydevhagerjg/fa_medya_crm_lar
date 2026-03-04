@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\JobStepController;
 use App\Http\Controllers\Api\JobFileController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\Settings\ServiceController;
 use App\Http\Controllers\Api\Settings\JobStatusController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\Settings\StepTemplateController;
 use App\Http\Controllers\Api\Settings\CashRegisterController;
 use App\Http\Controllers\Api\Settings\ExpenseCategoryController;
 use App\Http\Controllers\Api\Settings\ApiKeyController;
+use App\Http\Controllers\Api\AppointmentTitleController;
 use App\Http\Controllers\Api\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,6 +85,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Logs
     Route::get('/logs', [LogController::class, 'index']);
 
+    // Appointments
+    Route::apiResource('appointments', AppointmentController::class);
+
 
 
     // Settings
@@ -112,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // API Keys
         Route::apiResource('api-keys', ApiKeyController::class)->except(['show', 'update']);
+        Route::apiResource('appointment-titles', AppointmentTitleController::class);
 
         // Backup Keys
         Route::post('/backup-keys/clear', [\App\Http\Controllers\Api\Settings\BackupKeyController::class, 'clearAll']);

@@ -19,4 +19,9 @@ class Customer extends Model
     {
         return $this->hasMany(JobCrm::class, 'customer_id');
     }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'customer_id');
+    }
 }

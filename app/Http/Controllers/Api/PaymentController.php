@@ -5,24 +5,34 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PaymentController extends Controller
 {
+    use HasTenantCache;
+
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $cacheKey = $this->getTenantCacheKey('payments');
 
-        $query = Payment::where('tenant_id', $tenantId)
-            ->with(['job', 'cashRegister'])
-            ->orderByDesc('payment_date');
+        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
+            $tenantId = $request->user()->tenant_id;
 
-        if ($request->has('jobId')) {
-            $query->where('job_id', $request->jobId);
-        }
+            $query = Payment::where('tenant_id', $tenantId)
+                ->with(['job', 'cashRegister'])
+                ->orderByDesc('payment_date');
 
-        return response()->json($query->get());
+            if ($request->has('jobId')) {
+                $query->where('job_id', $request->jobId);
+            }
+
+            return $query->get()->toArray();
+        });
+
+        return response()->json($data);
     }
 
     public function store(Request $request): JsonResponse
@@ -47,6 +57,9 @@ class PaymentController extends Controller
             'description'      => $validated['description'] ?? null,
             'cash_register_id' => $validated['cashRegisterId'] ?? null,
         ]);
+
+        $this->clearTenantCache('payments');
+        $this->clearTenantCache('jobs'); // Total paid amount changes
 
         $payment->load('job');
         $jobTitle = $payment->job?->title ?? 'Genel';
@@ -78,6 +91,9 @@ class PaymentController extends Controller
             'cash_register_id' => array_key_exists('cashRegisterId', $validated) ? $validated['cashRegisterId'] : $payment->cash_register_id,
         ]);
 
+        $this->clearTenantCache('payments');
+        $this->clearTenantCache('jobs');
+
         $payment->load('job');
         $jobTitle = $payment->job?->title ?? 'Genel';
 
@@ -99,6 +115,8 @@ class PaymentController extends Controller
             "{$jobTitle} işindeki {$payment->amount} TL'lik ödeme silindi.");
 
         $payment->delete();
+        $this->clearTenantCache('payments');
+        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Ödeme silindi.']);
     }
