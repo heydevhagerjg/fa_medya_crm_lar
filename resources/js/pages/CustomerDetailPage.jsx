@@ -1,17 +1,36 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
-import { ArrowLeft, Briefcase, Phone, Mail, FileText } from 'lucide-react'
+import { ArrowLeft, Briefcase, Phone, Mail, FileText, CalendarIcon, Clock, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
 export default function CustomerDetailPage() {
     const { id } = useParams()
+    const qc = useQueryClient()
     const { data: customer, isLoading } = useQuery({
         queryKey: ['customer', id],
         queryFn: () => api.get(`/customers/${id}`).then(r => r.data),
     })
+
+    const deleteMutation = useMutation({
+        mutationFn: (aptId) => api.delete(`/appointments/${aptId}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['customer', id])
+            toast.success('Randevu silindi.')
+        },
+        onError: () => toast.error('Silme işlemi başarısız.')
+    })
+
+    const handleDelete = (e, aptId) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (confirm('Randevuyu silmek istediğinize emin misiniz?')) {
+            deleteMutation.mutate(aptId)
+        }
+    }
 
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!customer) return <div className="text-center text-gray-400 py-12">Müşteri bulunamadı.</div>
@@ -66,11 +85,11 @@ export default function CustomerDetailPage() {
                     <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                             <div className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(totalRevenue)}</div>
-                            <div className="text-xs text-gray-500">Toplam Fiyat</div>
+                            <div className="text-xs text-gray-500">Toplam İş</div>
                         </div>
                         <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
                             <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalPaid)}</div>
-                            <div className="text-xs text-gray-500">Tahsilat</div>
+                            <div className="text-xs text-gray-500">Toplam Tahsilat</div>
                         </div>
                     </div>
                 </div>
@@ -121,30 +140,48 @@ export default function CustomerDetailPage() {
                         <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                             {(customer.appointment || []).length === 0 ? (
                                 <p className="text-center text-gray-400 py-8 text-sm">Henüz randevu yok.</p>
-                            ) : (customer.appointment || []).map(apt => (
-                                <div key={apt.id} className="p-4 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/30 dark:bg-gray-800/20">
+                            ) : [...(customer.appointment || [])].sort((a, b) => {
+                                const p = { 'PENDING': 0, 'COMPLETED': 1, 'CANCELLED': 2 };
+                                if (p[a.status] !== p[b.status]) return p[a.status] - p[b.status];
+                                return new Date(a.startTime) - new Date(b.startTime);
+                            }).map(apt => (
+                                <Link key={apt.id} to={`/appointments?id=${apt.id}`} className="block p-4 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/30 dark:bg-gray-800/20 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-gray-900 dark:text-white text-sm">{apt.title}</div>
                                             <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-1 font-medium">
-                                                <span>{formatDate(apt.startTime)}</span>
-                                                <span>•</span>
-                                                <span>{apt.startTime ? new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg">
+                                                    <CalendarIcon size={12} />
+                                                    {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                                                    <Clock size={12} />
+                                                    {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
                                             </div>
                                             {apt.description && (
                                                 <p className="text-xs text-gray-400 mt-2 italic leading-relaxed">{apt.description}</p>
                                             )}
                                         </div>
-                                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border ${apt.status === 'COMPLETED'
-                                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-100 dark:border-emerald-500/20'
-                                            : apt.status === 'CANCELLED'
-                                                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-100 dark:border-red-500/20'
-                                                : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 border-indigo-100 dark:border-indigo-500/20'
-                                            }`}>
-                                            {apt.status === 'PENDING' ? 'BEKLİYOR' : apt.status === 'COMPLETED' ? 'TAMAMLANDI' : 'İPTAL'}
+                                        <div className="flex flex-col items-end gap-3">
+                                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border ${apt.status === 'COMPLETED'
+                                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-100 dark:border-emerald-500/20'
+                                                : apt.status === 'CANCELLED'
+                                                    ? 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-100 dark:border-red-500/20'
+                                                    : 'bg-yellow-100 dark:bg-yellow-900/10 text-yellow-500 border-yellow-100 dark:border-yellow-500/20'
+                                                }`}>
+                                                {apt.status === 'PENDING' ? 'BEKLİYOR' : apt.status === 'COMPLETED' ? 'TAMAMLANDI' : 'İPTAL'}
+                                            </div>
+                                            <button
+                                                onClick={(e) => handleDelete(e, apt.id)}
+                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                title="Randevuyu Sil"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </div>

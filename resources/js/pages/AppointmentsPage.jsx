@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import {
     Calendar as CalendarIcon,
     ChevronLeft,
@@ -21,6 +22,9 @@ import { tr } from 'date-fns/locale'
 
 export default function AppointmentsPage() {
     const qc = useQueryClient()
+    const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlAppointmentId = searchParams.get('id')
     const [currentDate, setCurrentDate] = useState(new Date())
     const [viewMode, setViewMode] = useState(() => localStorage.getItem('calendarViewMode') || 'month') // 'day', 'week', 'month'
     const [showViewDropdown, setShowViewDropdown] = useState(false)
@@ -59,8 +63,7 @@ export default function AppointmentsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['appointments'])
             toast.success('Randevu oluşturuldu.')
-            setShowModal(false)
-            resetForm()
+            closeModal()
         },
         onError: () => toast.error('Randevu oluşturulamadı.')
     })
@@ -70,9 +73,7 @@ export default function AppointmentsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['appointments'])
             toast.success('Randevu güncellendi.')
-            setShowModal(false)
-            setEditingAppointment(null)
-            resetForm()
+            closeModal()
         },
         onError: () => toast.error('Güncelleme başarısız.')
     })
@@ -122,7 +123,26 @@ export default function AppointmentsPage() {
             status: apt.status
         })
         setShowModal(true)
+        setSearchParams({ id: apt.id })
     }
+
+    const closeModal = () => {
+        setShowModal(false)
+        setEditingAppointment(null)
+        resetForm()
+        if (searchParams.has('id')) {
+            navigate('/appointments', { replace: true })
+        }
+    }
+
+    useEffect(() => {
+        if (urlAppointmentId && appointments.length > 0 && !showModal) {
+            const apt = appointments.find(a => a.id.toString() === urlAppointmentId)
+            if (apt) {
+                handleEdit(apt)
+            }
+        }
+    }, [urlAppointmentId, appointments])
 
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -272,8 +292,16 @@ export default function AppointmentsPage() {
                                                         <Clock size={10} className="flex-shrink-0" />
                                                         <span>{format(parseISO(apt.startTime), 'HH:mm')}</span>
                                                     </div>
-                                                    <div className="truncate mt-0.5 text-md">{apt.customer.name}</div>
-                                                    <div className="truncate mt-0.5">{apt.title}</div>
+                                                    <div className="group mt-1">
+                                                        <Link
+                                                            to={`/customers/${apt.customerId}`}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="text-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors inline-block max-w-full truncate"
+                                                        >
+                                                            {apt.customer?.name}
+                                                        </Link>
+                                                    </div>
+                                                    <div className="truncate mt-0.5 opacity-80">{apt.title}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -314,7 +342,7 @@ export default function AppointmentsPage() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-[32px] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                             <div>
@@ -323,14 +351,24 @@ export default function AppointmentsPage() {
                                 </h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lütfen randevu bilgilerini eksiksiz doldurun</p>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-400 transition-colors">
+                            <button onClick={closeModal} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-400 transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 px-1">Müşteri</label>
+                                <div className="flex justify-between items-center mb-2 px-1">
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Müşteri</label>
+                                    {editingAppointment && (
+                                        <Link
+                                            to={`/customers/${editingAppointment.customerId}`}
+                                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                        >
+                                            Müşteri Detayına Git →
+                                        </Link>
+                                    )}
+                                </div>
                                 <select
                                     required
                                     className="w-full h-12 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all appearance-none"
@@ -416,7 +454,7 @@ export default function AppointmentsPage() {
                                         onClick={() => {
                                             if (confirm('Randevuyu silmek istediğinize emin misiniz?')) {
                                                 deleteMutation.mutate(editingAppointment.id)
-                                                setShowModal(false)
+                                                closeModal()
                                             }
                                         }}
                                         className="px-6 h-12 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl text-sm font-bold hover:bg-red-600 hover:text-white transition-all"
@@ -427,7 +465,7 @@ export default function AppointmentsPage() {
                                 <div className="flex-1 flex gap-4 justify-end">
                                     <button
                                         type="button"
-                                        onClick={() => setShowModal(false)}
+                                        onClick={closeModal}
                                         className="px-6 h-12 text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all"
                                     >
                                         Vazgeç

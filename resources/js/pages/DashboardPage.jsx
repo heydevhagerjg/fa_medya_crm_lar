@@ -244,7 +244,7 @@ function AppointmentCard({ apt }) {
     }, [apt.startTime])
 
     return (
-        <div className={`${urgencyClass} border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full`}>
+        <Link to={`/appointments?id=${apt.id}`} className={`${urgencyClass} border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full cursor-pointer`}>
             <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -276,7 +276,7 @@ function AppointmentCard({ apt }) {
                     {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </div>
             </div>
-        </div>
+        </Link>
     )
 }
 

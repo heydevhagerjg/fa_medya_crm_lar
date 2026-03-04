@@ -97,6 +97,42 @@
   /* red-200 */
 }
 
+@keyframes pulse-yellow-soft-dark {
+
+  0%,
+  100% {
+    background-color: rgba(113, 63, 18, 0.1);
+  }
+
+  50% {
+    background-color: rgba(113, 63, 18, 0.2);
+  }
+}
+
+@keyframes pulse-yellow-hard-dark {
+
+  0%,
+  100% {
+    background-color: rgba(113, 63, 18, 0.2);
+  }
+
+  50% {
+    background-color: rgba(113, 63, 18, 0.4);
+  }
+}
+
+@keyframes pulse-red-hard-dark {
+
+  0%,
+  100% {
+    background-color: rgba(127, 29, 29, 0.2);
+  }
+
+  50% {
+    background-color: rgba(127, 29, 29, 0.4);
+  }
+}
+
 .animate-pulse-yellow-soft {
   animation: pulse-yellow-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -109,51 +145,15 @@
   animation: pulse-red-hard 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Dark mode adjustments for animations */
+/* Dark mode overrides */
 html.dark .animate-pulse-yellow-soft {
-  @keyframes pulse-yellow-soft-dark {
-
-    0%,
-    100% {
-      background-color: rgba(113, 63, 18, 0.1);
-    }
-
-    50% {
-      background-color: rgba(113, 63, 18, 0.2);
-    }
-  }
-
-  animation: pulse-yellow-soft-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-name: pulse-yellow-soft-dark;
 }
 
 html.dark .animate-pulse-yellow-hard {
-  @keyframes pulse-yellow-hard-dark {
-
-    0%,
-    100% {
-      background-color: rgba(113, 63, 18, 0.2);
-    }
-
-    50% {
-      background-color: rgba(113, 63, 18, 0.4);
-    }
-  }
-
-  animation: pulse-yellow-hard-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-name: pulse-yellow-hard-dark;
 }
 
 html.dark .animate-pulse-red-hard {
-  @keyframes pulse-red-hard-dark {
-
-    0%,
-    100% {
-      background-color: rgba(127, 29, 29, 0.2);
-    }
-
-    50% {
-      background-color: rgba(127, 29, 29, 0.4);
-    }
-  }
-
-  animation: pulse-red-hard-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-name: pulse-red-hard-dark;
 }
