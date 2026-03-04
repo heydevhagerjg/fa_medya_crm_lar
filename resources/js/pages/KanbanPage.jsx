@@ -4,7 +4,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultD
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Briefcase, User, Calendar, Plus, MoreVertical, GripVertical, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { Briefcase, User, Calendar, Plus, MoreVertical, GripVertical, CheckCircle2, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -66,43 +66,57 @@ function SortableJobCard({ job, onOpenDetail }) {
 }
 
 // --- Kanban Column ---
-function KanbanColumn({ status, jobs, onOpenDetail }) {
+function KanbanColumn({ status, jobs, onOpenDetail, isCollapsed, onToggle }) {
     const { setNodeRef } = useSortable({
         id: status.id,
         data: { type: 'Column', status }
     })
 
     return (
-        <div className="flex flex-col w-80 h-full bg-gray-100/50 dark:bg-gray-900/40 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden flex-shrink-0">
+        <div className={`flex flex-col h-full bg-gray-100/50 dark:bg-gray-900/40 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-80'}`}>
             {/* Column Header */}
-            <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: status.color || '#6366f1' }} />
-                    <h3 className="font-bold text-gray-900 dark:text-white truncate">{status.name}</h3>
-                    <span className="px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-500 rounded-full text-[11px] font-bold shadow-sm border border-gray-100 dark:border-gray-700">
-                        {jobs.length}
-                    </span>
+            <div className={`p-4 flex items-center justify-between ${isCollapsed ? 'flex-col gap-4 h-full' : ''}`}>
+                <div className={`flex items-center gap-2.5 ${isCollapsed ? 'flex-col mt-4' : ''}`}>
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color || '#6366f1' }} />
+                    {!isCollapsed ? (
+                        <>
+                            <h3 className="font-bold text-gray-900 dark:text-white truncate max-w-[140px]">{status.name}</h3>
+                            <span className="px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-500 rounded-full text-[11px] font-bold shadow-sm border border-gray-100 dark:border-gray-700">
+                                {jobs.length}
+                            </span>
+                        </>
+                    ) : (
+                        <div className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-xs flex items-center gap-2">
+                            {status.name}
+                            <span className="px-1.5 py-0.5 bg-white dark:bg-gray-800 rounded-lg text-[10px] shadow-sm border border-gray-100 dark:border-gray-700">{jobs.length}</span>
+                        </div>
+                    )}
                 </div>
-                <button className="p-1.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-gray-400 transition-colors">
-                    <Plus size={16} />
+                <button
+                    onClick={() => onToggle(status.id)}
+                    className="p-1.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                >
+                    {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                 </button>
             </div>
 
             {/* Scrollable List */}
-            <div ref={setNodeRef} className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px]">
-                <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
-                    <AnimatePresence>
-                        {jobs.map(job => (
-                            <SortableJobCard key={job.id} job={job} onOpenDetail={onOpenDetail} />
-                        ))}
-                    </AnimatePresence>
-                </SortableContext>
-                {jobs.length === 0 && (
-                    <div className="h-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-gray-400 text-xs italic">
-                        İş bulunamadı
-                    </div>
-                )}
-            </div>
+            {!isCollapsed && (
+                <div ref={setNodeRef} className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar min-h-[150px]">
+                    <SortableContext items={jobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
+                        <AnimatePresence>
+                            {jobs.map(job => (
+                                <SortableJobCard key={job.id} job={job} onOpenDetail={onOpenDetail} />
+                            ))}
+                        </AnimatePresence>
+                    </SortableContext>
+                    {jobs.length === 0 && (
+                        <div className="h-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-gray-400 text-xs italic text-center px-4">
+                            İş bulunamadı
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
@@ -111,6 +125,13 @@ export default function KanbanPage() {
     const qc = useQueryClient()
     const [activeJob, setActiveJob] = useState(null)
     const [selectedJobId, setSelectedJobId] = useState(null)
+    const [collapsedColumns, setCollapsedColumns] = useState([])
+
+    const toggleColumn = (id) => {
+        setCollapsedColumns(prev =>
+            prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        )
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -226,6 +247,8 @@ export default function KanbanPage() {
                                 status={status}
                                 jobs={jobs.filter(j => j.jobStatusId === status.id)}
                                 onOpenDetail={setSelectedJobId}
+                                isCollapsed={collapsedColumns.includes(status.id)}
+                                onToggle={toggleColumn}
                             />
                         ))}
 
@@ -235,6 +258,8 @@ export default function KanbanPage() {
                                 status={{ id: 'unassigned', name: 'Tanımsız', color: '#94a3b8' }}
                                 jobs={jobs.filter(j => !j.jobStatusId)}
                                 onOpenDetail={setSelectedJobId}
+                                isCollapsed={collapsedColumns.includes('unassigned')}
+                                onToggle={toggleColumn}
                             />
                         )}
 
