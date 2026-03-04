@@ -209,10 +209,12 @@ class BackupController extends Controller
             $backups = [];
             foreach ($files as $file) {
                 if (Str::endsWith($file, '.json')) {
+                    $basename = basename($file);
                     $backups[] = [
-                        'name' => basename($file),
+                        'name' => $basename,
                         'size' => Storage::disk('s3_tenant')->size($file),
                         'last_modified' => Storage::disk('s3_tenant')->lastModified($file),
+                        'type' => Str::contains($basename, '_auto_') ? 'Otomatik' : 'Manuel',
                     ];
                 }
             }

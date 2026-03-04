@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud } from 'lucide-react'
+import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function BackupPage() {
     const [importing, setImporting] = useState(false)
     const [exporting, setExporting] = useState(false)
     const [resetting, setResetting] = useState(false)
     const [importFile, setImportFile] = useState(null)
+    const [currentPage, setCurrentPage] = useState(1)
 
     const handleExport = async () => {
         setExporting(true)
@@ -97,6 +98,10 @@ export default function BackupPage() {
             toast.error('Buluttan indirme başarısız.')
         }
     }
+
+    const itemsPerPage = 5
+    const totalPages = Math.ceil((s3Backups?.length || 0) / itemsPerPage)
+    const paginatedBackups = s3Backups?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) || []
 
     return (
         <div className="space-y-6">
@@ -237,6 +242,7 @@ export default function BackupPage() {
                         <thead>
                             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800 text-left">
                                 <th className="px-5 py-3 font-semibold text-gray-500">Dosya Adı</th>
+                                <th className="px-5 py-3 font-semibold text-gray-500">Yedek Türü</th>
                                 <th className="px-5 py-3 font-semibold text-gray-500">Boyut</th>
                                 <th className="px-5 py-3 font-semibold text-gray-500">Tarih</th>
                                 <th className="px-5 py-3 font-semibold text-gray-500 text-right">İşlem</th>
@@ -245,12 +251,23 @@ export default function BackupPage() {
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {isLoadingS3 ? (
                                 <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400">Yedekler yükleniyor...</td></tr>
-                            ) : s3Backups.length > 0 ? (
-                                s3Backups.map((backup, idx) => (
+                            ) : paginatedBackups.length > 0 ? (
+                                paginatedBackups.map((backup, idx) => (
                                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                         <td className="px-5 py-4 font-medium text-gray-900 dark:text-gray-300 flex items-center gap-2">
                                             <Database size={14} className="text-gray-400" />
-                                            {backup.name}
+                                            {backup.name.replace('_auto_', '_')}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            {backup.type === 'Otomatik' ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                    Otomatik
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400">
+                                                    Manuel
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-5 py-4 text-gray-500">{(backup.size / 1024).toFixed(2)} KB</td>
                                         <td className="px-5 py-4 text-gray-500">{new Date(backup.last_modified * 1000).toLocaleString('tr-TR')}</td>
@@ -273,6 +290,31 @@ export default function BackupPage() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                Toplam <strong>{s3Backups.length}</strong> yedekten <strong>{(currentPage - 1) * itemsPerPage + 1}</strong>-<strong>{Math.min(currentPage * itemsPerPage, s3Backups.length)}</strong> arası gösteriliyor
+                            </span>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1.5 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1.5 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

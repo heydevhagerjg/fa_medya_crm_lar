@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import {
@@ -166,14 +167,24 @@ export default function FilesPage() {
                         {filteredJobs.map(job => (
                             <div key={job.id} className="space-y-3">
                                 <div className="flex items-center gap-2 px-2">
-                                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                        <FolderOpen size={16} className="text-indigo-400" />
-                                        {job.title}
-                                        <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded ml-2">
-                                            {job.customer?.name}
-                                        </span>
-                                    </h2>
+                                    <Link to={`/jobs/${job.id}`} className="group flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                            <FolderOpen size={16} className="text-indigo-400" />
+                                            {job.title}
+                                            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded ml-2">
+                                                {job.customer?.name}
+                                            </span>
+                                        </h2>
+                                    </Link>
                                     <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800 ml-2" />
+                                    <Link
+                                        to={`/jobs/${job.id}`}
+                                        className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-indigo-500 transition-colors"
+                                        title="İş Detayına Git"
+                                    >
+                                        İşe Git
+                                        <ChevronRight size={14} />
+                                    </Link>
                                 </div>
 
                                 {viewMode === 'grid' ? (

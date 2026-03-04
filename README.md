@@ -78,6 +78,25 @@ Projeyi kendi sunucunuza kolayca kurmak için şu adımları takip edin:
    ```
 Artık ayarladığınız domain veya `localhost:8000` üzerinden sisteme giriş yapabilir, kiracılar oluşturabilir ve CRM'i arayüzünden kişiselleştirmeye başlayabilirsiniz.
 
+### ⏱️ Otomatik Yedekleme İçin Cron Job (Zamanlanmış Görev) Kurulumu
+
+Sistemin AWS S3'e tenant bazlı tam otomatik yedeklerini ("Örn: her gece saat 03:00'te") arka planda alabilmesi için sunucunuzda Laravel zamanlayıcısını (Scheduler) aktif etmeniz gerekmektedir.
+
+**Standart Linux/Ubuntu Sunucular (SSH ile):**
+Terminalden `crontab -e` komutunu çalıştırın ve en alta şu satırı ekleyin:
+```bash
+* * * * * cd /projenin/bulundugu/dizin && php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Plesk Panel Üzerinden (SSH Erişimi Olmayanlar İçin):**
+1. Plesk panelinizde ilgili alan adının ayarlarından **Zamanlanmış Görevler (Scheduled Tasks)** bölümüne girin.
+2. **Görev Ekle (Add Task)** butonuna basın.
+3. **Görev Türü (Task type):** `PHP betiğini çalıştır (Run a PHP script)` olarak seçin.
+4. **Betik Yolu (Script path):** Projenizin içindeki `artisan` dosyasını seçin veya yazın (Örn: `httpdocs/famedya-crm/artisan` veya `httpdocs/artisan`).
+5. **Bağımsız Değişkenlerle (with arguments):** Kutuya `schedule:run` yazın.
+6. **Çalıştırma zamanı (Run):** `Cron stiline göre (Cron style)` seçeneğini seçip kutuya `* * * * *` yazın ve kaydedin.
+7. _Önemli: Kuyruk komutunun da dönmesi için aynı adımlarla yeni bir görev daha ekleyin (Fakat argüman kısmına `queue:work --stop-when-empty` yazarak her 1 veya 5 dakikada çalışmasını sağlayın)._
+
 ## 📡 API Uç Noktaları (Endpoints)
 
 Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public auth haricinde) Sanctum token'ı ile çalışır.
