@@ -51,3 +51,109 @@
     background: rgb(55 65 81);
   }
 }
+
+@keyframes pulse-yellow-soft {
+
+  0%,
+  100% {
+    background-color: #fefce8;
+  }
+
+  /* yellow-50 */
+  50% {
+    background-color: #fef3c7;
+  }
+
+  /* yellow-100 */
+}
+
+@keyframes pulse-yellow-hard {
+
+  0%,
+  100% {
+    background-color: #fef3c7;
+  }
+
+  /* yellow-100 */
+  50% {
+    background-color: #fde68a;
+  }
+
+  /* yellow-200 */
+}
+
+@keyframes pulse-red-hard {
+
+  0%,
+  100% {
+    background-color: #fee2e2;
+  }
+
+  /* red-100 */
+  50% {
+    background-color: #fecaca;
+  }
+
+  /* red-200 */
+}
+
+.animate-pulse-yellow-soft {
+  animation: pulse-yellow-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-yellow-hard {
+  animation: pulse-yellow-hard 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-red-hard {
+  animation: pulse-red-hard 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dark mode adjustments for animations */
+html.dark .animate-pulse-yellow-soft {
+  @keyframes pulse-yellow-soft-dark {
+
+    0%,
+    100% {
+      background-color: rgba(113, 63, 18, 0.1);
+    }
+
+    50% {
+      background-color: rgba(113, 63, 18, 0.2);
+    }
+  }
+
+  animation: pulse-yellow-soft-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+html.dark .animate-pulse-yellow-hard {
+  @keyframes pulse-yellow-hard-dark {
+
+    0%,
+    100% {
+      background-color: rgba(113, 63, 18, 0.2);
+    }
+
+    50% {
+      background-color: rgba(113, 63, 18, 0.4);
+    }
+  }
+
+  animation: pulse-yellow-hard-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+html.dark .animate-pulse-red-hard {
+  @keyframes pulse-red-hard-dark {
+
+    0%,
+    100% {
+      background-color: rgba(127, 29, 29, 0.2);
+    }
+
+    50% {
+      background-color: rgba(127, 29, 29, 0.4);
+    }
+  }
+
+  animation: pulse-red-hard-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

@@ -116,39 +116,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                     {(stats?.upcomingAppointments || []).map((apt) => (
-                        <div key={apt.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full">
-                            <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate leading-tight">{apt.title}</div>
-                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 font-medium">
-                                            <Users size={12} className="flex-shrink-0" />
-                                            <span className="truncate">{apt.customer?.name}</span>
-                                        </div>
-                                    </div>
-                                    <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase border flex items-center gap-1 shadow-sm h-fit ${apt.status === 'COMPLETED'
-                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                        : apt.status === 'CANCELLED'
-                                            ? 'bg-red-50 text-red-600 border-red-100'
-                                            : 'bg-amber-50 text-amber-600 border-amber-100'
-                                        }`}>
-                                        <Clock size={10} />
-                                        <Countdown targetDate={apt.startTime} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 mt-4">
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg">
-                                    <CalendarIcon size={12} />
-                                    {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
-                                    <Clock size={12} />
-                                    {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            </div>
-                        </div>
+                        <AppointmentCard key={apt.id} apt={apt} />
                     ))}
                     {!stats?.upcomingAppointments?.length && (
                         <div className="col-span-full py-8 text-center bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-3xl">
@@ -249,6 +217,69 @@ export default function DashboardPage() {
     )
 }
 
+function AppointmentCard({ apt }) {
+    const [urgencyClass, setUrgencyClass] = useState('')
+
+    useEffect(() => {
+        const updateUrgency = () => {
+            const now = new Date()
+            const start = new Date(apt.startTime)
+            const diffMs = start - now
+            const diffHours = diffMs / (1000 * 60 * 60)
+
+            if (diffMs < 0) {
+                setUrgencyClass('animate-pulse-red-hard shadow-red-100')
+            } else if (diffHours < 1.5) {
+                setUrgencyClass('animate-pulse-yellow-hard shadow-yellow-100')
+            } else if (diffHours < 6) {
+                setUrgencyClass('animate-pulse-yellow-soft shadow-amber-50')
+            } else {
+                setUrgencyClass('bg-white dark:bg-gray-900 shadow-sm')
+            }
+        }
+
+        updateUrgency()
+        const interval = setInterval(updateUrgency, 60000)
+        return () => clearInterval(interval)
+    }, [apt.startTime])
+
+    return (
+        <div className={`${urgencyClass} border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full`}>
+            <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate leading-tight">{apt.title}</div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 font-medium">
+                            <Users size={12} className="flex-shrink-0" />
+                            <span className="truncate">{apt.customer?.name}</span>
+                        </div>
+                    </div>
+                    <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase border flex items-center gap-1 shadow-sm h-fit ${apt.status === 'COMPLETED'
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        : apt.status === 'CANCELLED'
+                            ? 'bg-red-50 text-red-600 border-red-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                        }`}>
+                        <Clock size={10} />
+                        <Countdown targetDate={apt.startTime} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg">
+                    <CalendarIcon size={12} />
+                    {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <Clock size={12} />
+                    {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function Countdown({ targetDate }) {
     const [timeLeft, setTimeLeft] = useState('')
 
@@ -259,7 +290,7 @@ function Countdown({ targetDate }) {
             const diffMs = target - now
 
             if (diffMs <= 0) {
-                setTimeLeft('BAŞLADI')
+                setTimeLeft('Geciktin')
                 return
             }
 
