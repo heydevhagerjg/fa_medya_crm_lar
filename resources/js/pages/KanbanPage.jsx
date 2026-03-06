@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, pointerWithin } from '@dnd-kit/core'
+import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, rectIntersection, closestCorners } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -208,7 +208,10 @@ export default function KanbanPage() {
 
     // Update status mutation
     const updateJobStatus = useMutation({
-        mutationFn: ({ jobId, statusId, oldStatusId }) => api.patch(`/jobs/${jobId}/status`, { jobStatusId: statusId }),
+        mutationFn: ({ jobId, statusId, oldStatusId }) => {
+            const apiStatusId = statusId === 'unassigned' ? null : statusId;
+            return api.patch(`/jobs/${jobId}/status`, { jobStatusId: apiStatusId });
+        },
         onSuccess: (updatedJob, variables) => {
             // Invalidate columns involved
             qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.statusId] })
@@ -243,13 +246,16 @@ export default function KanbanPage() {
         let targetStatusId = null
 
         if (over.data.current?.type === 'Column') {
-            targetStatusId = overId
+            targetStatusId = overId // overId is status.id
         } else if (over.data.current?.type === 'Job') {
             targetStatusId = over.data.current.job.jobStatusId
         }
 
         // Only update if the status actually changed
-        if (targetStatusId !== null && targetStatusId !== job.jobStatusId) {
+        // Use String() for safe comparison of numeric IDs vs potentially null/unassigned
+        const currentJobStatusId = job.jobStatusId === null ? 'unassigned' : job.jobStatusId;
+
+        if (targetStatusId !== null && String(targetStatusId) !== String(currentJobStatusId)) {
             updateJobStatus.mutate({
                 jobId: activeId,
                 statusId: targetStatusId,
@@ -289,7 +295,7 @@ export default function KanbanPage() {
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 -mx-4 px-4 custom-scrollbar">
                 <DndContext
                     sensors={sensors}
-                    collisionDetection={pointerWithin}
+                    collisionDetection={rectIntersection} // Using rectIntersection for better target accuracy
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                 >

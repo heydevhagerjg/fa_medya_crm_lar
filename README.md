@@ -145,8 +145,6 @@ Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public aut
 | **PUT** | `/settings/tenant` | Güncel kiracı / AWS S3 depolama ayarlarını kaydeder. |
 | **POST** | `/settings/tenant/test` | Girilen AWS S3 depolama ayarlarını test eder. |
 
-💡 **Daha detaylı bilgi, paramere ve kullanım örnekleri için [API_DOKUMANTASYON.md](API_DOKUMANTASYON.md) dosyasını inceleyebilirsiniz.**
-
 ---
 
 *Geliştiren: Fa Medya*

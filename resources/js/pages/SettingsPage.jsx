@@ -208,8 +208,8 @@ function StatusItem({ s, openModal, setDeleteConfirm, isLocked = false }) {
             )}
             <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: s.color }} />
             <span className="flex-1 font-medium text-gray-900 dark:text-white">
-                {s.name}
-                {isLocked && <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full font-normal">Varsayılan</span>}
+                {s.name} <span className="text-gray-400 dark:text-gray-500 font-normal">| ID: {s.id}</span>
+                {isLocked && <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full font-normal italic">Varsayılan</span>}
             </span>
             <div className="flex gap-1">
                 <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>

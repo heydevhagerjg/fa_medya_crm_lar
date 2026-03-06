@@ -246,10 +246,10 @@ class JobController extends Controller
         $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
 
         $validated = $request->validate([
-            'jobStatusId' => 'required|integer',
+            'jobStatusId' => 'nullable|integer',
         ]);
 
-        $job->update(['job_status_id' => $validated['jobStatusId']]);
+        $job->update(['job_status_id' => $validated['jobStatusId'] ?? null]);
 
         $this->clearTenantCache('jobs');
 

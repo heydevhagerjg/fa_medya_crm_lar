@@ -15,6 +15,32 @@ export default function ApiDocsPage() {
                 </div>
             </div>
 
+            {/* QUICK START / GLOBAL INFO */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="p-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl text-white shadow-xl shadow-indigo-500/20">
+                    <h3 className="text-lg font-black mb-3 flex items-center gap-2">
+                        <Activity size={20} /> Base URL
+                    </h3>
+                    <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 font-mono text-sm border border-white/10">
+                        {window.location.origin}
+                    </div>
+                    <p className="text-xs mt-3 text-indigo-100/80 leading-relaxed">
+                        Tüm API isteklerinizi bu temel URL üzerinden gerçekleştirmelisiniz. Yerel çalışma ortamında genellikle <code>http://localhost:8000</code> kullanılır.
+                    </p>
+                </div>
+                <div className="p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-sm">
+                    <h3 className="text-lg font-black mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+                        <Shield size={20} className="text-indigo-500" /> Yetkilendirme (Authorization)
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Korumalı endpoint'lere erişmek için giriş yaptıktan sonra aldığınız <code>token</code> bilgisini <strong>Authorization</strong> header'ında göndermelisiniz.
+                    </p>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 font-mono text-xs border border-gray-100 dark:border-gray-700 text-pink-500">
+                        Authorization: Bearer {'{YOUR_AUTH_TOKEN}'}
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-8">
                 {/* 1. AUTH SECTION */}
                 <section>
@@ -37,8 +63,8 @@ export default function ApiDocsPage() {
                             method="POST"
                             path="/api/auth/register"
                             label="Kayıt Ol"
-                            desc="Yeni bir kiracı/şirket profili oluşturur."
-                            req={`{ "name": "...", "email": "...", "password": "..." }`}
+                            desc="Sistemde yeni bir şirket (kiracı) hesabı ve admin kullanıcısı oluşturur."
+                            req={`{\n  "name": "Admin Kullanıcı",\n  "email": "admin@sirket.com",\n  "password": "sifre123",\n  "password_confirmation": "sifre123",\n  "tenant_name": "Şirket Adı"\n}`}
                         />
                         <EndpointItem
                             method="GET"
@@ -59,7 +85,8 @@ export default function ApiDocsPage() {
                             method="POST"
                             path="/api/auth/change-password"
                             label="Şifre Değiştir"
-                            req={`{ "current_password": "...", "password": "...", "password_confirmation": "..." }`}
+                            desc="Giriş yapmış kullanıcının şifresini günceller."
+                            req={`{\n  "current_password": "eski_sifre",\n  "password": "yeni_sifre_123",\n  "password_confirmation": "yeni_sifre_123"\n}`}
                             auth
                         />
                     </div>
@@ -86,7 +113,8 @@ export default function ApiDocsPage() {
                             method="POST"
                             path="/api/customers"
                             label="Yeni Müşteri"
-                            req={`{ "type": "corporate|individual", "name": "...", "phone": "...", "email": "..." }`}
+                            desc="Yeni bir müşteri kaydı oluşturur."
+                            req={`{\n  "name": "Mehmet Demir",\n  "phone": "0544 111 22 33", // opsiyonel\n  "email": "mehmet@mail.com", // opsiyonel\n  "notes": "İnşaat projesi için görüşüldü." // opsiyonel\n}`}
                             auth
                         />
                         <EndpointItem
@@ -100,6 +128,8 @@ export default function ApiDocsPage() {
                             method="PUT"
                             path="/api/customers/{id}"
                             label="Müşteri Düzenle"
+                            desc="Müşteri bilgilerini günceller. Sadece değişecek alanları göndermek yeterlidir."
+                            req={`// Header: Authorization: Bearer {token}\n// Body (JSON):\n{\n  "name": "Ahmet Yılmaz", // opsiyonel\n  "phone": "0532 000 00 00", // opsiyonel\n  "email": "ahmet@mail.com", // opsiyonel\n  "notes": "VIP Müşteri" // opsiyonel\n}`}
                             auth
                         />
                         <EndpointItem
@@ -132,7 +162,8 @@ export default function ApiDocsPage() {
                             method="POST"
                             path="/api/jobs"
                             label="Yeni İş Ekle"
-                            req={`{ "customer_id": 1, "service_id": 2, "title": "...", "total_price": 5000 }`}
+                            desc="Sistemdeki bir müşteriye yeni bir iş/proje tanımlar."
+                            req={`{\n  "customerId": 1,\n  "serviceId": 2, // opsiyonel\n  "title": "Web Tasarım Projesi",\n  "totalPrice": 15000, // opsiyonel\n  "startDate": "2026-03-05", // opsiyonel\n  "steps": ["Analiz", "Tasarım", "Kodlama"] // opsiyonel\n}`}
                             auth
                         />
                         <EndpointItem
@@ -140,7 +171,7 @@ export default function ApiDocsPage() {
                             path="/api/jobs/{id}/status"
                             label="Statü Güncelle"
                             desc="İşin sadece durumunu (Hazırlanıyor vs) değiştirir."
-                            req={`{ "status_id": 3 }`}
+                            req={`{ "jobStatusId": 3 }`}
                             auth
                         />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,7 +202,8 @@ export default function ApiDocsPage() {
                             method="POST"
                             path="/api/appointments"
                             label="Randevu Planla"
-                            req={`{ "customer_id": 1, "title": "...", "start_time": "2026-03-04 10:00", "status": "PENDING" }`}
+                            desc="Müşteri için takvime yeni bir görüşme veya aktivite ekler."
+                            req={`{\n  "customerId": 1,\n  "title": "Tanışma Toplantısı",\n  "startTime": "2026-03-04 10:00",\n  "endTime": "2026-03-04 11:00",\n  "status": "PENDING" // opsiyonel\n}`}
                             auth
                         />
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -198,7 +230,7 @@ export default function ApiDocsPage() {
                                 <EndpointItem
                                     method="POST"
                                     path="/api/payments"
-                                    req={`{ "job_id": 1, "amount": 1000, "payment_type": "CASH", "cash_register_id": 1 }`}
+                                    req={`{\n  "jobId": 1, // opsiyonel\n  "amount": 2500,\n  "paymentDate": "2026-03-04",\n  "paymentType": "PARTIAL",\n  "cashRegisterId": 1 // opsiyonel\n}`}
                                     auth
                                 />
                                 <EndpointItem method="GET" path="/api/payments" auth />
@@ -208,7 +240,7 @@ export default function ApiDocsPage() {
                                 <EndpointItem
                                     method="POST"
                                     path="/api/expenses"
-                                    req={`{ "title": "Kira", "amount": 5000, "category_id": 1, "cash_register_id": 1 }`}
+                                    req={`{\n  "title": "Ofis Kirası",\n  "amount": 12000,\n  "date": "2026-03-01",\n  "categoryId": 1, // opsiyonel\n  "cashRegisterId": 1 // opsiyonel\n}`}
                                     auth
                                 />
                                 <EndpointItem method="GET" path="/api/expenses" auth />
