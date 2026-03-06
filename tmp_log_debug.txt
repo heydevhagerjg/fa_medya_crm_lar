@@ -1,0 +1,80 @@
+﻿
+[2026-03-06 03:19:30] local.INFO: API Key Middleware Debug {"url":"http://localhost:8000/api
+/settings/services","method":"GET","X-API-Key-Method":"NOT_FOUND","X-API-Key-Value":null,"x-
+api-key-lower":null,"all_headers":{"host":["localhost:8000"],"connection":["keep-alive"],"se
+c-ch-ua-platform":["\"Windows\""],"x-csrf-token":["2eNL5uU0rYp1bguzWcLvgSQfNNHSL856K8yTcv0l"
+],"authorization":["Bearer 14|jvL7l4CYYbdCCbyxP3zGHpL00K730dwq43G3ZbQ4d0403e47"],"x-xsrf-tok
+en":["eyJpdiI6IlpJRWZRbHpHMGFEWEsxc2JJUEdKOGc9PSIsInZhbHVlIjoiSE0rTjJveFl3OWVRTWU1SnFqUlVMRj
+gxYi9HWGFkR2EweERlaFJxbmlzSHNTcUpWT3V1ZzhFZUVsRTdpeTBhem8xbXg0S2tDSC9GSHBuTTdkWGpyVmVESi9Ia1
+pkYTlmVGd2VzBkMVN2amEvWVhBajNXUnAyTW42ZlFVR3I3cloiLCJtYWMiOiIzYWYxNzlmODJlNjhlYWM2ODM4YzM1Zm
+VjNWQ3MTYzZDNkMzIyYWE5NTE1NGFiMWI0NzAyOTRhYmZlOTlhMGU1IiwidGFnIjoiIn0="],"sec-ch-ua":["\"Ope
+ra GX\";v=\"127\", \"Chromium\";v=\"143\", \"Not 
+A(Brand\";v=\"24\""],"sec-ch-ua-mobile":["?0"],"user-agent":["Mozilla/5.0 (Windows NT 10.0; 
+Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 
+OPR/127.0.0.0 (Edition Yx GX TR 1)"],"accept":["application/json"],"sec-fetch-site":["same-o
+rigin"],"sec-fetch-mode":["cors"],"sec-fetch-dest":["empty"],"referer":["http://localhost:80
+00/settings"],"accept-encoding":["gzip, deflate, br, zstd"],"accept-language":["tr-TR,tr;q=0
+.9,en-US;q=0.8,en;q=0.7"],"cookie":["sbjs_migrations=1418474375998%3D1; sbjs_current_add=fd%
+3D2025-12-22%2016%3A19%3A15%7C%7C%7Cep%3Dhttp%3A%2F%2Flocalhost%2Fvianova_perfume%2F%7C%7C%7
+Crf%3Dhttp%3A%2F%2Flocalhost%2Fvianova_perfume%2Fwp-admin%2Fthemes.php; sbjs_first_add=fd%3D
+2025-12-22%2016%3A19%3A15%7C%7C%7Cep%3Dhttp%3A%2F%2Flocalhost%2Fvianova_perfume%2F%7C%7C%7Cr
+f%3Dhttp%3A%2F%2Flocalhost%2Fvianova_perfume%2Fwp-admin%2Fthemes.php; sbjs_current=typ%3Dtyp
+ein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt
+%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7
+C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29; sbjs_first=typ%3Dtypein%7C%7C%7Csrc%3D%28dire
+ct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm
+%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7
+C%7Ctct%3D%28none%29; authjs.csrf-token=e4f15feea934e0df28ffede3838c500ec93930e5e83cda0c52be
+f684b0f445a3%7C3b00ee94aefad0e3c5da70522d26c93b648af954bf94edac313d59488d063692; 
+authjs.callback-url=http%3A%2F%2Flocalhost%3A3000%2Fdashboard; __Host-next-auth.csrf-token=f
+d61cc8b5cfff582cfab206f178d7b4f30341140802e8bae457c5e54c4f8788d%7Cedc055076018ae1c4dd6f1a79b
+427a08072cbed62724365e1001d6b8b88a269e; PHPSESSID=9ljpvimuopn3hntkt2hg7vaat8; 
+__Secure-next-auth.callback-url=https%3A%2F%2Fcrm.famedya.com; __Secure-next-auth.session-to
+ken=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..9Z_ihfYMiyIp6aPt.SdU1pJwM2PNFvRpmEX95F0i70K89Wx
+gcjz77cEI4cEOrkPnznYP_MfSl18HoxORGRaKxh_OzcTFgj52mG0oVu-wtCZVz79iccvtEaivWBE5yjj8BCR-Z7nSFc5
+tXkOyP0XfXppAr0Al-pXFXVxOUFr2zHEDiUK-Snn7Y8rs9ypJOD4NMnwERxHEJrV2Uevz7HSMwaN9HeZzr6t7L1rGh5k
+M7xRf2fyDCgzu7groEBh5rY0vLXUrPM1rq5BOmFTU2jgWHp-mxJek_Ga3Q7E1QO05-t20S018-fM9MHmt2EQ.SN3gXRz
+UgZDYPkG9S_6KfQ; jwtToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwic2Vzc2lvb
+klkIjoiODc0MzIwZWRlN2JmMTc2YTNhZDA4MTU1YzMxN2VjNmIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcwNzIwM
+zc5LCJleHAiOjE3NzA3MjIxNzl9.HEcWAYsBCUufNgwrlebgwL1KgxpJq9pqfEgKl33TUnQ; next-auth.csrf-toke
+n=1b5010a0ff2a2d1302eeab7896683ad4be6d0b333294dbedea7ff33da563691b%7C9bc82d066c9467be56de5a0
+2282f567c533c981f6bb5b5b90fe1d760c443c8b9; 
+next-auth.callback-url=http%3A%2F%2Flocalhost%3A3000%2Flogin; 
+__next_hmr_refresh_hash__=131; rl_anonymous_id=RudderEncrypt%3AU2FsdGVkX1%2Bio9XrWyNfto1U6pV
+%2FNOVv%2FSyRZRnsTfakFlIvSUtTZcjpUDTIKacAk7zxqM2CSuDK0rRkQqh2Tw%3D%3D; 
+rl_group_id=RudderEncrypt%3AU2FsdGVkX19n0q7WUpiVV4rR8ZJr8XvBu6ozE6uPWcM%3D; 
+rl_group_trait=RudderEncrypt%3AU2FsdGVkX19Fi8KZt8hjhu%2B9LUikidUBXQ%2FGSXhhXsM%3D; 
+rl_page_init_referrer=RudderEncrypt%3AU2FsdGVkX1%2FSWaMZVJ%2Bl8I3U4WrdQxhIGK2ZTs%2FCbl8%3D; 
+rl_page_init_referring_domain=RudderEncrypt%3AU2FsdGVkX1%2Bcb%2FZ%2Bl%2BUs%2Fn7aLbGKuWahVHMn
+VLdac%2Fc%3D; rl_user_id=RudderEncrypt%3AU2FsdGVkX19p862ut13W8dZwWsEp6awhXiuEKbUr1mqKhZKuawN
+efVhIex5jfUaM8cBnf79ozuiD93uJLRztfcwGx0HJIfpbGwFC%2B5ekkYg0rAN5hhyTuBixgvn64QNaZZHJcVnKYmwE5
+Ox6Kt8xmjL6hNQKatI4XDWK8OKky%2BM%3D; rl_trait=RudderEncrypt%3AU2FsdGVkX18zPTgm0E4FSIhEFo7whj
+%2Fyp%2Bl%2FBd9nzak2uVY36JnkZr4%2FG49PTHbLFFtQVKqDlbKq%2FVASxmmi2L6iHWz05mWNIPJdbZRi5rTP0yJC
+sptGAV8LxzcDFA4ynRGLoP4GQm0ciETFwMLHz6osIbz3ozT6yzSLLFGBQPs%3D; rl_session=RudderEncrypt%3AU
+2FsdGVkX1%2FLxOP7MKNv7NvZtwQB%2BaYp0cniq8l8mOnwvBR7NYZ8dqpi5QrfWMgybqvF8mh%2BZ7oeNOHwk11m3su
+DwOWOiElKJ%2BHYyeKghYV6DZLYNKG5dxfokeu4aLrGzgvHOOUltNBv8qtQwu%2B3zA%3D%3D; ph_phc_4URIAm1uYf
+JO7j8kWSe0J8lc8IqnstRLS7Jx8NcakHo_posthog=%7B%22%24device_id%22%3A%22019c6e3c-c1e1-7ab6-85ae
+-ddc8044da7e4%22%2C%22distinct_id%22%3A%223891f879cb3e7500a48c559c12c0f7429150dd7a3567f0a90e
+46059a93a1c31e%2310539dd7-8170-491a-bbf9-96b8cb5f8068%22%2C%22%24sesid%22%3A%5B1771376248785
+%2C%22019c6e3c-c1ea-7461-9e35-c98bc6cec641%22%2C1771376001511%5D%2C%22%24epp%22%3Atrue%2C%22
+%24initial_person_info%22%3A%7B%22r%22%3A%22%24direct%22%2C%22u%22%3A%22http%3A%2F%2Flocalho
+st%3A5678%2Fhome%2Fworkflows%22%7D%7D; shop_display=grid; sbjs_udata=vst%3D18%7C%7C%7Cuip%3D
+%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%29%20App
+leWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F143.0.0.0%20Safari%2F537.36%20O
+PR%2F127.0.0.0%20%28Edition%20Yx%20GX%20TR%201%29; 
+woodmart_popup-legacy_4=[%22time_to_show%22]; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbm
+MiOiJBMjU2R0NNIn0..RM___CmAESZS_C7o.l1Zk_52SdGLTRmUa7L9_Kzs7D9li1luxiD5zK09xpAJPPJvmfOPVuuqp
+vIfGHUBCG3f5UYro_M0Pxy2VS-A7l3nXmxxMpoEvSi8VBYPovy6DOunvF3Ea-sejnUVrVkD4PxfLeX2xYBLN8k7a6V33
+G-xLiw0t2GOWXKnPUZXub31A_BFuOpj6dcdmS68IiWiqUoqJCrR6oSCYyes1cZ3NGZC8SB9PFy5Yt7S9DDUvnt1vdJ4H
+iJe_Vut2_jfpsHvpjTTy-TKM9zW7JndtSbuBtAyE7gnQKqGTjzlFjfOU3LnpmMotEkU0A7GfEcaQafOBTZSRODU.Rcxh
+aU8TehTxoneeZq8QWg; XSRF-TOKEN=eyJpdiI6IlpJRWZRbHpHMGFEWEsxc2JJUEdKOGc9PSIsInZhbHVlIjoiSE0rT
+jJveFl3OWVRTWU1SnFqUlVMRjgxYi9HWGFkR2EweERlaFJxbmlzSHNTcUpWT3V1ZzhFZUVsRTdpeTBhem8xbXg0S2tDS
+C9GSHBuTTdkWGpyVmVESi9Ia1pkYTlmVGd2VzBkMVN2amEvWVhBajNXUnAyTW42ZlFVR3I3cloiLCJtYWMiOiIzYWYxN
+zlmODJlNjhlYWM2ODM4YzM1ZmVjNWQ3MTYzZDNkMzIyYWE5NTE1NGFiMWI0NzAyOTRhYmZlOTlhMGU1IiwidGFnIjoiI
+n0%3D; fa-medya-crm-session=eyJpdiI6IjRSSEpXZzV0T2NUNzAzWll6ZXlnNVE9PSIsInZhbHVlIjoiSWIxQlJV
+MldwLy81dVhWSnQzaVB5aHEwNktRVEhFdTNoYzd1S1BDQnk0MmVBNFB5NTY3K3ZwM1pyWFEwZ3VCK0gzTkx3amorblp0
+SU50NERLaDlkNE40bnUvTkcrZDhxS0pwQ3hMU0NsMDlFdmFvdWZtNnYwUFg3ZjBzRk5DSVEiLCJtYWMiOiI5NDI4YmZl
+MWE1ZmYxYWM3MGU0NjdhODY1M2IyYjNhNDA0YzcwMzJlMDU2MzhmZjExNjg2MGNhYTJmZGFjODNmIiwidGFnIjoiIn0%
+3D"]}} 
+
+
