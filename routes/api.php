@@ -116,7 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('expense-categories', ExpenseCategoryController::class);
 
         // API Keys
-        Route::apiResource('api-keys', ApiKeyController::class)->except(['show', 'update']);
+        Route::apiResource('api-keys', ApiKeyController::class)->except(['show']);
         Route::apiResource('appointment-titles', AppointmentTitleController::class);
 
         // Backup Keys

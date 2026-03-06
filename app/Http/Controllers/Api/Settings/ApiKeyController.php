@@ -36,6 +36,22 @@ class ApiKeyController extends Controller
         return response()->json($apiKey, 201);
     }
 
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $apiKey = ApiKey::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name'        => 'nullable|string|max:255',
+            'permissions' => 'nullable|array',
+            'expires_at'  => 'nullable|date',
+        ]);
+
+        $apiKey->update($validated);
+
+        return response()->json($apiKey);
+    }
+
     public function destroy(Request $request, string $id): JsonResponse
     {
         ApiKey::where('tenant_id', $request->user()->tenant_id)->findOrFail($id)->delete();

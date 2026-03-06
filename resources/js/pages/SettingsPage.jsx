@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -550,6 +550,8 @@ function ApiKeysTab() {
     const [expiresAt, setExpiresAt] = useState('')
     const [selectedPermissions, setSelectedPermissions] = useState([])
     const [showConfirm, setShowConfirm] = useState(null)
+    const [editingKey, setEditingKey] = useState(null)
+
     const modules = [
         { id: 'jobs', label: 'İşler (Jobs)' },
         { id: 'customers', label: 'Müşteriler (Customers)' },
@@ -572,20 +574,23 @@ function ApiKeysTab() {
 
     const { data: keys = [] } = useQuery({ queryKey: ['api-keys'], queryFn: () => api.get('/settings/api-keys').then(r => r.data) })
 
-    const createMutation = useMutation({
-        mutationFn: () => api.post('/settings/api-keys', {
-            name,
-            permissions: selectedPermissions,
-            expires_at: expiresAt || null
-        }),
+    const saveMutation = useMutation({
+        mutationFn: (data) => editingKey
+            ? api.put(`/settings/api-keys/${editingKey.id}`, data)
+            : api.post('/settings/api-keys', data),
         onSuccess: () => {
             qc.invalidateQueries(['api-keys'])
-            toast.success('API anahtarı oluşturuldu.')
-            setName('')
-            setExpiresAt('')
-            setSelectedPermissions([])
+            toast.success(editingKey ? 'API anahtarı güncellendi.' : 'API anahtarı oluşturuldu.')
+            resetForm()
         },
     })
+
+    const resetForm = () => {
+        setName('')
+        setExpiresAt('')
+        setSelectedPermissions([])
+        setEditingKey(null)
+    }
 
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/settings/api-keys/${id}`),
@@ -595,6 +600,14 @@ function ApiKeysTab() {
     const copyKey = (key) => {
         navigator.clipboard.writeText(key)
         toast.success('Kopyalandı!')
+    }
+
+    const handleEdit = (k) => {
+        setEditingKey(k)
+        setName(k.name || '')
+        setExpiresAt(k.expires_at ? k.expires_at.split('T')[0] : '')
+        setSelectedPermissions(k.permissions || [])
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     const togglePermission = (moduleId, actionId) => {
@@ -617,11 +630,21 @@ function ApiKeysTab() {
 
     return (
         <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Plus size={16} className="text-indigo-500" />
-                    Yeni Granüler API Anahtarı Oluştur
-                </h3>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5 ring-2 ring-indigo-500/10">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        {editingKey ? <Edit2 size={16} className="text-amber-500" /> : <Plus size={16} className="text-indigo-500" />}
+                        {editingKey ? 'API Anahtarını Düzenle' : 'Yeni Granüler API Anahtarı Oluştur'}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            to="/api-docs"
+                            className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xs font-bold transition-all"
+                        >
+                            <FileCode size={14} /> Dökümantasyon
+                        </Link>
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -672,21 +695,29 @@ function ApiKeysTab() {
                     </table>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end gap-3 pt-2">
+                    {editingKey && (
+                        <button
+                            onClick={resetForm}
+                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                        >
+                            İptal
+                        </button>
+                    )}
                     <button
-                        onClick={() => createMutation.mutate()}
-                        disabled={createMutation.isPending}
+                        onClick={() => saveMutation.mutate({ name, permissions: selectedPermissions, expires_at: expiresAt || null })}
+                        disabled={saveMutation.isPending}
                         className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
                     >
-                        {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        Anahtarı Kaydet
+                        {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {editingKey ? 'Değişiklikleri Kaydet' : 'Anahtarı Oluştur'}
                     </button>
                 </div>
             </div>
 
             <div className="space-y-3">
                 {keys.map(k => (
-                    <div key={k.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-all hover:border-gray-300 dark:hover:border-gray-700 shadow-sm">
+                    <div key={k.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-all hover:border-gray-300 dark:hover:border-gray-700 shadow-sm relative group">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-3">
                                 <div className="flex items-center gap-2">
@@ -701,10 +732,12 @@ function ApiKeysTab() {
                                     )}
                                 </div>
 
-                                <button onClick={() => copyKey(k.key)} className="group flex items-center gap-2 font-mono text-[10px] text-gray-400 hover:text-indigo-500 transition-colors w-full bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg" title="Kopyalamak için tıklayın">
-                                    <span className="truncate flex-1">{k.key}</span>
-                                    <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </button>
+                                <div className="flex items-stretch gap-2">
+                                    <button onClick={() => copyKey(k.key)} className="flex-1 group/key flex items-center gap-2 font-mono text-[10px] text-gray-400 hover:text-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg" title="Kopyalamak için tıklayın">
+                                        <span className="truncate flex-1">{k.key}</span>
+                                        <Activity size={12} className="opacity-0 group-hover/key:opacity-100 transition-opacity" />
+                                    </button>
+                                </div>
 
                                 <div className="space-y-2">
                                     {!k.permissions || k.permissions.length === 0 ? (
@@ -732,9 +765,22 @@ function ApiKeysTab() {
                                 </div>
                             </div>
 
-                            <button onClick={() => setShowConfirm(k)} className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0 border border-transparent hover:border-red-100 dark:hover:border-red-500/20">
-                                <Trash2 size={18} />
-                            </button>
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={() => handleEdit(k)}
+                                    className="p-2.5 rounded-xl text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all border border-transparent hover:border-amber-100 dark:hover:border-amber-500/20"
+                                    title="Düzenle"
+                                >
+                                    <Edit2 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setShowConfirm(k)}
+                                    className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-500/20"
+                                    title="Sil"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
