@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-ro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -551,6 +551,7 @@ function ApiKeysTab() {
     const [selectedPermissions, setSelectedPermissions] = useState([])
     const [showConfirm, setShowConfirm] = useState(null)
     const [editingKey, setEditingKey] = useState(null)
+    const [isFormOpen, setIsFormOpen] = useState(false)
 
     const modules = [
         { id: 'jobs', label: 'İşler (Jobs)' },
@@ -590,6 +591,7 @@ function ApiKeysTab() {
         setExpiresAt('')
         setSelectedPermissions([])
         setEditingKey(null)
+        setIsFormOpen(false)
     }
 
     const deleteMutation = useMutation({
@@ -607,6 +609,7 @@ function ApiKeysTab() {
         setName(k.name || '')
         setExpiresAt(k.expires_at ? k.expires_at.split('T')[0] : '')
         setSelectedPermissions(k.permissions || [])
+        setIsFormOpen(true)
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
@@ -630,89 +633,105 @@ function ApiKeysTab() {
 
     return (
         <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5 ring-2 ring-indigo-500/10">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        {editingKey ? <Edit2 size={16} className="text-amber-500" /> : <Plus size={16} className="text-indigo-500" />}
-                        {editingKey ? 'API Anahtarını Düzenle' : 'Yeni Granüler API Anahtarı Oluştur'}
-                    </h3>
-                    <div className="flex items-center gap-3">
+            <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5 transition-all duration-300 ${isFormOpen ? 'ring-2 ring-indigo-500/20 shadow-lg' : ''}`}>
+                <div
+                    className="flex items-center justify-between cursor-pointer group"
+                    onClick={() => setIsFormOpen(!isFormOpen)}
+                >
+                    <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            {editingKey ? <Edit2 size={16} className="text-amber-500" /> : <Plus size={16} className="text-indigo-500" />}
+                            {editingKey ? 'API Anahtarını Düzenle' : 'Yeni Granüler API Anahtarı Oluştur'}
+                        </h3>
+                        {!isFormOpen && (
+                            <p className="text-[10px] text-gray-400 mt-1">Granüler yetkilere sahip yeni bir anahtar tanımlamak için tıklayın.</p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-4">
                         <Link
                             to="/api-docs"
-                            className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xs font-bold transition-all"
+                            onClick={(e) => e.stopPropagation()}
+                            className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold transition-all"
                         >
-                            <FileCode size={14} /> Dökümantasyon
+                            <FileCode size={12} /> Dökümantasyon
                         </Link>
+                        <div className="p-1 rounded-lg bg-gray-50 dark:bg-gray-800 group-hover:bg-gray-100 dark:group-hover:bg-gray-700 transition-colors">
+                            {isFormOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1.5">Anahtar Adı</label>
-                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Örn: Mobil Entegrasyon" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1.5">Son Geçerlilik Tarihi (Opsiyonel)</label>
-                        <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
-                    </div>
-                </div>
+                {isFormOpen && (
+                    <div className="space-y-5 pt-4 border-t border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Anahtar Adı</label>
+                                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Örn: Mobil Entegrasyon" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Son Geçerlilik Tarihi (Opsiyonel)</label>
+                                <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                            </div>
+                        </div>
 
-                <div className="overflow-hidden border border-gray-200 dark:border-gray-800 rounded-xl">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 text-[10px] uppercase font-bold">
-                            <tr>
-                                <th className="px-4 py-2">Modül</th>
-                                {actions.map(a => <th key={a.id} className="px-4 py-2 text-center">{a.label}</th>)}
-                                <th className="px-4 py-2 text-right">Tümü</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {modules.map(m => (
-                                <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-xs">{m.label}</td>
-                                    {actions.map(a => (
-                                        <td key={a.id} className="px-4 py-3 text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedPermissions.includes(`${m.id}:${a.id}`)}
-                                                onChange={() => togglePermission(m.id, a.id)}
-                                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            />
-                                        </td>
+                        <div className="overflow-hidden border border-gray-200 dark:border-gray-800 rounded-xl">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 text-[10px] uppercase font-bold">
+                                    <tr>
+                                        <th className="px-4 py-2">Modül</th>
+                                        {actions.map(a => <th key={a.id} className="px-4 py-2 text-center">{a.label}</th>)}
+                                        <th className="px-4 py-2 text-right">Tümü</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                    {modules.map(m => (
+                                        <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-xs">{m.label}</td>
+                                            {actions.map(a => (
+                                                <td key={a.id} className="px-4 py-3 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedPermissions.includes(`${m.id}:${a.id}`)}
+                                                        onChange={() => togglePermission(m.id, a.id)}
+                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    />
+                                                </td>
+                                            ))}
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleAllModule(m.id)}
+                                                    className="text-[10px] text-indigo-500 hover:text-indigo-400 font-bold"
+                                                >
+                                                    {actions.every(a => selectedPermissions.includes(`${m.id}:${a.id}`)) ? 'Temizle' : 'Tümü'}
+                                                </button>
+                                            </td>
+                                        </tr>
                                     ))}
-                                    <td className="px-4 py-3 text-right">
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleAllModule(m.id)}
-                                            className="text-[10px] text-indigo-500 hover:text-indigo-400 font-bold"
-                                        >
-                                            {actions.every(a => selectedPermissions.includes(`${m.id}:${a.id}`)) ? 'Temizle' : 'Tümü'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                </tbody>
+                            </table>
+                        </div>
 
-                <div className="flex justify-end gap-3 pt-2">
-                    {editingKey && (
-                        <button
-                            onClick={resetForm}
-                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-                        >
-                            İptal
-                        </button>
-                    )}
-                    <button
-                        onClick={() => saveMutation.mutate({ name, permissions: selectedPermissions, expires_at: expiresAt || null })}
-                        disabled={saveMutation.isPending}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        {editingKey ? 'Değişiklikleri Kaydet' : 'Anahtarı Oluştur'}
-                    </button>
-                </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                            {editingKey && (
+                                <button
+                                    onClick={resetForm}
+                                    className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                                >
+                                    İptal
+                                </button>
+                            )}
+                            <button
+                                onClick={() => saveMutation.mutate({ name, permissions: selectedPermissions, expires_at: expiresAt || null })}
+                                disabled={saveMutation.isPending}
+                                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                {editingKey ? 'Değişiklikleri Kaydet' : 'Anahtarı Oluştur'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="space-y-3">
@@ -733,7 +752,7 @@ function ApiKeysTab() {
                                 </div>
 
                                 <div className="flex items-stretch gap-2">
-                                    <button onClick={() => copyKey(k.key)} className="flex-1 group/key flex items-center gap-2 font-mono text-[10px] text-gray-400 hover:text-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg" title="Kopyalamak için tıklayın">
+                                    <button onClick={() => copyKey(k.key)} className="flex-1 group/key flex items-center gap-2 font-mono text-[13px] text-gray-700 hover:text-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg" title="Kopyalamak için tıklayın">
                                         <span className="truncate flex-1">{k.key}</span>
                                         <Activity size={12} className="opacity-0 group-hover/key:opacity-100 transition-opacity" />
                                     </button>

@@ -47,7 +47,7 @@ export default function ApiDocsPage() {
                         </div>
                     </div>
 
-                    <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden h-full">
+                    <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/50 to-purple-600/50" />
                         <div className="relative">
                             <h3 className="text-xl font-black mb-4 flex items-center gap-2">
@@ -88,7 +88,7 @@ export default function ApiDocsPage() {
                         </div>
                     </div>
 
-                    <div className="p-6 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-3xl h-full flex flex-col justify-center">
+                    <div className="p-6 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-3xl flex flex-col justify-center">
                         <h4 className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-black text-sm mb-3">
                             <Info size={18} /> Güvenlik Notu
                         </h4>
