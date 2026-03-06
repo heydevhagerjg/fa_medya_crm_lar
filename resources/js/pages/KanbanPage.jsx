@@ -208,19 +208,78 @@ export default function KanbanPage() {
 
     // Update status mutation
     const updateJobStatus = useMutation({
-        mutationFn: ({ jobId, statusId, oldStatusId }) => {
+        mutationFn: ({ jobId, statusId }) => {
             const apiStatusId = statusId === 'unassigned' ? null : statusId;
             return api.patch(`/jobs/${jobId}/status`, { jobStatusId: apiStatusId });
         },
-        onSuccess: (updatedJob, variables) => {
-            // Invalidate columns involved
-            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.statusId] })
-            if (variables.oldStatusId) {
-                qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.oldStatusId] })
+        onMutate: async ({ jobId, statusId, oldStatusId }) => {
+            // Cancel outgoing refetches
+            await qc.cancelQueries({ queryKey: ['jobs', 'column', statusId] })
+            await qc.cancelQueries({ queryKey: ['jobs', 'column', oldStatusId] })
+
+            // Snapshot the previous value
+            const previousSource = qc.getQueryData(['jobs', 'column', oldStatusId])
+            const previousTarget = qc.getQueryData(['jobs', 'column', statusId])
+
+            // Optimistically update
+            let movedJob = null;
+
+            if (previousSource) {
+                qc.setQueryData(['jobs', 'column', oldStatusId], old => {
+                    if (!old) return old;
+                    let found = false;
+                    const newPages = old.pages.map(page => {
+                        const filteredData = page.data.filter(j => j.id !== jobId);
+                        if (filteredData.length !== page.data.length) {
+                            found = true;
+                            const foundJob = page.data.find(j => j.id === jobId);
+                            if (foundJob) movedJob = { ...foundJob, jobStatusId: statusId === 'unassigned' ? null : statusId };
+                            return { ...page, data: filteredData };
+                        }
+                        return page;
+                    });
+                    if (!found) return old;
+                    return {
+                        ...old,
+                        pages: newPages.map((page, i) => i === 0 ? { ...page, meta: { ...page.meta, total: Math.max(0, (page.meta?.total || 0) - 1) } } : page)
+                    };
+                });
             }
+
+            if (movedJob) {
+                qc.setQueryData(['jobs', 'column', statusId], old => {
+                    if (!old) return {
+                        pages: [{ data: [movedJob], meta: { total: 1, current_page: 1, last_page: 1 } }],
+                        pageParams: [1]
+                    };
+                    const newPages = [...old.pages];
+                    newPages[0] = {
+                        ...newPages[0],
+                        data: [movedJob, ...newPages[0].data],
+                        meta: { ...newPages[0].meta, total: (newPages[0].meta?.total || 0) + 1 }
+                    };
+                    return { ...old, pages: newPages };
+                });
+            }
+
+            return { previousSource, previousTarget }
+        },
+        onSuccess: () => {
             toast.success('İş durumu güncellendi.', { position: 'bottom-center' })
         },
-        onError: () => toast.error('Durum güncellenemedi.')
+        onError: (err, variables, context) => {
+            if (context?.previousSource) {
+                qc.setQueryData(['jobs', 'column', variables.oldStatusId], context.previousSource)
+            }
+            if (context?.previousTarget) {
+                qc.setQueryData(['jobs', 'column', variables.statusId], context.previousTarget)
+            }
+            toast.error('Durum güncellenemedi.')
+        },
+        onSettled: (data, error, variables) => {
+            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.statusId] })
+            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.oldStatusId] })
+        }
     })
 
     const handleDragStart = (event) => {
@@ -259,7 +318,7 @@ export default function KanbanPage() {
             updateJobStatus.mutate({
                 jobId: activeId,
                 statusId: targetStatusId,
-                oldStatusId: job.jobStatusId
+                oldStatusId: currentJobStatusId
             })
         }
     }

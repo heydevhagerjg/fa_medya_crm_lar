@@ -118,6 +118,7 @@ export default function PaymentsPage() {
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tutar</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Tarih</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Tip</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Kasa</th>
                                     <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlem</th>
                                 </tr>
                             </thead>
@@ -126,7 +127,11 @@ export default function PaymentsPage() {
                                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="font-medium text-gray-900 dark:text-white text-sm">{p.job?.title || 'Genel'}</div>
-                                            {p.description && <div className="text-xs text-gray-400 mt-0.5">{p.description}</div>}
+                                            {p.job?.customer ? (
+                                                <div className="text-xs text-indigo-500 font-medium mt-0.5">{p.job.customer.name}</div>
+                                            ) : (
+                                                p.description && <div className="text-xs text-gray-400 mt-0.5">{p.description}</div>
+                                            )}
                                         </td>
                                         <td className="px-5 py-4">
                                             <span className="text-base font-bold text-emerald-500">{formatCurrency(p.amount)}</span>
@@ -134,6 +139,9 @@ export default function PaymentsPage() {
                                         <td className="px-5 py-4 hidden md:table-cell text-sm text-gray-600 dark:text-gray-400">{formatDate(p.paymentDate || p.payment_date)}</td>
                                         <td className="px-5 py-4 hidden lg:table-cell">
                                             <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">{paymentTypeLabel[p.paymentType || p.payment_type] || '-'}</span>
+                                        </td>
+                                        <td className="px-5 py-4 hidden lg:table-cell">
+                                            <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">{p.cash_register?.name || '-'}</span>
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-end gap-2">
@@ -216,6 +224,6 @@ export default function PaymentsPage() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     )
 }

@@ -22,7 +22,7 @@ class PaymentController extends Controller
             $tenantId = $request->user()->tenant_id;
 
             $query = Payment::where('tenant_id', $tenantId)
-                ->with(['job', 'cashRegister'])
+                ->with(['job.customer', 'cashRegister'])
                 ->orderByDesc('payment_date');
 
             if ($request->has('jobId')) {
@@ -67,7 +67,7 @@ class PaymentController extends Controller
         ActivityLogService::log($request->user(), 'CREATE', 'PAYMENT', $payment->id, $jobTitle,
             "{$jobTitle} işi için {$payment->amount} TL ödeme alındı.");
 
-        return response()->json($payment->fresh()->load(['job', 'cashRegister']), 201);
+        return response()->json($payment->fresh()->load(['job.customer', 'cashRegister']), 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -76,6 +76,7 @@ class PaymentController extends Controller
         $payment = Payment::where('tenant_id', $tenantId)->findOrFail($id);
 
         $validated = $request->validate([
+            'jobId'          => 'nullable|integer',
             'amount'         => 'sometimes|numeric|min:0',
             'paymentDate'    => 'sometimes|date',
             'paymentType'    => 'sometimes|in:ADVANCE,PARTIAL,FINAL',
@@ -84,6 +85,7 @@ class PaymentController extends Controller
         ]);
 
         $payment->update([
+            'job_id'           => array_key_exists('jobId', $validated) ? $validated['jobId'] : $payment->job_id,
             'amount'           => $validated['amount'] ?? $payment->amount,
             'payment_date'     => $validated['paymentDate'] ?? $payment->payment_date,
             'payment_type'     => $validated['paymentType'] ?? $payment->payment_type,
@@ -100,7 +102,7 @@ class PaymentController extends Controller
         ActivityLogService::log($request->user(), 'UPDATE', 'PAYMENT', $payment->id, $jobTitle,
             "{$jobTitle} işi için ödeme güncellendi. Yeni tutar: {$payment->amount} TL");
 
-        return response()->json($payment->fresh()->load(['job', 'cashRegister']));
+        return response()->json($payment->fresh()->load(['job.customer', 'cashRegister']));
     }
 
     public function destroy(Request $request, int $id): JsonResponse
