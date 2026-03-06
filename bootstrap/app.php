@@ -31,7 +31,16 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'İstenilen kayıt bulunamadı.'
+                ], 404);
+            }
+        });
+
+        $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e) {
             if ($request->is('api/*')) {
                 return true;
             }

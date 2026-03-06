@@ -18,13 +18,19 @@ class ApiKeyController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate(['name' => 'nullable|string|max:255']);
+        $validated = $request->validate([
+            'name'        => 'nullable|string|max:255',
+            'permissions' => 'nullable|array',
+            'expires_at'  => 'nullable|date',
+        ]);
 
         $apiKey = ApiKey::create([
-            'id'        => Str::uuid()->toString(),
-            'key'       => Str::random(64),
-            'name'      => $validated['name'] ?? null,
-            'tenant_id' => $request->user()->tenant_id,
+            'id'          => Str::uuid()->toString(),
+            'key'         => Str::random(64),
+            'name'        => $validated['name'] ?? null,
+            'tenant_id'   => $request->user()->tenant_id,
+            'permissions' => $validated['permissions'] ?? null,
+            'expires_at'  => $validated['expires_at'] ?? null,
         ]);
 
         return response()->json($apiKey, 201);

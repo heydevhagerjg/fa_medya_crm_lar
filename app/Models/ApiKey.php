@@ -11,11 +11,13 @@ class ApiKey extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'key', 'name', 'tenant_id', 'last_used',
+        'id', 'key', 'name', 'tenant_id', 'last_used', 'permissions', 'expires_at',
     ];
 
     protected $casts = [
         'last_used' => 'datetime',
+        'expires_at' => 'datetime',
+        'permissions' => 'array',
     ];
 
     public function tenant()
