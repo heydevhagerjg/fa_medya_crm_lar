@@ -135,6 +135,12 @@ Terminalden `crontab -e` komutunu çalıştırın ve en alta şu satırı ekleyi
 6. **Çalıştırma zamanı (Run):** `Cron stiline göre (Cron style)` seçeneğini seçip kutuya `* * * * *` yazın ve kaydedin.
 7. _Önemli: Kuyruk komutunun da dönmesi için aynı adımlarla yeni bir görev daha ekleyin (Fakat argüman kısmına `queue:work --stop-when-empty` yazarak her 1 veya 5 dakikada çalışmasını sağlayın)._
 
+Kısa Aşama;
+
+- Bir PHP komut dosyasını çalıştır
+- domain.com/artisan / schedule:run
+- Cron stili : * * * * *
+
 ## 📡 API Uç Noktaları (Endpoints)
 
 Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public auth haricinde) Sanctum token'ı ile çalışır.
