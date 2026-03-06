@@ -83,6 +83,39 @@ Projeyi kendi sunucunuza kolayca kurmak için şu adımları takip edin:
    ```
 Artık ayarladığınız domain veya `localhost:8000` üzerinden sisteme giriş yapabilir, kiracılar oluşturabilir ve CRM'i arayüzünden kişiselleştirmeye başlayabilirsiniz.
 
+### 🛠️ Plesk Laravel Toolkit ile Kurulum (Canlı Ortam)
+
+Plesk panelinizde **Laravel Toolkit** eklentisi yüklüyse, projeyi yayına almak için şu adımları izleyin:
+
+1.  **Git Bağlantısı:**
+    *   Plesk panelinde alan adınızın altında **Git** veya **Laravel** ikonuna tıklayın.
+    *   **Install Application** diyerek GitHub deponuzu bağlayın.
+    *   **Public Directory** kısmını `public` olarak ayarlayın.
+
+2.  **Ortam Değişkenleri (.env):**
+    *   Laravel Toolkit arayüzünde **Environment** veya **Edit .env** kısmına gelin.
+    *   Lokaldeki `.env` içeriğinizi buraya kopyalayın ve canlı ortam bilgilerine göre güncelleyin:
+        *   `APP_ENV=production`
+        *   `APP_DEBUG=false`
+        *   `APP_URL=https://siteniz.com`
+        *   `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` bilgilerini Plesk'te oluşturduğunuz veri tabanına göre girin.
+
+3.  **Composer ve Veritabanı:**
+    *   Toolkit arayüzünde **Install** butonuna basarak `composer install` çalıştırın.
+    *   **Run Artisan Command** kısmından şu komutları sırayla çalıştırın:
+        *   `key:generate` (Anahtar yoksa)
+        *   `migrate --force` (Tabloları oluşturur)
+        *   `storage:link` (Dosya erişimi için)
+
+4.  **Frontend Build (Kritik Adım):**
+    *   Proje React+Vite yapısında olduğu için sunucuda derlenmesi gerekir.
+    *   Plesk **Terminal** aracını açın veya SSH ile bağlanıp ana dizinde şu komutları çalıştırın:
+        ```bash
+        npm install
+        npm run build
+        ```
+    *   Bu işlem sonunda `public/build` klasörü oluşacak ve arayüz erişilebilir hale gelecektir.
+
 ### ⏱️ Otomatik Yedekleme İçin Cron Job (Zamanlanmış Görev) Kurulumu
 
 Sistemin AWS S3'e tenant bazlı tam otomatik yedeklerini ("Örn: her gece saat 03:00'te") arka planda alabilmesi için sunucunuzda Laravel zamanlayıcısını (Scheduler) aktif etmeniz gerekmektedir.
