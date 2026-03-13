@@ -118,6 +118,18 @@ export default function ServiceTrackingPage() {
         },
     })
 
+    const deleteLogMutation = useMutation({
+        mutationFn: (logId) => api.delete(`/service-tracking-logs/${logId}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['service-trackings'])
+            if (historyModal.tracking) {
+                openHistory(historyModal.tracking)
+            }
+            toast.success('Hizmet kaydı silindi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
+
     const openHistory = async (tracking) => {
         try {
             const res = await api.get(`/service-trackings/${tracking.id}/logs`)
@@ -157,6 +169,27 @@ export default function ServiceTrackingPage() {
     const isFuture = (date) => {
         if (!date) return false
         return new Date(date) > new Date().setHours(23, 59, 59, 999)
+    }
+
+    const canProcessDate = (date, period, unit) => {
+        if (!date) return false
+        const nextDt = new Date(date)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+        
+        // Past or today is always allowed
+        if (nextDt <= todayEnd) return true
+        
+        // Future dates must be within 1 cycle from "today"
+        const limit = new Date()
+        const p = parseInt(period) || 1
+        if (unit === 'day') limit.setDate(limit.getDate() + p)
+        else if (unit === 'week') limit.setDate(limit.getDate() + (p * 7))
+        else if (unit === 'month') limit.setMonth(limit.getMonth() + p)
+        else if (unit === 'year') limit.setFullYear(limit.getFullYear() + p)
+        limit.setHours(23, 59, 59, 999)
+        
+        return nextDt <= limit
     }
 
     return (
@@ -261,7 +294,7 @@ export default function ServiceTrackingPage() {
                                                         delayed ? (
                                                             <>
                                                                 <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'completed' })} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-md shadow-green-500/20">
-                                                                    <Clock size={12} /> YAPILDI
+                                                                    <CheckCircle2 size={12} /> YAPILDI
                                                                 </button>
                                                                 <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'skipped' })} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-md shadow-red-500/20">
                                                                     <XCircle size={12} /> YAPILMADI
@@ -270,10 +303,10 @@ export default function ServiceTrackingPage() {
                                                                     GÜNCELE GETİR
                                                                 </button>
                                                             </>
-                                                        ) : !isFuture(t.next_date) && (
+                                                        ) : canProcessDate(t.next_date, t.period, t.period_unit) && (
                                                             <div className="flex items-center gap-1">
-                                                                <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'completed' })} className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors" title="Hizmet Yapıldı"><Clock size={16} /></button>
-                                                                <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'skipped' })} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Hizmet Yapılmadı"><XCircle size={16} /></button>
+                                                                <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'completed' })} className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors" title={isFuture(t.next_date) ? "Gelecek Hizmeti Şimdiden Yapıldı Olarak İşaretle" : "Hizmet Yapıldı"}><CheckCircle2 size={16} /></button>
+                                                                <button onClick={() => completeMutation.mutate({ id: t.id, date: t.next_date, status: 'skipped' })} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title={isFuture(t.next_date) ? "Gelecek Hizmeti Şimdiden Yapılmadı Olarak İşaretle" : "Hizmet Yapılmadı"}><XCircle size={16} /></button>
                                                             </div>
                                                         )
                                                     )}
@@ -390,10 +423,11 @@ export default function ServiceTrackingPage() {
                                         <th className="px-4 py-2 text-left font-semibold">İşlem Tarihi</th>
                                         <th className="px-4 py-2 text-left font-semibold">Durum</th>
                                         <th className="px-4 py-2 text-left font-semibold">Notlar</th>
+                                        <th className="px-4 py-2 text-right font-semibold">İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                    {historyModal.logs.map(log => (
+                                    {historyModal.logs.map((log, index) => (
                                         <tr key={log.id} className="dark:bg-gray-900/50">
                                             <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{formatDate(log.planned_date)}</td>
                                             <td className="px-4 py-3 text-gray-500">{formatDateTime(log.completed_at)}</td>
@@ -417,6 +451,22 @@ export default function ServiceTrackingPage() {
                                                 </button>
                                             </td>
                                             <td className="px-4 py-3 text-gray-400 text-xs italic">{log.notes || '-'}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                {historyModal.tracking?.status !== 'cancelled' && index === 0 && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            if(confirm('Bu son işlem kaydını silmek ve takvimi geri almak istediğinize emin misiniz?')) {
+                                                                deleteLogMutation.mutate(log.id)
+                                                            }
+                                                        }}
+                                                        disabled={deleteLogMutation.isPending}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        title="Bu Kaydı Sil ve Geri Al"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

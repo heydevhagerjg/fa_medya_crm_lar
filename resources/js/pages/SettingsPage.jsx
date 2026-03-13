@@ -13,16 +13,23 @@ export default function SettingsPage() {
     const location = useLocation()
 
     const tabs = [
+        // Core CRM / Jobs
         { path: '/settings', label: 'Hizmetler', icon: Layers, exact: true },
         { path: '/settings/statuses', label: 'Durumlar', icon: Tag },
         { path: '/settings/templates', label: 'Adım Şablonları', icon: List },
+        { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type },
+
+        // Service Tracking
+        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen },
+
+        // Finance
         { path: '/settings/cash-registers', label: 'Kasalar', icon: Wallet },
         { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen },
-        { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type },
-        { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
+
+        // Tech / System
         { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud },
+        { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
         { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock },
-        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen },
     ]
 
     return (

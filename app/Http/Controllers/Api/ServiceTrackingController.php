@@ -186,6 +186,31 @@ class ServiceTrackingController extends Controller
         return response()->json(['message' => 'Hizmet kaydı güncellendi.', 'log' => $log]);
     }
 
+    public function deleteLog(Request $request, int $logId): JsonResponse
+    {
+        $log = \App\Models\ServiceTrackingLog::where('tenant_id', $request->user()->tenant_id)->findOrFail($logId);
+        $tracking = ServiceTracking::withoutGlobalScope('active')
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($log->service_tracking_id);
+
+        if ($tracking->status === 'cancelled') {
+             return response()->json(['message' => 'İptal edilmiş takiplerin geçmişi silinemez.'], 422);
+        }
+
+        // If the deleted log's date is earlier than the current next_date, 
+        // it means we are "re-opening" an earlier slot, so next_date should jump back.
+        if (Carbon::parse($log->planned_date)->lt(Carbon::parse($tracking->next_date))) {
+            $tracking->update(['next_date' => $log->planned_date]);
+        }
+
+        ActivityLogService::log($request->user(), 'DELETE_LOG', 'SERVICE_TRACKING_LOG', $log->id, $log->planned_date,
+            "{$log->planned_date} tarihli hizmet kaydı silindi.");
+
+        $log->delete();
+
+        return response()->json(['message' => 'Hizmet kaydı silindi.', 'next_date' => $tracking->next_date]);
+    }
+
     public function update(Request $request, int $id): JsonResponse
     {
         $tracking = ServiceTracking::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);

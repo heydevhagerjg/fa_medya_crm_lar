@@ -96,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('service-trackings/{id}/catch-up', [ServiceTrackingController::class, 'catchUp']);
     Route::get('service-trackings/{id}/logs', [ServiceTrackingController::class, 'logs']);
     Route::put('service-tracking-logs/{logId}/status', [ServiceTrackingController::class, 'updateLogStatus']);
+    Route::delete('service-tracking-logs/{logId}', [ServiceTrackingController::class, 'deleteLog']);
     Route::post('service-trackings/{id}/cancel', [ServiceTrackingController::class, 'cancel']);
     Route::post('service-trackings/{id}/activate', [ServiceTrackingController::class, 'activate']);
 
