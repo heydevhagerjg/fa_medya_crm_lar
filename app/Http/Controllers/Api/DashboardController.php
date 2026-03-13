@@ -109,6 +109,21 @@ class DashboardController extends Controller
                 'status'     => $a->status,
             ]);
 
+        $upcomingServiceTrackings = \App\Models\ServiceTracking::where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereBetween('next_date', [now()->subDays(7)->toDateString(), now()->addDays(7)->toDateString()])
+            ->with(['customer', 'category'])
+            ->orderBy('next_date')
+            ->get()
+            ->map(fn($t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'next_date' => $t->next_date,
+                'customer' => ['name' => $t->customer?->name],
+                'category' => ['name' => $t->category?->name],
+                'missed_count' => count($t->getMissedDates()),
+            ]);
+
         return response()->json([
             'totalCustomers'       => $totalCustomers,
             'totalJobs'            => $totalJobs,
@@ -123,6 +138,7 @@ class DashboardController extends Controller
             'jobsByStatus'         => $jobsByStatus,
             'cashRegisters'        => $cashRegisters,
             'upcomingAppointments' => $upcomingAppointments,
+            'upcomingServiceTrackings' => $upcomingServiceTrackings,
         ]);
     }
 }

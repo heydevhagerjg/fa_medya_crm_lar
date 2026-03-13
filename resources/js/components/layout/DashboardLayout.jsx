@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Users, Briefcase, CreditCard, TrendingDown,
     Settings, FileText, Database, LogOut, Menu, X, Sun, Moon,
-    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar
+    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar, Clock
 } from 'lucide-react'
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
     { to: '/jobs', icon: Briefcase, label: 'İşler' },
     { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)' },
     { to: '/appointments', icon: Calendar, label: 'Randevular' },
+    { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi' },
     { to: '/payments', icon: CreditCard, label: 'Tahsilatlar' },
     { to: '/expenses', icon: TrendingDown, label: 'Masraflar' },
     { to: '/files', icon: FolderOpen, label: 'Dosyalar' },
@@ -59,8 +60,8 @@ export default function DashboardLayout() {
                 {/* Logo */}
                 <div className="flex items-center justify-between h-16 px-5 border-b border-gray-200 dark:border-gray-800">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                            <Briefcase size={16} className="text-white" />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                            <img src="/favicon.ico" alt="Logo" className="w-8 h-8" />
                         </div>
                         <div>
                             <div className="text-sm font-bold text-gray-900 dark:text-white">FA Medya</div>

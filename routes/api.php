@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\Settings\ExpenseCategoryController;
 use App\Http\Controllers\Api\Settings\ApiKeyController;
 use App\Http\Controllers\Api\AppointmentTitleController;
 use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\ServiceTrackingController;
+use App\Http\Controllers\Api\Settings\ServiceTrackingCategoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -88,6 +90,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Appointments
     Route::apiResource('appointments', AppointmentController::class);
 
+    // Service Tracking
+    Route::apiResource('service-trackings', ServiceTrackingController::class);
+    Route::post('service-trackings/{id}/complete', [ServiceTrackingController::class, 'complete']);
+    Route::post('service-trackings/{id}/catch-up', [ServiceTrackingController::class, 'catchUp']);
+    Route::get('service-trackings/{id}/logs', [ServiceTrackingController::class, 'logs']);
+    Route::put('service-tracking-logs/{logId}/status', [ServiceTrackingController::class, 'updateLogStatus']);
+    Route::post('service-trackings/{id}/cancel', [ServiceTrackingController::class, 'cancel']);
+    Route::post('service-trackings/{id}/activate', [ServiceTrackingController::class, 'activate']);
+
 
 
     // Settings
@@ -98,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/backup/reset', [BackupController::class, 'reset']);
         Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
         Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
+
+        // Service Tracking Categories
+        Route::apiResource('service-tracking-categories', ServiceTrackingCategoryController::class);
 
         // Services
         Route::apiResource('services', ServiceController::class);

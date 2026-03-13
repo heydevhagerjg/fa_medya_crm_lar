@@ -105,27 +105,6 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Upcoming Appointments */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Clock size={18} className="text-indigo-500" />
-                        Yaklaşan Randevular (3 Gün)
-                    </h2>
-                    <Link to="/appointments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takvim →</Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {(stats?.upcomingAppointments || []).map((apt) => (
-                        <AppointmentCard key={apt.id} apt={apt} />
-                    ))}
-                    {!stats?.upcomingAppointments?.length && (
-                        <div className="col-span-full py-8 text-center bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-3xl">
-                            <p className="text-sm text-gray-400">Önümüzdeki 3 gün için randevu bulunmuyor.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
             {/* Cash Registers Section */}
             <div>
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -154,6 +133,65 @@ export default function DashboardPage() {
                     {!stats?.cashRegisters?.length && <p className="text-sm text-gray-500">Henüz kasa kaydı yok.</p>}
                 </div>
             </div>
+
+            {/* Upcoming Appointments */}
+            {stats?.upcomingAppointments?.length > 0 && (
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Clock size={18} className="text-indigo-500" />
+                            Yaklaşan Randevular (3 Gün)
+                        </h2>
+                        <Link to="/appointments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takvim →</Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                        {stats.upcomingAppointments.map((apt) => (
+                            <AppointmentCard key={apt.id} apt={apt} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Service Tracking Reminders */}
+            {stats?.upcomingServiceTrackings?.length > 0 && (
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Clock size={18} className="text-orange-500" />
+                            Hizmet Yenileme Hatırlatmaları (±7 Gün)
+                        </h2>
+                        <Link to="/service-tracking" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takipler →</Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {stats.upcomingServiceTrackings.map((t) => {
+                            const isOverdue = new Date(t.next_date) < new Date().setHours(0, 0, 0, 0)
+                            return (
+                                <Link key={t.id} to="/service-tracking" className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-lg transition-all border-l-4 ${isOverdue ? 'border-l-red-500 shadow-red-500/5' : 'border-l-orange-500 shadow-orange-500/5'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="text-xs font-bold text-gray-400 uppercase">{t.category?.name || 'Genel'}</div>
+                                        <div className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                            {isOverdue ? 'GECİKTİ' : 'YAKLAŞTI'}
+                                        </div>
+                                    </div>
+                                    <div className="font-bold text-gray-900 dark:text-white text-sm truncate mb-1">{t.title}</div>
+                                    <div className="text-xs text-gray-500 mb-3 truncate">{t.customer?.name || 'Genel Müşteri'}</div>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <div className={`text-xs font-bold flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-orange-500'}`}>
+                                            <CalendarIcon size={12} />
+                                            {formatDate(t.next_date)}
+                                        </div>
+                                        {t.missed_count > 0 && (
+                                            <div className="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">
+                                                {t.missed_count} Gecikme
+                                            </div>
+                                        )}
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Jobs */}

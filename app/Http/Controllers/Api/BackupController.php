@@ -23,6 +23,9 @@ use App\Models\CashRegister;
 use App\Models\Appointment;
 use App\Models\AppointmentTitle;
 use App\Models\Tenant;
+use App\Models\ServiceTrackingCategory;
+use App\Models\ServiceTracking;
+use App\Models\ServiceTrackingLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -175,11 +178,47 @@ class BackupController extends Controller
             'updatedAt' => $at->updated_at
         ]);
 
+        $serviceTrackingCategories = ServiceTrackingCategory::where('tenant_id', $tenantId)->get()->map(fn($c) => [
+            'id' => $c->id,
+            'tenantId' => $c->tenant_id,
+            'name' => $c->name,
+            'createdAt' => $c->created_at,
+            'updatedAt' => $c->updated_at
+        ]);
+
+        $serviceTrackings = ServiceTracking::withoutGlobalScope('active')->where('tenant_id', $tenantId)->get()->map(fn($t) => [
+            'id' => $t->id,
+            'tenantId' => $t->tenant_id,
+            'categoryId' => $t->category_id,
+            'customerId' => $t->customer_id,
+            'title' => $t->title,
+            'description' => $t->description,
+            'period' => $t->period,
+            'periodUnit' => $t->period_unit,
+            'startDate' => $t->start_date,
+            'nextDate' => $t->next_date,
+            'status' => $t->status,
+            'createdAt' => $t->created_at,
+            'updatedAt' => $t->updated_at
+        ]);
+
+        $serviceTrackingLogs = ServiceTrackingLog::where('tenant_id', $tenantId)->get()->map(fn($l) => [
+            'id' => $l->id,
+            'tenantId' => $l->tenant_id,
+            'serviceTrackingId' => $l->service_tracking_id,
+            'plannedDate' => $l->planned_date,
+            'completedAt' => $l->completed_at,
+            'status' => $l->status,
+            'notes' => $l->notes,
+            'createdAt' => $l->created_at,
+            'updatedAt' => $l->updated_at
+        ]);
+
 
         $tenant = Tenant::find($tenantId);
 
         $backup = [
-            'version'   => '2.1',
+            'version'   => '2.2',
             'timestamp' => now()->toISOString(),
             'tenantId'  => $tenantId,
             'data'      => [
@@ -195,6 +234,9 @@ class BackupController extends Controller
                 'activitylogs'      => $activityLogs,
                 'appointments'      => $appointments,
                 'appointment_titles'=> $appointmentTitles,
+                'service_tracking_categories' => $serviceTrackingCategories,
+                'service_trackings' => $serviceTrackings,
+                'service_tracking_logs' => $serviceTrackingLogs,
             ],
             'tenant_settings' => [
                 'aws_access_key_id'     => $tenant->aws_access_key_id,
@@ -600,6 +642,57 @@ class BackupController extends Controller
                 );
             }
 
+            // Import Service Tracking Categories
+            $stCategoryIdMap = [];
+            foreach (($data['service_tracking_categories'] ?? []) as $stc) {
+                $category = ServiceTrackingCategory::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'name' => $stc['name']],
+                    ['created_at' => $stc['createdAt'] ?? now(), 'updated_at' => $stc['updatedAt'] ?? now()]
+                );
+                $stCategoryIdMap[$stc['id']] = $category->id;
+            }
+
+            // Import Service Trackings
+            $stIdMap = [];
+            foreach (($data['service_trackings'] ?? []) as $st) {
+                $stCategoryId = isset($st['categoryId']) && isset($stCategoryIdMap[$st['categoryId']]) ? $stCategoryIdMap[$st['categoryId']] : null;
+                if (!$stCategoryId) continue;
+
+                $stCustomerId = isset($st['customerId']) && isset($customerIdMap[$st['customerId']]) ? $customerIdMap[$st['customerId']] : null;
+
+                $serviceTracking = ServiceTracking::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'category_id' => $stCategoryId, 'title' => $st['title'], 'customer_id' => $stCustomerId],
+                    [
+                        'description' => $st['description'] ?? null,
+                        'period' => $st['period'] ?? 1,
+                        'period_unit' => $st['periodUnit'] ?? $st['period_unit'] ?? 'month',
+                        'start_date' => $st['startDate'] ?? $st['start_date'] ?? now()->toDateString(),
+                        'next_date' => $st['nextDate'] ?? $st['next_date'] ?? null,
+                        'status' => $st['status'] ?? 'active',
+                        'created_at' => $st['createdAt'] ?? now(),
+                        'updated_at' => $st['updatedAt'] ?? now(),
+                    ]
+                );
+                $stIdMap[$st['id']] = $serviceTracking->id;
+            }
+
+            // Import Service Tracking Logs
+            foreach (($data['service_tracking_logs'] ?? []) as $stl) {
+                $stId = isset($stl['serviceTrackingId']) && isset($stIdMap[$stl['serviceTrackingId']]) ? $stIdMap[$stl['serviceTrackingId']] : null;
+                if (!$stId) continue;
+
+                ServiceTrackingLog::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'service_tracking_id' => $stId, 'planned_date' => $stl['plannedDate']],
+                    [
+                        'completed_at' => $stl['completedAt'] ?? null,
+                        'status' => $stl['status'] ?? 'completed',
+                        'notes' => $stl['notes'] ?? null,
+                        'created_at' => $stl['createdAt'] ?? now(),
+                        'updated_at' => $stl['updatedAt'] ?? now(),
+                    ]
+                );
+            }
+
             // Import expenses
             foreach (($data['expenses'] ?? []) as $e) {
                 $oldJobId = $e['jobId'] ?? $e['job_id'] ?? null;
@@ -692,6 +785,9 @@ class BackupController extends Controller
             ApiKey::where('tenant_id', $tenantId)->delete();
             Appointment::where('tenant_id', $tenantId)->delete();
             AppointmentTitle::where('tenant_id', $tenantId)->delete();
+            ServiceTrackingLog::where('tenant_id', $tenantId)->delete();
+            ServiceTracking::where('tenant_id', $tenantId)->delete();
+            ServiceTrackingCategory::where('tenant_id', $tenantId)->delete();
         });
 
         return response()->json(['message' => 'Tüm verileriniz başarıyla sıfırlandı.']);

@@ -22,6 +22,7 @@ export default function SettingsPage() {
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
         { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud },
         { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock },
+        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen },
     ]
 
     return (
@@ -63,6 +64,7 @@ export default function SettingsPage() {
                 <Route path="api-keys" element={<ApiKeysTab />} />
                 <Route path="s3" element={<S3Tab />} />
                 <Route path="import-keys" element={<BackupKeysTab />} />
+                <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
             </Routes>
         </div>
     )
@@ -1164,4 +1166,16 @@ function AppointmentTitlesTab() {
             {titles.length === 0 && <p className="text-center text-gray-400 py-8">Henüz randevu başlığı eklenmemiş.</p>}
         </div>
     )
+}
+function ServiceTrackingCategoriesTab() {
+    return <GenericCrudTab
+        queryKey="service-tracking-categories" apiPath="/settings/service-tracking-categories" label="Hizmet Takip Kategorisi"
+        emptyForm={{ name: '' }}
+        renderForm={(form, setForm) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori Adı *</label>
+                <input type="text" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+        )}
+    />
 }
