@@ -16,7 +16,7 @@ class ServiceTrackingController extends Controller
         $tenantId = $request->user()->tenant_id;
         $status = $request->query('status', 'active');
 
-        $query = ServiceTracking::with(['category', 'customer'])
+        $query = ServiceTracking::with(['category', 'customer', 'job.customer'])
             ->where('tenant_id', $tenantId)
             ->orderBy('next_date');
 
@@ -120,6 +120,7 @@ class ServiceTrackingController extends Controller
         $validated = $request->validate([
             'category_id' => 'required|exists:service_tracking_categories,id',
             'customer_id' => 'nullable|exists:customers,id',
+            'job_id' => 'nullable|exists:jobs_crm,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'period' => 'required|integer|min:1',
@@ -137,12 +138,12 @@ class ServiceTrackingController extends Controller
         ActivityLogService::log($request->user(), 'CREATE', 'SERVICE_TRACKING', $tracking->id, $tracking->title,
             "{$tracking->title} isimli hizmet takibi oluşturuldu.");
 
-        return response()->json($tracking->load(['category', 'customer']), 201);
+        return response()->json($tracking->load(['category', 'customer', 'job.customer']), 201);
     }
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $tracking = ServiceTracking::with(['category', 'customer', 'logs' => function($q) {
+        $tracking = ServiceTracking::with(['category', 'customer', 'job.customer', 'logs' => function($q) {
                 $q->orderByDesc('planned_date')->orderByDesc('created_at');
             }])
             ->where('tenant_id', $request->user()->tenant_id)
@@ -218,6 +219,7 @@ class ServiceTrackingController extends Controller
         $validated = $request->validate([
             'category_id' => 'required|exists:service_tracking_categories,id',
             'customer_id' => 'nullable|exists:customers,id',
+            'job_id' => 'nullable|exists:jobs_crm,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'period' => 'required|integer|min:1',
@@ -234,7 +236,7 @@ class ServiceTrackingController extends Controller
         ActivityLogService::log($request->user(), 'UPDATE', 'SERVICE_TRACKING', $tracking->id, $tracking->title,
             "{$tracking->title} isimli hizmet takibi güncellendi.");
 
-        return response()->json($tracking->load(['category', 'customer']));
+        return response()->json($tracking->load(['category', 'customer', 'job.customer']));
     }
 
     public function destroy(Request $request, int $id): JsonResponse

@@ -174,7 +174,9 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
                                     <div className="font-bold text-gray-900 dark:text-white text-sm truncate mb-1">{t.title}</div>
-                                    <div className="text-xs text-gray-500 mb-3 truncate">{t.customer?.name || 'Genel Müşteri'}</div>
+                                    <div className="text-xs text-gray-500 mb-3 truncate">
+                                        {t.job ? `${t.job.title} / ${t.job.customer?.name || 'Bilinmiyor'}` : (t.customer?.name || 'Genel Müşteri')}
+                                    </div>
                                     <div className="flex items-center justify-between mt-auto">
                                         <div className={`text-xs font-bold flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-orange-500'}`}>
                                             <CalendarIcon size={12} />

@@ -112,7 +112,7 @@ class DashboardController extends Controller
         $upcomingServiceTrackings = \App\Models\ServiceTracking::where('tenant_id', $tenantId)
             ->where('status', 'active')
             ->whereBetween('next_date', [now()->subDays(7)->toDateString(), now()->addDays(7)->toDateString()])
-            ->with(['customer', 'category'])
+            ->with(['customer', 'category', 'job.customer'])
             ->orderBy('next_date')
             ->get()
             ->map(fn($t) => [

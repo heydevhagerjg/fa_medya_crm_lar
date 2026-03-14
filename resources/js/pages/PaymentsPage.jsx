@@ -157,6 +157,7 @@ export default function PaymentsPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}

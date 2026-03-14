@@ -164,6 +164,7 @@ export default function CustomersPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}

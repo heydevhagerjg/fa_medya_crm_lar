@@ -26,6 +26,7 @@ use App\Models\Tenant;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
+use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ use App\Services\ActivityLogService;
 
 class BackupController extends Controller
 {
+    use HasTenantCache;
+
     private function setS3Config($tenant)
     {
         if (!$tenant || !$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
@@ -191,6 +194,7 @@ class BackupController extends Controller
             'tenantId' => $t->tenant_id,
             'categoryId' => $t->category_id,
             'customerId' => $t->customer_id,
+            'jobId' => $t->job_id,
             'title' => $t->title,
             'description' => $t->description,
             'period' => $t->period,
@@ -659,9 +663,10 @@ class BackupController extends Controller
                 if (!$stCategoryId) continue;
 
                 $stCustomerId = isset($st['customerId']) && isset($customerIdMap[$st['customerId']]) ? $customerIdMap[$st['customerId']] : null;
+                $stJobId = isset($st['jobId']) && isset($jobIdMap[$st['jobId']]) ? $jobIdMap[$st['jobId']] : null;
 
                 $serviceTracking = ServiceTracking::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'category_id' => $stCategoryId, 'title' => $st['title'], 'customer_id' => $stCustomerId],
+                    ['tenant_id' => $tenantId, 'category_id' => $stCategoryId, 'title' => $st['title'], 'customer_id' => $stCustomerId, 'job_id' => $stJobId],
                     [
                         'description' => $st['description'] ?? null,
                         'period' => $st['period'] ?? 1,
@@ -736,6 +741,17 @@ class BackupController extends Controller
         });
         });
 
+        // Clear all tenant caches after restore
+        $this->clearTenantCache('jobs');
+        $this->clearTenantCache('customers');
+        $this->clearTenantCache('services');
+        $this->clearTenantCache('statuses');
+        $this->clearTenantCache('expenses');
+        $this->clearTenantCache('payments');
+        $this->clearTenantCache('appointments');
+        $this->clearTenantCache('cash_registers');
+        $this->clearTenantCache('service_trackings');
+
         return response()->json(['message' => 'Yedek başarıyla içe aktarıldı.']);
     }
 
@@ -789,6 +805,17 @@ class BackupController extends Controller
             ServiceTracking::where('tenant_id', $tenantId)->delete();
             ServiceTrackingCategory::where('tenant_id', $tenantId)->delete();
         });
+
+        // Clear all tenant caches after reset
+        $this->clearTenantCache('jobs');
+        $this->clearTenantCache('customers');
+        $this->clearTenantCache('services');
+        $this->clearTenantCache('statuses');
+        $this->clearTenantCache('expenses');
+        $this->clearTenantCache('payments');
+        $this->clearTenantCache('appointments');
+        $this->clearTenantCache('cash_registers');
+        $this->clearTenantCache('service_trackings');
 
         return response()->json(['message' => 'Tüm verileriniz başarıyla sıfırlandı.']);
     }

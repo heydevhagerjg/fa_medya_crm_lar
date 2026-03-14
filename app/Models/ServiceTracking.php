@@ -10,6 +10,7 @@ class ServiceTracking extends Model
         'tenant_id',
         'category_id',
         'customer_id',
+        'job_id',
         'title',
         'description',
         'period',
@@ -44,6 +45,11 @@ class ServiceTracking extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function job()
+    {
+        return $this->belongsTo(JobCrm::class, 'job_id');
     }
 
     public function logs()

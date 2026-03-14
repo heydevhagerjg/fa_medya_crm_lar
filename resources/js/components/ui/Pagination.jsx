@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Pagination({ currentPage, totalPages, onPageChange }) {
+export default function Pagination({ currentPage, totalPages, onPageChange, totalItems }) {
     if (totalPages <= 1) return null;
 
     const getPages = () => {
@@ -21,7 +21,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Toplam <span className="font-medium">{totalPages}</span> sayfadan <span className="font-medium">{currentPage}</span>. sayfa
+                        Toplam <span className="font-medium">{totalPages}</span> sayfadan <span className="font-medium">{currentPage}</span>. sayfa gösteriliyor.
+                        {totalItems !== undefined && (
+                            <span className="ml-1">
+                                Toplam kayıt sayısı: <span className="font-medium">{totalItems}</span>
+                            </span>
+                        )}
                     </p>
                 </div>
                 <div>

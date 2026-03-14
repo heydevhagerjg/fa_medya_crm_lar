@@ -67,6 +67,7 @@ export default function LogsPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}

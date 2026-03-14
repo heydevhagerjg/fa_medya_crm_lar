@@ -209,6 +209,7 @@ export default function JobsPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}

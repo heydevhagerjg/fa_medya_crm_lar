@@ -129,6 +129,7 @@ export default function ExpensesPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}

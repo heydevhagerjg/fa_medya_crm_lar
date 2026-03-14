@@ -13,10 +13,11 @@ const periodUnitLabel = { day: 'Günlük', week: 'Haftalık', month: 'Aylık', y
 const emptyForm = {
     category_id: '',
     customer_id: '',
+    job_id: '',
     title: '',
     description: '',
     period: 1,
-    period_unit: 'month',
+    period_unit: 'year',
     start_date: new Date().toISOString().substring(0, 10)
 }
 
@@ -49,6 +50,11 @@ export default function ServiceTrackingPage() {
     const { data: customers = [] } = useQuery({
         queryKey: ['customers'],
         queryFn: () => api.get('/customers').then(r => r.data),
+    })
+
+    const { data: jobs = [] } = useQuery({
+        queryKey: ['jobs'],
+        queryFn: () => api.get('/jobs').then(r => r.data),
     })
 
     const saveMutation = useMutation({
@@ -143,6 +149,7 @@ export default function ServiceTrackingPage() {
         setForm(tracking ? {
             category_id: tracking.category_id || '',
             customer_id: tracking.customer_id || '',
+            job_id: tracking.job_id || '',
             title: tracking.title || '',
             description: tracking.description || '',
             period: tracking.period || 1,
@@ -155,6 +162,8 @@ export default function ServiceTrackingPage() {
     const filtered = trackings.filter(t =>
         t.title?.toLowerCase().includes(search.toLowerCase()) ||
         t.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        t.job?.title?.toLowerCase().includes(search.toLowerCase()) ||
+        t.job?.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
         t.category?.name?.toLowerCase().includes(search.toLowerCase())
     )
 
@@ -176,10 +185,10 @@ export default function ServiceTrackingPage() {
         const nextDt = new Date(date)
         const todayEnd = new Date()
         todayEnd.setHours(23, 59, 59, 999)
-        
+
         // Past or today is always allowed
         if (nextDt <= todayEnd) return true
-        
+
         // Future dates must be within 1 cycle from "today"
         const limit = new Date()
         const p = parseInt(period) || 1
@@ -188,7 +197,7 @@ export default function ServiceTrackingPage() {
         else if (unit === 'month') limit.setMonth(limit.getMonth() + p)
         else if (unit === 'year') limit.setFullYear(limit.getFullYear() + p)
         limit.setHours(23, 59, 59, 999)
-        
+
         return nextDt <= limit
     }
 
@@ -212,8 +221,8 @@ export default function ServiceTrackingPage() {
                     <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Başlık, müşteri veya kategori ara..." className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400" />
                 </div>
-                <select 
-                    value={statusFilter} 
+                <select
+                    value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     className="px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-700 dark:text-gray-300 min-w-[150px]"
                 >
@@ -252,10 +261,10 @@ export default function ServiceTrackingPage() {
                                         <tr key={t.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors ${delayed ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
                                             <td className="px-5 py-4">
                                                 <div className="font-medium text-gray-900 dark:text-white text-sm">{t.title}</div>
-                                                {t.customer && (
+                                                {(t.customer || t.job) && (
                                                     <div className="flex items-center gap-1 text-xs text-indigo-500 font-medium mt-0.5">
                                                         <User size={12} />
-                                                        {t.customer.name}
+                                                        {t.job ? `${t.job.title} / ${t.job.customer?.name || 'Bilinmiyor'}` : t.customer?.name}
                                                     </div>
                                                 )}
                                             </td>
@@ -329,6 +338,7 @@ export default function ServiceTrackingPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
+                            totalItems={filtered.length}
                         />
                     </div>
                 )}
@@ -347,10 +357,33 @@ export default function ServiceTrackingPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Müşteri (İsteğe Bağlı)</label>
-                            <select value={form.customer_id} onChange={e => setForm(p => ({ ...p, customer_id: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
-                                <option value="">Genel Takip</option>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Müşteri (İsteğe Bağlı)
+                            </label>
+                            <select
+                                value={form.customer_id}
+                                onChange={e => setForm(p => ({ ...p, customer_id: e.target.value, job_id: '' }))}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="">Genel Takip / Müşteri Seçin...</option>
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İş Seçimi (İsteğe Bağlı)</label>
+                            <select value={form.job_id} onChange={e => {
+                                const jobId = e.target.value
+                                const selectedJob = jobs.find(j => j.id == jobId)
+                                setForm(p => ({
+                                    ...p,
+                                    job_id: jobId,
+                                    customer_id: selectedJob?.customerId || p.customer_id
+                                }))
+                            }} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="">İş Seçin...</option>
+                                {jobs.filter(j => !form.customer_id || j.customerId == form.customer_id).map(j => (
+                                    <option key={j.id} value={j.id}>{j.title} ({j.customer?.name})</option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -432,16 +465,15 @@ export default function ServiceTrackingPage() {
                                             <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{formatDate(log.planned_date)}</td>
                                             <td className="px-4 py-3 text-gray-500">{formatDateTime(log.completed_at)}</td>
                                             <td className="px-4 py-3">
-                                                <button 
+                                                <button
                                                     onClick={() => updateLogStatusMutation.mutate({ logId: log.id, status: log.status === 'completed' ? 'skipped' : 'completed' })}
                                                     disabled={updateLogStatusMutation.isPending || historyModal.tracking?.status === 'cancelled'}
-                                                    className={`flex items-center gap-1 font-bold text-[11px] px-2 py-1 rounded transition-colors ${
-                                                        historyModal.tracking?.status === 'cancelled'
+                                                    className={`flex items-center gap-1 font-bold text-[11px] px-2 py-1 rounded transition-colors ${historyModal.tracking?.status === 'cancelled'
                                                         ? 'text-gray-400 cursor-not-allowed opacity-60'
-                                                        : log.status === 'completed' 
-                                                        ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30' 
-                                                        : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                                    }`}
+                                                        : log.status === 'completed'
+                                                            ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30'
+                                                            : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                        }`}
                                                 >
                                                     {log.status === 'completed' ? (
                                                         <><CheckCircle2 size={14} /> YAPILDI</>
@@ -453,9 +485,9 @@ export default function ServiceTrackingPage() {
                                             <td className="px-4 py-3 text-gray-400 text-xs italic">{log.notes || '-'}</td>
                                             <td className="px-4 py-3 text-right">
                                                 {historyModal.tracking?.status !== 'cancelled' && index === 0 && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
-                                                            if(confirm('Bu son işlem kaydını silmek ve takvimi geri almak istediğinize emin misiniz?')) {
+                                                            if (confirm('Bu son işlem kaydını silmek ve takvimi geri almak istediğinize emin misiniz?')) {
                                                                 deleteLogMutation.mutate(log.id)
                                                             }
                                                         }}
