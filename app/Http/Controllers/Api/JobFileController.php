@@ -53,10 +53,17 @@ class JobFileController extends Controller
         $cacheKey = $this->getTenantCacheKey('files');
 
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $tenantId = $request->user()->tenant_id;
+            $user = $request->user();
+            $tenantId = $user->tenant_id;
 
-            return JobCrm::where('tenant_id', $tenantId)
-                ->with(['customer', 'jobFiles'])
+            $query = JobCrm::where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $query->where('user_id', $user->id);
+                }
+            }
+
+            return $query->with(['customer', 'jobFiles'])
                 ->get()
                 ->map(fn($j) => [
                     'id'       => $j->id,
@@ -89,9 +96,20 @@ class JobFileController extends Controller
         ]);
 
         $user = $request->user();
+        
+        if ($user->role !== 'ADMIN' && !$user->can('files.upload')) {
+            return response()->json(['message' => 'Oturum yetkiniz dosya yüklemek için yetersiz.'], 403);
+        }
+        
         $tenant = Tenant::find($user->tenant_id);
 
-        $job = JobCrm::where('tenant_id', $tenant->id)->findOrFail($jobId);
+        $query = JobCrm::where('tenant_id', $tenant->id);
+        if ($user->role !== 'ADMIN') {
+            if (!$user->can('files.view_all')) {
+                $query->where('user_id', $user->id);
+            }
+        }
+        $job = $query->findOrFail($jobId);
 
         $file = $request->file('file');
         $fileName = $file->getClientOriginalName();
@@ -155,10 +173,20 @@ class JobFileController extends Controller
         $fileId = $request->input('fileId') ?? $jobId;
         
         $user = $request->user();
+        
+        if ($user->role !== 'ADMIN' && !$user->can('files.delete')) {
+            return response()->json(['message' => 'Oturum yetkiniz bu dosyayı silmek için yetersiz.'], 403);
+        }
+
         $tenant = Tenant::find($user->tenant_id);
 
-        $jobFile = JobFile::whereHas('job', function ($q) use ($tenant) {
+        $jobFile = JobFile::whereHas('job', function ($q) use ($tenant, $user) {
             $q->where('tenant_id', $tenant->id);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            }
         })->findOrFail($fileId);
 
         $job = $jobFile->job;
@@ -201,11 +229,19 @@ class JobFileController extends Controller
      */
     public function download(Request $request)
     {
-        $fileId = $request->query('id');
-        $tenantId = $request->user()->tenant_id;
+        $fileId = $request->input('fileId') ?? $request->query('fileId');
+        if (!$fileId) return response()->json(['message' => 'Dosya id bulunamadı'], 400);
 
-        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId, $user) {
             $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            }
         })->findOrFail($fileId);
 
         // Simple redirect to the stored full URL (S3 or local)
@@ -217,12 +253,20 @@ class JobFileController extends Controller
      */
     public function proxyDownload(Request $request)
     {
-        $fileId = $request->query('id');
-        $tenantId = $request->user()->tenant_id;
+        $fileId = $request->input('fileId') ?? $request->query('fileId');
+        if (!$fileId) return response()->json(['message' => 'Dosya id bulunamadı'], 400);
+
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
         $tenant = \App\Models\Tenant::find($tenantId);
 
-        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
+        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId, $user) {
             $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            }
         })->findOrFail($fileId);
 
         // 1. Check if S3

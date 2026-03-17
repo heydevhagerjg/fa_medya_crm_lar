@@ -3,33 +3,42 @@ import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-ro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import { useAuthStore } from '../stores/index.js'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 export default function SettingsPage() {
     const location = useLocation()
+    const { user } = useAuthStore()
+    const hasPermission = (p) => {
+        if (!p) return true;
+        if (user?.role === "ADMIN") return true;
+        return user?.permissions?.includes(p) || false;
+    }
 
     const tabs = [
         // Core CRM / Jobs
-        { path: '/settings', label: 'Hizmetler', icon: Layers, exact: true },
-        { path: '/settings/statuses', label: 'Durumlar', icon: Tag },
-        { path: '/settings/templates', label: 'Adım Şablonları', icon: List },
-        { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type },
+        { path: '/settings', label: 'Hizmetler', icon: Layers, exact: true, permission: 'settings.view' },
+        { path: '/settings/statuses', label: 'Durumlar', icon: Tag, permission: 'settings.view' },
+        { path: '/settings/templates', label: 'Adım Şablonları', icon: List, permission: 'settings.view' },
+        { path: '/settings/users', label: 'Kullanıcı Yönetimi', icon: Users, permission: 'users.manage' },
+        { path: '/settings/roles', label: 'Rol Yönetimi', icon: Shield, permission: 'settings.manage' },
+        { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type, permission: 'settings.view' },
 
         // Service Tracking
-        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen },
+        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen, permission: 'settings.view' },
 
         // Finance
-        { path: '/settings/cash-registers', label: 'Kasalar', icon: Wallet },
-        { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen },
+        { path: '/settings/cash-registers', label: 'Kasalar', icon: Wallet, permission: 'settings.manage' },
+        { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen, permission: 'settings.view' },
 
         // Tech / System
-        { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud },
-        { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key },
-        { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock },
+        { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud, permission: 'settings.manage' },
+        { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key, permission: 'settings.manage' },
+        { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock, permission: 'settings.manage' },
     ]
 
     return (
@@ -42,7 +51,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
-                {tabs.map(({ path, label, icon: Icon, exact }) => {
+                {tabs.filter(t => hasPermission(t.permission)).map(({ path, label, icon: Icon, exact }) => {
                     const isActive = exact ? location.pathname === path : location.pathname.startsWith(path) && path !== '/settings'
                     const isExactActive = location.pathname === '/settings' && exact
                     return (
@@ -65,6 +74,8 @@ export default function SettingsPage() {
                 <Route index element={<ServicesTab />} />
                 <Route path="statuses" element={<StatusesTab />} />
                 <Route path="templates" element={<TemplatesTab />} />
+                <Route path="users" element={<UsersTab />} />
+                <Route path="roles" element={<RolesTab />} />
                 <Route path="cash-registers" element={<CashRegistersTab />} />
                 <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
                 <Route path="appointment-titles" element={<AppointmentTitlesTab />} />
@@ -554,6 +565,7 @@ function ExpenseCategoriesTab() {
 }
 
 function ApiKeysTab() {
+    const { user } = useAuthStore()
     const qc = useQueryClient()
     const [name, setName] = useState('')
     const [expiresAt, setExpiresAt] = useState('')
@@ -657,13 +669,15 @@ function ApiKeysTab() {
                         )}
                     </div>
                     <div className="flex items-center gap-4">
-                        <Link
-                            to="/api-docs"
-                            onClick={(e) => e.stopPropagation()}
-                            className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold transition-all"
-                        >
-                            <FileCode size={12} /> Dökümantasyon
-                        </Link>
+                        {user?.role === 'ADMIN' && (
+                            <Link
+                                to="/api-docs"
+                                onClick={(e) => e.stopPropagation()}
+                                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold transition-all"
+                            >
+                                <FileCode size={12} /> Dökümantasyon
+                            </Link>
+                        )}
                         <div className="p-1 rounded-lg bg-gray-50 dark:bg-gray-800 group-hover:bg-gray-100 dark:group-hover:bg-gray-700 transition-colors">
                             {isFormOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                         </div>
@@ -1185,4 +1199,460 @@ function ServiceTrackingCategoriesTab() {
             </div>
         )}
     />
+}
+
+
+function RolesTab() {
+    const qc = useQueryClient()
+    const [modal, setModal] = useState({ open: false, role: null })
+    const [form, setForm] = useState({ name: '', permissions: [] })
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
+
+    const { data: roles = [], isLoading: rolesLoading } = useQuery({
+        queryKey: ['roles'],
+        queryFn: () => api.get('/settings/roles').then(r => r.data)
+    })
+
+    const { data: allPermissions = [], isLoading: permsLoading } = useQuery({
+        queryKey: ['permissions'],
+        queryFn: () => api.get('/settings/permissions').then(r => r.data)
+    })
+
+    const saveMutation = useMutation({
+        mutationFn: (data) => modal.role
+            ? api.put(`/settings/roles/${modal.role.id}`, data)
+            : api.post('/settings/roles', data),
+        onSuccess: () => {
+            qc.invalidateQueries(['roles'])
+            toast.success('Rol kaydedildi.')
+            setModal({ open: false, role: null })
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.')
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => api.delete(`/settings/roles/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['roles'])
+            toast.success('Rol silindi.')
+            setDeleteConfirm(null)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Silinemedi.')
+    })
+
+    const openModal = (role = null) => {
+        setForm({
+            name: role?.name || '',
+            permissions: role?.permissions?.map(p => p.name) || []
+        })
+        setModal({ open: true, role })
+    }
+
+    const togglePermission = (permName) => {
+        setForm(prev => ({
+            ...prev,
+            permissions: prev.permissions.includes(permName)
+                ? prev.permissions.filter(p => p !== permName)
+                : [...prev, permissions] // Error in logic here, should be permName
+            // corrected below:
+        }))
+    }
+
+    // Correcting toggle logic helper
+    const handleToggle = (permName) => {
+        setForm(p => {
+            const exists = p.permissions.includes(permName)
+            if (exists) return { ...p, permissions: p.permissions.filter(n => n !== permName) }
+            return { ...p, permissions: [...p.permissions, permName] }
+        })
+    }
+
+    const groupedPermissions = Array.isArray(allPermissions) ? allPermissions.reduce((acc, p) => {
+        const [group] = p.name.split('.')
+        if (!acc[group]) acc[group] = []
+        acc[group].push(p)
+        return acc
+    }, {}) : {}
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Rol Listesi</h2>
+                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
+                    <Plus size={16} /> Rol Ekle
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {rolesLoading ? (
+                    <div className="col-span-full py-12 text-center text-gray-400">Yükleniyor...</div>
+                ) : roles.length === 0 ? (
+                    <div className="col-span-full py-12 text-center text-gray-500 bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+                        Henüz rol oluşturulmamış.
+                    </div>
+                ) : roles.map(r => (
+                    <div key={r.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex flex-col group hover:border-indigo-500/50 transition-all">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Shield size={16} className="text-indigo-500" />
+                                {r.name}
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => openModal(r)} className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg"><Edit2 size={14} /></button>
+                                <button onClick={() => setDeleteConfirm(r)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                            {r.permissions.length === 0 ? (
+                                <span className="text-[10px] text-gray-400 italic">Yetki verilmemiş</span>
+                            ) : (
+                                r.permissions.slice(0, 5).map(p => (
+                                    <span key={p.id} className="text-[9px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded capitalize">
+                                        {p.name.replace('.', ' ')}
+                                    </span>
+                                ))
+                            )}
+                            {r.permissions.length > 5 && (
+                                <span className="text-[9px] px-1.5 py-0.5 bg-gray-50 dark:bg-gray-800/50 text-gray-400 rounded">
+                                    +{r.permissions.length - 5} daha
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <Modal open={modal.open} onClose={() => setModal({ open: false, role: null })} title={modal.role ? 'Rolü Düzenle' : 'Yeni Rol Ekle'} size="lg">
+                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-5">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">Rol Adı</label>
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" placeholder="Örn: Muhasebe, Saha Personeli" />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-tighter">İşlem Yetkileri (Granüler)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin min-h-[100px]">
+                            {permsLoading ? (
+                                <div className="col-span-full py-12 flex flex-col items-center justify-center gap-2 text-gray-400">
+                                    <Loader2 className="animate-spin" size={24} />
+                                    <span className="text-xs">Yetkiler yükleniyor...</span>
+                                </div>
+                            ) : Object.keys(groupedPermissions).length === 0 ? (
+                                <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+                                    Yetki bulunamadı. Lütfen sistem yöneticisiyle iletişime geçin.
+                                </div>
+                            ) : (
+                                Object.entries(groupedPermissions).map(([group, perms]) => (
+                                    <div key={group} className="border border-gray-100 dark:border-gray-800 rounded-xl p-3 bg-gray-50/30 dark:bg-gray-950/20">
+                                        <div className="text-[11px] font-bold text-gray-400 uppercase mb-2 border-b border-gray-100 dark:border-gray-800 pb-1">{group}</div>
+                                        <div className="space-y-2">
+                                            {perms.map(p => (
+                                                <label key={p.id} className="flex items-center gap-3 cursor-pointer group/item">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={form.permissions.includes(p.name)}
+                                                        onChange={() => handleToggle(p.name)}
+                                                        className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-800"
+                                                    />
+                                                    <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/item:text-gray-900 dark:group-hover/item:text-gray-200 capitalize">
+                                                        {p.name.split('.')[1]?.replace('_', ' ') || p.name}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setModal({ open: false, role: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                            {saveMutation.isPending ? 'Kaydediliyor...' : 'Rolü Kaydet'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Rolü Sil">
+                <div className="space-y-4">
+                    <p className="text-gray-600 dark:text-gray-400"><span className="font-semibold">{deleteConfirm?.name}</span> rolünü silmek istediğinize emin misiniz?</p>
+                    <div className="flex gap-3">
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">İptal</button>
+                        <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors">Sil</button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    )
+}
+
+function UsersTab() {
+    const qc = useQueryClient()
+    const { user: currentUser } = useAuthStore()
+    const [modal, setModal] = useState({ open: false, user: null })
+    const [form, setForm] = useState({ name: '', email: '', password: '', role: 'USER', roleId: '' })
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
+    
+    const [highlightId, setHighlightId] = useState(null)
+
+    // Automatically scrolling feature can be triggered by useEffect
+    useEffect(() => {
+        const h = new URLSearchParams(window.location.search).get('highlight')
+        if (h) {
+            setHighlightId(h)
+            setTimeout(() => {
+                const el = document.getElementById(`user-${h}`)
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }, 500)
+            
+            // Remove highlight after 3 seconds to create a blink/flash effect
+            setTimeout(() => {
+                setHighlightId(null)
+            }, 3500)
+        }
+    }, [window.location.search])
+
+    const { data: users = [], isLoading } = useQuery({
+        queryKey: ['users'],
+        queryFn: () => api.get('/settings/users').then(r => r.data)
+    })
+
+    const { data: roles = [] } = useQuery({
+        queryKey: ['roles'],
+        queryFn: () => api.get('/settings/roles').then(r => r.data)
+    })
+
+    const saveMutation = useMutation({
+        mutationFn: (data) => modal.user
+            ? api.put(`/settings/users/${modal.user.id}`, data)
+            : api.post('/settings/users', data),
+        onSuccess: () => {
+            qc.invalidateQueries(['users'])
+            toast.success(modal.user ? 'Kullanıcı güncellendi.' : 'Kullanıcı eklendi.')
+            setModal({ open: false, user: null })
+            setForm({ name: '', email: '', password: '', role: 'USER', roleId: '' })
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.')
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => api.delete(`/settings/users/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['users'])
+            toast.success('Kullanıcı silindi.')
+            setDeleteConfirm(null)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Silinemedi.')
+    })
+
+    const openModal = (user = null) => {
+        setForm({
+            name: user?.name || '',
+            email: user?.email || '',
+            password: '',
+            role: user?.role || 'USER',
+            roleId: user?.roles?.[0]?.id || ''
+        })
+        setModal({ open: true, user })
+    }
+
+    const safeUsers = Array.isArray(users) ? users : (users?.data && Array.isArray(users.data) ? users.data : [])
+    const safeRoles = Array.isArray(roles) ? roles : (roles?.data && Array.isArray(roles.data) ? roles.data : [])
+
+    const adminUsers = safeUsers.filter(u => u.role === 'ADMIN')
+    const sortedRoles = [...safeRoles].sort((a, b) => (b.permissions?.length || 0) - (a.permissions?.length || 0))
+    const nonAdminUsers = safeUsers.filter(u => u.role !== 'ADMIN')
+
+    const roleGroups = sortedRoles.map(r => ({
+        ...r,
+        users: []
+    }))
+    const unassignedUsers = []
+
+    nonAdminUsers.forEach(u => {
+        if (u.roles && u.roles.length > 0) {
+            // Find matching role in our groups (first matched role)
+            const matchedGroup = roleGroups.find(rg => rg.id === u.roles[0].id)
+            if (matchedGroup) {
+                matchedGroup.users.push(u)
+            } else {
+                unassignedUsers.push(u)
+            }
+        } else {
+            unassignedUsers.push(u)
+        }
+    })
+
+    const renderUserCard = (u) => {
+        const isHighlighted = highlightId && String(highlightId) === String(u.id);
+        
+        return (
+        <div 
+            key={u.id} 
+            id={`user-${u.id}`}
+            className={
+                isHighlighted 
+                ? "bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500 rounded-2xl p-4 flex items-center justify-between group shadow-lg ring-4 ring-indigo-500/20 transition-all"
+                : "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm"
+            }
+        >
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                    {u.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 truncate">
+                        {u.name}
+                        {u.role === 'ADMIN' && <ShieldCheck size={14} className="text-indigo-500" title="Yönetici" />}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${u.role === 'ADMIN' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
+                            }`}>
+                            {u.role === 'ADMIN' ? 'Yetkili' : 'Personel'}
+                        </span>
+                        {u.roles?.map(r => (
+                            <span key={r.id} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded font-bold uppercase flex items-center gap-1">
+                                <Shield size={10} /> {r.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div className="flex gap-1 items-center">
+                {u.role !== 'ADMIN' && (
+                    <button onClick={() => openModal(u)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                        <Edit2 size={16} />
+                    </button>
+                )}
+                {u.id !== currentUser?.id && u.role !== 'ADMIN' && (
+                    <button onClick={() => setDeleteConfirm(u)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
+        </div>
+    )}
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Kullanıcı Listesi (Hiyerarşik)</h2>
+                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
+                    <Plus size={16} /> Kullanıcı Ekle
+                </button>
+            </div>
+
+            {isLoading ? (
+                <div className="py-12 text-center text-gray-400">Yükleniyor...</div>
+            ) : safeUsers.length === 0 ? (
+                <div className="py-12 text-center text-gray-500 bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+                    Henüz personel eklenmemiş.
+                </div>
+            ) : (
+                <div className="space-y-8">
+                    {/* Admins */}
+                    {adminUsers.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 border-b border-gray-200 dark:border-gray-800 pb-2 flex items-center gap-2">
+                                <ShieldCheck size={16} className="text-amber-500" />
+                                Firma Yetkilileri (Tam Yetkili)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {adminUsers.map(u => renderUserCard(u))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Grouped by Role */}
+                    {roleGroups.map(role => {
+                        if (role.users.length === 0) return null
+                        return (
+                            <div key={role.id}>
+                                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 border-b border-gray-200 dark:border-gray-800 pb-2 flex items-center gap-2">
+                                    <Shield size={16} className="text-indigo-500" />
+                                    {role.name}
+                                    <span className="text-[10px] font-normal text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{role.permissions?.length || 0} Yetki</span>
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {role.users.map(u => renderUserCard(u))}
+                                </div>
+                            </div>
+                        )
+                    })}
+
+                    {/* Unassigned Users */}
+                    {unassignedUsers.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 border-b border-gray-200 dark:border-gray-800 pb-2 flex items-center gap-2">
+                                <User size={16} className="text-gray-400" />
+                                Özel Rolü Olmayanlar (Temel Personeller)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {unassignedUsers.map(u => renderUserCard(u))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* User Modal */}
+            <Modal open={modal.open} onClose={() => setModal({ open: false, user: null })} title={modal.user ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Ekle'}>
+                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">Ad Soyad</label>
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" placeholder="Ahmet Yılmaz" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">E-posta</label>
+                        <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" placeholder="ahmet@firma.com" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">{modal.user ? 'Yeni Şifre (Boş bırakılabilir)' : 'Şifre'}</label>
+                        <input type="password" required={!modal.user} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" placeholder="••••••••" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1.5">Temel Yetki</label>
+                            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white">
+                                <option value="ADMIN">Firma Yetkilisi</option>
+                                <option value="USER">Personel</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1.5">Özel Rol</label>
+                            <select value={form.roleId} onChange={e => setForm({ ...form, roleId: e.target.value })} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white">
+                                <option value="">Rol Seçilmedi</option>
+                                {roles.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setModal({ open: false, user: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                            {saveMutation.isPending ? 'Kaydediliyor...' : 'Kullanıcıyı Kaydet'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Kullanıcıyı Sil">
+                <div className="space-y-4">
+                    <p className="text-gray-600 dark:text-gray-400">
+                        <span className="font-semibold text-gray-900 dark:text-white">{deleteConfirm?.name}</span> isimli kullanıcıyı silmek istediğinize emin misiniz?
+                    </p>
+                    <div className="flex gap-3">
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">İptal</button>
+                        <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors">
+                            {deleteMutation.isPending ? 'Siliniyor...' : 'Evet, Sil'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    )
 }

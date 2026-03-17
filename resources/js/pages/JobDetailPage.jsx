@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
+import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
@@ -11,6 +12,7 @@ const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-
 
 export default function JobDetailPage() {
     const { id } = useParams()
+    const { user } = useAuthStore()
     const qc = useQueryClient()
     const [addStepTitle, setAddStepTitle] = useState('')
     const [paymentModal, setPaymentModal] = useState(false)
@@ -80,6 +82,7 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Aşama silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Aşama silinemedi.'),
     })
 
     const applyTemplate = useMutation({
@@ -113,6 +116,7 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Ödeme silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme silinemedi.'),
     })
 
     const saveExpense = useMutation({
@@ -136,6 +140,7 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Masraf silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Masraf silinemedi.'),
     })
 
     const openPaymentModal = (p = null) => {
@@ -240,12 +245,40 @@ export default function JobDetailPage() {
         if (files && files.length > 0) uploadFiles(files)
     }
 
+    const handleDownload = async (file) => {
+        const toastId = toast.loading('İndiriliyor...')
+        try {
+            const response = await api.get(`/files/proxy?fileId=${file.id}`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            let fileName = file.file_name || file.fileName || 'dosya'
+            const contentDisposition = response.headers['content-disposition']
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (match && match[1]) {
+                    fileName = match[1]
+                }
+            }
+            a.download = fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dosya indirilemedi.', { id: toastId })
+        }
+    }
+
     const deleteFile = useMutation({
         mutationFn: (fid) => api.delete(`/files/${fid}`),
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success('Dosya silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Dosya silinemedi.'),
     })
 
     const updateJob = useMutation({
@@ -299,6 +332,12 @@ export default function JobDetailPage() {
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
+
+    const hasPermission = (p) => {
+        if (!p) return true;
+        if (user?.role === 'ADMIN') return true;
+        return user?.permissions?.includes(p) || false;
+    }
 
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
@@ -367,12 +406,12 @@ export default function JobDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
                     { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
-                    { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500' },
-                    { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500' },
+                    { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500', permission: 'payments.view' },
+                    { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500', permission: 'payments.view' },
                     { label: 'İş Aşamaları', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
                     { label: 'İş Tamamlama', value: steps.length ? `%${completionProgress}` : '-', color: 'text-purple-500' },
-                    { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500' },
-                ].map(({ label, value, color }) => (
+                    { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500', permission: 'payments.view' },
+                ].filter(card => hasPermission(card.permission)).map(({ label, value, color }) => (
                     <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center">
                         <div className={`text-lg font-bold ${color}`}>{value}</div>
                         <div className="text-xs text-gray-500">{label}</div>
@@ -488,50 +527,60 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Payments & Expenses Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <CreditCard size={18} className="text-emerald-500" />
-                            Ödemeler ({financialTransactions.length})
-                        </h2>
-                        <div className="flex gap-2">
-                            <button onClick={() => openPaymentModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
-                                <Plus size={14} /> Tahsilat Ekle
-                            </button>
-                            <button onClick={() => openExpenseModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
-                                <Plus size={14} /> Masraf Ekle
-                            </button>
+                {(hasPermission('payments.view') || hasPermission('expenses.view')) && (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <CreditCard size={18} className="text-emerald-500" />
+                                Ödemeler ({financialTransactions.length})
+                            </h2>
+                            <div className="flex gap-2">
+                                {hasPermission('payments.create') && (
+                                    <button onClick={() => openPaymentModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <Plus size={14} /> Tahsilat Ekle
+                                    </button>
+                                )}
+                                {hasPermission('expenses.create') && (
+                                    <button onClick={() => openExpenseModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <Plus size={14} /> Masraf Ekle
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                            {financialTransactions.map(t => (
+                                <div key={`${t._type}-${t.id}`} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
+                                    <div>
+                                        <div className={`font-semibold ${t._type === 'PAYMENT' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {t._type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
+                                        </div>
+                                        <div className="text-[11px] text-gray-500 mt-0.5">
+                                            {formatDate(t._type === 'PAYMENT' ? (t.paymentDate || t.payment_date) : t.date)} •
+                                            {t._type === 'PAYMENT' ?
+                                                ((t.paymentType || t.payment_type) === 'ADVANCE' ? 'Avans' : (t.paymentType || t.payment_type) === 'PARTIAL' ? 'Taksit' : 'Final')
+                                                : t.title
+                                            }
+                                        </div>
+                                        {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {(t._type === 'PAYMENT' ? hasPermission('payments.edit') : hasPermission('expenses.edit')) && (
+                                            <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
+                                                <Edit2 size={14} />
+                                            </button>
+                                        )}
+                                        {(t._type === 'PAYMENT' ? hasPermission('payments.delete') : hasPermission('expenses.delete')) && (
+                                            <button onClick={() => t._type === 'PAYMENT' ? deletePayment.mutate(t.id) : deleteExpense.mutate(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                            {financialTransactions.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz işlem yok.</p>}
                         </div>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
-                        {financialTransactions.map(t => (
-                            <div key={`${t._type}-${t.id}`} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
-                                <div>
-                                    <div className={`font-semibold ${t._type === 'PAYMENT' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {t._type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
-                                    </div>
-                                    <div className="text-[11px] text-gray-500 mt-0.5">
-                                        {formatDate(t._type === 'PAYMENT' ? (t.paymentDate || t.payment_date) : t.date)} •
-                                        {t._type === 'PAYMENT' ?
-                                            ((t.paymentType || t.payment_type) === 'ADVANCE' ? 'Avans' : (t.paymentType || t.payment_type) === 'PARTIAL' ? 'Taksit' : 'Final')
-                                            : t.title
-                                        }
-                                    </div>
-                                    {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
-                                        <Edit2 size={14} />
-                                    </button>
-                                    <button onClick={() => t._type === 'PAYMENT' ? deletePayment.mutate(t.id) : deleteExpense.mutate(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {financialTransactions.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz işlem yok.</p>}
-                    </div>
-                </div>
+                )}
 
                 {/* Files Section */}
                 <div
@@ -587,9 +636,9 @@ export default function JobDetailPage() {
                                     <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownload(f); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20" title="İndir">
                                         <Download size={14} />
-                                    </a>
+                                    </button>
                                     <button onClick={() => deleteFile.mutate(f.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
                                         <Trash2 size={14} />
                                     </button>

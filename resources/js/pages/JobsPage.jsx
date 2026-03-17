@@ -7,6 +7,8 @@ import { Briefcase, Plus, Search, Edit2, Trash2, ChevronRight, Filter, Calendar 
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useEffect } from 'react'
+import { useAuthStore } from '../stores/index.js'
+import { User } from 'lucide-react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -21,6 +23,8 @@ export default function JobsPage() {
     const itemsPerPage = 10
     const qc = useQueryClient()
     const navigate = useNavigate()
+    const { user: currentUser } = useAuthStore()
+    const isAdmin = currentUser?.role === 'ADMIN'
 
     useEffect(() => {
         setCurrentPage(1)
@@ -46,6 +50,12 @@ export default function JobsPage() {
         queryFn: () => api.get('/settings/statuses').then(r => r.data),
     })
 
+    const { data: users = [] } = useQuery({
+        queryKey: ['users'],
+        queryFn: () => api.get('/settings/users').then(r => r.data),
+        enabled: isAdmin
+    })
+
     const openModal = (job = null) => {
         setForm(job ? {
             customerId: job.customerId || job.customer_id,
@@ -56,6 +66,7 @@ export default function JobsPage() {
             totalPrice: job.totalPrice || job.total_price || 0,
             startDate: job.startDate || job.start_date ? (job.startDate || job.start_date).toString().substring(0, 10) : '',
             endDate: job.endDate || job.end_date ? (job.endDate || job.end_date).toString().substring(0, 10) : '',
+            userId: job.userId || job.user_id || '',
             customFields: job.customfieldvalue ? Object.fromEntries(job.customfieldvalue.map(cf => [cf.custom_field_id, cf.value])) : {}
         } : {
             customerId: customers[0]?.id || '',
@@ -66,6 +77,7 @@ export default function JobsPage() {
             totalPrice: 0,
             startDate: new Date().toISOString().substring(0, 10),
             endDate: '',
+            userId: '',
             customFields: {}
         })
         setModal({ open: true, job })
@@ -175,8 +187,12 @@ export default function JobsPage() {
                                             <td className="px-5 py-4">
                                                 <Link to={`/jobs/${job.id}`} className="font-medium text-gray-900 dark:text-white hover:text-indigo-500 transition-colors block">{job.title}</Link>
                                                 <Link to={`/customers/${job.customerId || job.customer_id}`} className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-500">{job.customer?.name || '-'}</Link>
-                                                <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
-
+                                                <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                                    {job.assignedTo && (
+                                                        <span className="inline-flex items-center gap-1 text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                                                            <User size={10} /> {job.assignedTo.name}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4 hidden md:table-cell">
@@ -237,6 +253,18 @@ export default function JobsPage() {
                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
+                        {isAdmin && (
+                            <div className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                                    <User size={14} className="text-indigo-500" />
+                                    Personel Ata (Opsiyonel)
+                                </label>
+                                <select value={form.userId || ''} onChange={e => setForm(p => ({ ...p, userId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                    <option value="">Havuz / Atanmamış</option>
+                                    {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === 'ADMIN' ? 'Yetkili' : 'Personel'})</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">İş Durumu / Aşama</label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

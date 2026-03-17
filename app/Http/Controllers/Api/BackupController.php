@@ -23,6 +23,9 @@ use App\Models\CashRegister;
 use App\Models\Appointment;
 use App\Models\AppointmentTitle;
 use App\Models\Tenant;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\BackupKey;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
@@ -219,6 +222,15 @@ class BackupController extends Controller
         ]);
 
 
+        $roles = Role::where('tenant_id', $tenantId)
+            ->with('permissions')
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'permissions' => $r->permissions->pluck('name')->toArray()
+            ]);
+
         $tenant = Tenant::find($tenantId);
 
         $backup = [
@@ -241,6 +253,7 @@ class BackupController extends Controller
                 'service_tracking_categories' => $serviceTrackingCategories,
                 'service_trackings' => $serviceTrackings,
                 'service_tracking_logs' => $serviceTrackingLogs,
+                'roles'             => $roles,
             ],
             'tenant_settings' => [
                 'aws_access_key_id'     => $tenant->aws_access_key_id,
@@ -383,48 +396,61 @@ class BackupController extends Controller
         $data = $backup['data'];
         $settings = $backup['tenant_settings'] ?? [];
 
-        \Illuminate\Database\Eloquent\Model::unguarded(function () use ($data, $tenantId, $settings) {
-            DB::transaction(function () use ($data, $tenantId, $settings) {
+        \Illuminate\Database\Eloquent\Model::unguard();
+        try {
+            DB::transaction(function () use ($data, $tenantId, $settings, $user) {
                 // Restore Tenant Settings (S3, etc.)
                 if (!empty($settings)) {
-                Tenant::where('id', $tenantId)->update([
-                    'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
-                    'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
-                    'aws_region'            => $settings['aws_region'] ?? null,
-                    'aws_bucket_name'       => $settings['aws_bucket_name'] ?? null,
-                ]);
-            }
+                    Tenant::where('id', $tenantId)->update([
+                        'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
+                        'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
+                        'aws_region'            => $settings['aws_region'] ?? null,
+                        'aws_bucket_name'       => $settings['aws_bucket_name'] ?? null,
+                    ]);
+                }
 
-            // Import services & custom fields
-            $serviceIdMap = [];
-            $customFieldIdMap = [];
-            foreach (($data['services'] ?? []) as $s) {
-                $service = Service::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                );
-                $serviceIdMap[$s['id']] = $service->id;
-
-                foreach (($s['customfield'] ?? []) as $cf) {
-                    $newCf = $service->customFields()->updateOrCreate(
-                        ['label' => $cf['label'], 'service_id' => $service->id],
-                        ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
+                // Import services & custom fields
+                $serviceIdMap = [];
+                $customFieldIdMap = [];
+                foreach (($data['services'] ?? []) as $s) {
+                    $service = Service::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $s['name']],
+                        ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
                     );
-                    if (isset($cf['id'])) {
-                        $customFieldIdMap[$cf['id']] = $newCf->id;
+                    $serviceIdMap[$s['id']] = $service->id;
+
+                    foreach (($s['customfield'] ?? []) as $cf) {
+                        $newCf = $service->customFields()->updateOrCreate(
+                            ['label' => $cf['label'], 'service_id' => $service->id],
+                            ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
+                        );
+                        if (isset($cf['id'])) {
+                            $customFieldIdMap[$cf['id']] = $newCf->id;
+                        }
                     }
                 }
-            }
 
-            // Import job statuses
-            $statusIdMap = [];
-            foreach (($data['jobstatuses'] ?? []) as $s) {
-                $status = JobStatus::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                );
-                $statusIdMap[$s['id']] = $status->id;
-            }
+                // Import roles
+                foreach (($data['roles'] ?? []) as $r) {
+                    $role = Role::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $r['name']],
+                        ['guard_name' => 'web']
+                    );
+                    if (!empty($r['permissions'])) {
+                        $role->syncPermissions($r['permissions']);
+                    }
+                }
+
+
+                // Import job statuses
+                $statusIdMap = [];
+                foreach (($data['jobstatuses'] ?? []) as $s) {
+                    $status = JobStatus::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $s['name']],
+                        ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
+                    );
+                    $statusIdMap[$s['id']] = $status->id;
+                }
 
             // Import step templates
             foreach (($data['steptemplates'] ?? []) as $t) {
@@ -482,6 +508,7 @@ class BackupController extends Controller
                         'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),
                         'end_date'      => isset($j['endDate']) ? substr($j['endDate'], 0, 10) : null,
                         'total_price'   => $j['totalPrice'] ?? 0,
+                        'user_id'       => $j['userId'] ?? $j['user_id'] ?? null,
                         'created_at'    => $j['createdAt'] ?? now(),
                         'updated_at'    => $j['updatedAt'] ?? now(),
                     ]
@@ -739,7 +766,9 @@ class BackupController extends Controller
                 ]);
             }
         });
-        });
+    } finally {
+        \Illuminate\Database\Eloquent\Model::reguard();
+    }
 
         // Clear all tenant caches after restore
         $this->clearTenantCache('jobs');
@@ -762,7 +791,7 @@ class BackupController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
 
-        DB::transaction(function () use ($tenantId) {
+        DB::transaction(function () use ($tenantId, $request) {
             // Delete jobs and their related data
             $jobIds = JobCrm::where('tenant_id', $tenantId)->pluck('id');
             
@@ -804,6 +833,10 @@ class BackupController extends Controller
             ServiceTrackingLog::where('tenant_id', $tenantId)->delete();
             ServiceTracking::where('tenant_id', $tenantId)->delete();
             ServiceTrackingCategory::where('tenant_id', $tenantId)->delete();
+
+            // Delete roles and personnel (except the one doing the reset)
+            Role::where('tenant_id', $tenantId)->delete();
+            User::where('tenant_id', $tenantId)->where('id', '!=', $request->user()->id)->delete();
         });
 
         // Clear all tenant caches after reset

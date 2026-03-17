@@ -161,12 +161,13 @@ class AuthController extends Controller
     private function userResource(User $user): array
     {
         $data = [
-            'id'          => $user->id,
-            'name'        => $user->name,
-            'email'       => $user->email,
-            'role'        => $user->role,
-            'is_approved' => $user->is_approved,
-            'tenant_id'   => $user->tenant_id,
+            'id'             => $user->id,
+            'name'           => $user->name,
+            'email'          => $user->email,
+            'role'           => $user->role,
+            'is_super_admin' => $user->is_super_admin,
+            'is_approved'    => $user->is_approved,
+            'tenant_id'      => $user->tenant_id,
         ];
 
         if ($user->relationLoaded('tenant') && $user->tenant) {
@@ -176,6 +177,12 @@ class AuthController extends Controller
                 'slug' => $user->tenant->slug,
             ];
         }
+
+        // Add permissions for frontend use
+        if ($user->tenant_id) {
+            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($user->tenant_id);
+        }
+        $data['permissions'] = $user->getAllPermissions()->pluck('name')->toArray();
 
         return $data;
     }

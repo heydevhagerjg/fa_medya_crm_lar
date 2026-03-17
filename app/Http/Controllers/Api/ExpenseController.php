@@ -19,11 +19,18 @@ class ExpenseController extends Controller
         $cacheKey = $this->getTenantCacheKey('expenses');
 
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $tenantId = $request->user()->tenant_id;
+            $user = $request->user();
+            $tenantId = $user->tenant_id;
 
             $query = Expense::where('tenant_id', $tenantId)
                 ->with(['job', 'category', 'cashRegister'])
                 ->orderByDesc('date');
+
+            if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+                $query->whereHas('job', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
 
             if ($request->has('jobId')) {
                 $query->where('job_id', $request->jobId);
@@ -44,10 +51,24 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'jobId'          => 'nullable|integer',
             'categoryId'     => 'nullable|integer',
-            'cashRegisterId' => 'nullable|integer',
+            'cashRegisterId' => 'nullable|integer'
         ]);
 
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        // Verify job ownership if specified
+        if (!empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            $jobQuery = \App\Models\JobCrm::where('tenant_id', $tenantId);
+            if (!$user->can('expenses.view_all')) {
+                $jobQuery->where('user_id', $user->id);
+            }
+            $jobQuery->findOrFail($validated['jobId']);
+        } elseif (empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            if (!$user->can('expenses.view_all')) {
+                return response()->json(['message' => 'Genel gider girişi yetkiniz bulunmamaktadır.'], 403);
+            }
+        }
 
         $expense = Expense::create([
             'tenant_id'        => $tenantId,
@@ -71,8 +92,19 @@ class ExpenseController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $expense = Expense::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.edit')) {
+            return response()->json(['message' => 'Gider/Masraf düzeltme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+        $tenantId = $user->tenant_id;
+
+        $query = Expense::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $expense = $query->findOrFail($id);
 
         $validated = $request->validate([
             'title'          => 'sometimes|string|max:255',
@@ -105,8 +137,19 @@ class ExpenseController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $expense = Expense::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.delete')) {
+            return response()->json(['message' => 'Gider/Masraf silme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+        $tenantId = $user->tenant_id;
+
+        $query = Expense::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $expense = $query->findOrFail($id);
 
         ActivityLogService::log($request->user(), 'DELETE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->amount} TL tutarındaki {$expense->title} masrafı silindi.");

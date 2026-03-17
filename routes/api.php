@@ -21,6 +21,8 @@ use App\Http\Controllers\Api\AppointmentTitleController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\ServiceTrackingController;
 use App\Http\Controllers\Api\Settings\ServiceTrackingCategoryController;
+use App\Http\Controllers\Api\Settings\RoleController;
+use App\Http\Controllers\Api\Settings\PermissionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,10 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', CustomerController::class);
 
     // Jobs
+    Route::post('/jobs/reorder', [JobController::class, 'reorder']);
     Route::apiResource('jobs', JobController::class);
     Route::patch('/jobs/{id}/status', [JobController::class, 'updateStatus']);
 
-    // Payments (using query param id for delete like the original API)
+    // Payments
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::put('/payments/{id}', [PaymentController::class, 'update']);
@@ -85,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/jobs/{id}/files', [JobFileController::class, 'destroy']);
 
     // Logs
-    Route::get('/logs', [LogController::class, 'index']);
+    Route::get('/logs', [LogController::class, 'index'])->middleware('role.admin');
 
     // Appointments
     Route::apiResource('appointments', AppointmentController::class);
@@ -100,17 +103,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('service-trackings/{id}/cancel', [ServiceTrackingController::class, 'cancel']);
     Route::post('service-trackings/{id}/activate', [ServiceTrackingController::class, 'activate']);
 
-
-
     // Settings
     Route::prefix('settings')->group(function () {
-        // Backup
-        Route::get('/backup/export', [BackupController::class, 'export']);
-        Route::post('/backup/import', [BackupController::class, 'import']);
-        Route::post('/backup/reset', [BackupController::class, 'reset']);
-        Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
-        Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
+        // Admin-only Settings
+        Route::middleware('role.admin')->group(function () {
+            // Backup
+            Route::get('/backup/export', [BackupController::class, 'export']);
+            Route::post('/backup/import', [BackupController::class, 'import']);
+            Route::post('/backup/reset', [BackupController::class, 'reset']);
+            Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
+            Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
 
+            // Activity Logs
+            Route::apiResource('api-keys', ApiKeyController::class)->except(['show']);
+            
+            // User Management
+            Route::apiResource('users', \App\Http\Controllers\Api\UserController::class)->except(['show']);
+            
+            // Backup Keys
+            Route::post('/backup-keys/clear', [\App\Http\Controllers\Api\Settings\BackupKeyController::class, 'clearAll']);
+            Route::apiResource('backup-keys', \App\Http\Controllers\Api\Settings\BackupKeyController::class)->only(['index', 'store', 'destroy']);
+        });
+
+        // Common Settings (or other non-critical ones if any)
         // Service Tracking Categories
         Route::apiResource('service-tracking-categories', ServiceTrackingCategoryController::class);
 
@@ -130,17 +145,35 @@ Route::middleware('auth:sanctum')->group(function () {
         // Expense Categories
         Route::apiResource('expense-categories', ExpenseCategoryController::class);
 
-        // API Keys
-        Route::apiResource('api-keys', ApiKeyController::class)->except(['show']);
         Route::apiResource('appointment-titles', AppointmentTitleController::class);
 
-        // Backup Keys
-        Route::post('/backup-keys/clear', [\App\Http\Controllers\Api\Settings\BackupKeyController::class, 'clearAll']);
-        Route::apiResource('backup-keys', \App\Http\Controllers\Api\Settings\BackupKeyController::class)->only(['index', 'store', 'destroy']);
+        // RBAC
+        Route::middleware('role.admin')->group(function () {
+            Route::apiResource('roles', RoleController::class);
+            Route::get('permissions', [PermissionController::class, 'index']);
+        });
 
         // Tenant Settings (S3 etc)
         Route::get('/tenant', [TenantController::class, 'show']);
-        Route::put('/tenant', [TenantController::class, 'update']);
-        Route::post('/tenant/test', [TenantController::class, 'testConnection']);
+        Route::put('/tenant', [TenantController::class, 'update'])->middleware('role.admin');
+        Route::post('/tenant/test', [TenantController::class, 'testConnection'])->middleware('role.admin');
+    });
+});
+
+// Admin Routes (Independent from User/Tenant)
+Route::prefix('admin')->group(function () {
+    Route::post('/login', [\App\Http\Controllers\Admin\AuthController::class, 'login']);
+    
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [\App\Http\Controllers\Admin\AuthController::class, 'me']);
+        Route::post('/logout', [\App\Http\Controllers\Admin\AuthController::class, 'logout']);
+        
+        Route::prefix('tenants')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\TenantController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Admin\TenantController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'show']);
+            Route::post('/{id}/users', [\App\Http\Controllers\Admin\TenantController::class, 'addUser']);
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
+        });
     });
 });

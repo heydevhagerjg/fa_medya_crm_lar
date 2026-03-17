@@ -9,8 +9,8 @@ class JobCrm extends Model
     protected $table = 'jobs_crm';
 
     protected $fillable = [
-        'tenant_id', 'customer_id', 'service_id', 'job_status_id',
-        'title', 'description', 'status', 'start_date', 'end_date', 'total_price',
+        'tenant_id', 'user_id', 'customer_id', 'service_id', 'job_status_id',
+        'title', 'description', 'status', 'start_date', 'end_date', 'total_price', 'order',
     ];
 
     protected $casts = [
@@ -18,6 +18,11 @@ class JobCrm extends Model
         'end_date' => 'date',
         'total_price' => 'decimal:2',
     ];
+
+    public function assignedTo()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function tenant()
     {

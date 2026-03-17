@@ -61,6 +61,10 @@ export default function PaymentsPage() {
             toast.success('Ödeme silindi.')
             setDeleteConfirm(null)
         },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Ödeme silinemedi.')
+            setDeleteConfirm(null)
+        }
     })
 
     const openModal = (payment = null) => {
@@ -76,7 +80,13 @@ export default function PaymentsPage() {
     }
 
     const totalPayments = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
-    const filtered = payments.filter(p => p.job?.title?.toLowerCase().includes(search.toLowerCase()) || p.description?.toLowerCase().includes(search.toLowerCase()))
+    const filtered = payments.filter(p => {
+        if (!search) return true;
+        const s = search.toLowerCase();
+        const jobTitle = p.job?.title?.toLowerCase() || 'genel';
+        const desc = p.description?.toLowerCase() || '';
+        return jobTitle.includes(s) || desc.includes(s);
+    })
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)

@@ -24,11 +24,16 @@ class JobController extends Controller
         $cacheKey = $this->getTenantCacheKey('jobs');
 
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $tenantId = $request->user()->tenant_id;
+            $user = $request->user();
+            $tenantId = $user->tenant_id;
 
             $query = JobCrm::where('tenant_id', $tenantId)
-                ->with(['customer', 'service', 'jobStatus', 'jobSteps', 'payments'])
+                ->with(['customer', 'service', 'jobStatus', 'jobSteps', 'payments', 'assignedTo'])
+                ->orderBy('order')
                 ->orderByDesc('created_at');
+
+            // Role-based filtering: Herkesin tüm işleri görmesi istendiği için view kısıtlamasını kaldırıyoruz.
+            // İşlemler (düzenleme/silme) halen update/destroy vb. metodlarda kontrol ediliyor.
 
             if ($request->has('customerId')) {
                 $query->where('customer_id', $request->customerId);
@@ -69,14 +74,20 @@ class JobController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
 
-        $job = JobCrm::where('tenant_id', $tenantId)
-            ->with([
+        $query = JobCrm::where('tenant_id', $tenantId);
+        
+        // Herkes her işin detayını görebilir.
+
+
+        $job = $query->with([
                 'customer', 'service.customFields', 'jobStatus',
                 'jobDetail', 'jobFiles', 'jobSteps',
                 'payments.cashRegister', 'customFieldValues.customField',
                 'expenses.category', 'expenses.cashRegister',
+                'assignedTo'
             ])
             ->findOrFail($id);
 
@@ -98,9 +109,17 @@ class JobController extends Controller
             'customFields'  => 'nullable|array',
             'steps'         => 'nullable|array',
             'steps.*'       => 'string',
+            'userId'        => 'nullable|uuid|exists:users,id',
             'customerRequests' => 'nullable|string',
             'notes'         => 'nullable|string',
         ]);
+
+        if (!empty($validated['userId'])) {
+            $assignedUser = \App\Models\User::where('tenant_id', $request->user()->tenant_id)->find($validated['userId']);
+            if (!$assignedUser) {
+                return response()->json(['message' => 'Geçersiz personel seçimi.'], 422);
+            }
+        }
 
         $tenantId = $request->user()->tenant_id;
 
@@ -131,6 +150,7 @@ class JobController extends Controller
                 'total_price'   => $validated['totalPrice'] ?? 0,
                 'start_date'    => $validated['startDate'] ?? now(),
                 'end_date'      => $validated['endDate'] ?? null,
+                'user_id'       => $validated['userId'] ?? null,
             ]);
 
             if (!empty($validated['steps'])) {
@@ -181,8 +201,19 @@ class JobController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+        
+        $query = JobCrm::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+        
+        // Also check if they have permission if it's not their own job? 
+        // Actually the user stated: "Only assigned personnel and company authorized can make updates"
+        if ($user->role !== 'ADMIN' && !$user->can('jobs.edit')) {
+            return response()->json(['message' => 'Bu işlem için yetkiniz yok.'], 403);
+        }
 
         $validated = $request->validate([
             'customerId'    => 'sometimes|integer',
@@ -195,9 +226,19 @@ class JobController extends Controller
             'startDate'     => 'nullable|date',
             'endDate'       => 'nullable|date',
             'customFields'  => 'nullable|array',
+            'userId'        => 'nullable|uuid|exists:users,id',
             'customerRequests' => 'nullable|string',
             'notes'         => 'nullable|string',
         ]);
+
+        if (!empty($validated['userId'])) {
+            $assignedUser = \App\Models\User::where('tenant_id', $tenantId)->find($validated['userId']);
+            if (!$assignedUser) {
+                return response()->json(['message' => 'Geçersiz personel seçimi.'], 422);
+            }
+        }
+
+        $job = $query->findOrFail($id);
 
         DB::transaction(function () use ($job, $validated, $request) {
             $job->update([
@@ -210,6 +251,7 @@ class JobController extends Controller
                 'total_price'   => $validated['totalPrice'] ?? $job->total_price,
                 'start_date'    => $validated['startDate'] ?? $job->start_date,
                 'end_date'      => array_key_exists('endDate', $validated) ? $validated['endDate'] : $job->end_date,
+                'user_id'       => array_key_exists('userId', $validated) ? $validated['userId'] : $job->user_id,
             ]);
 
             if (isset($validated['customerRequests']) || isset($validated['notes'])) {
@@ -242,8 +284,19 @@ class JobController extends Controller
 
     public function updateStatus(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $query = JobCrm::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($user->role !== 'ADMIN' && !$user->can('jobs.edit')) {
+            return response()->json(['message' => 'Bu işlem için yetkiniz yok.'], 403);
+        }
+
+        $job = $query->findOrFail($id);
 
         $validated = $request->validate([
             'jobStatusId' => 'nullable|integer',
@@ -259,10 +312,53 @@ class JobController extends Controller
         return response()->json($job->fresh()->load('jobStatus'));
     }
 
+    public function reorder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'jobs' => 'required|array',
+            'jobs.*.id' => 'required|integer',
+            'jobs.*.order' => 'required|integer',
+        ]);
+
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        DB::transaction(function () use ($validated, $tenantId, $user) {
+            foreach ($validated['jobs'] as $jobData) {
+                $query = JobCrm::where('tenant_id', $tenantId)->where('id', $jobData['id']);
+                
+                if ($user->role !== 'ADMIN') {
+                    $query->where('user_id', $user->id);
+                }
+                
+                if ($user->role !== 'ADMIN' && !$user->can('jobs.edit')) {
+                    continue;
+                }
+                
+                $query->update(['order' => $jobData['order']]);
+            }
+        });
+
+        $this->clearTenantCache('jobs');
+
+        return response()->json(['message' => 'Sıralama güncellendi.']);
+    }
+
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $query = JobCrm::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($user->role !== 'ADMIN' && !$user->can('jobs.delete')) {
+            return response()->json(['message' => 'Bu işlem için yetkiniz yok.'], 403);
+        }
+
+        $job = $query->findOrFail($id);
 
         ActivityLogService::log($request->user(), 'DELETE', 'JOB', $job->id, $job->title,
             "{$job->title} işi sistemden silindi.");
@@ -290,6 +386,8 @@ class JobController extends Controller
             'totalPrice'  => $job->total_price,
             'createdAt'   => $job->created_at,
             'updatedAt'   => $job->updated_at,
+            'userId'      => $job->user_id,
+            'assignedTo'  => $job->relationLoaded('assignedTo') ? $job->assignedTo : null,
             'customer'    => $job->relationLoaded('customer') ? $job->customer : null,
             'service'     => $job->relationLoaded('service') ? $job->service : null,
             'jobStatus'   => $job->relationLoaded('jobStatus') ? $job->jobStatus : null,

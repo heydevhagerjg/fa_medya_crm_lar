@@ -19,11 +19,18 @@ class PaymentController extends Controller
         $cacheKey = $this->getTenantCacheKey('payments');
 
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $tenantId = $request->user()->tenant_id;
+            $user = $request->user();
+            $tenantId = $user->tenant_id;
 
             $query = Payment::where('tenant_id', $tenantId)
                 ->with(['job.customer', 'cashRegister'])
                 ->orderByDesc('payment_date');
+
+            if ($user->role !== 'ADMIN' && !$user->can('payments.view_all')) {
+                $query->whereHas('job', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
 
             if ($request->has('jobId')) {
                 $query->where('job_id', $request->jobId);
@@ -46,7 +53,21 @@ class PaymentController extends Controller
             'cashRegisterId' => 'nullable|integer',
         ]);
 
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        // If job is specified, verify ownership
+        if (!empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            $jobQuery = \App\Models\JobCrm::where('tenant_id', $tenantId);
+            if (!$user->can('payments.view_all')) {
+                $jobQuery->where('user_id', $user->id);
+            }
+            $jobQuery->findOrFail($validated['jobId']);
+        } elseif (empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            if (!$user->can('payments.view_all')) {
+                return response()->json(['message' => 'Genel ödeme girişi yetkiniz bulunmamaktadır.'], 403);
+            }
+        }
 
         $payment = Payment::create([
             'tenant_id'        => $tenantId,
@@ -72,8 +93,20 @@ class PaymentController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $payment = Payment::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('payments.edit')) {
+            return response()->json(['message' => 'Tahsilat düzeltme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+
+        $tenantId = $user->tenant_id;
+
+        $query = Payment::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('payments.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $payment = $query->findOrFail($id);
 
         $validated = $request->validate([
             'jobId'          => 'nullable|integer',
@@ -107,8 +140,20 @@ class PaymentController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $payment = Payment::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('payments.delete')) {
+            return response()->json(['message' => 'Tahsilat silme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+
+        $tenantId = $user->tenant_id;
+
+        $query = Payment::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('payments.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $payment = $query->findOrFail($id);
 
         $payment->load('job');
         $jobTitle = $payment->job?->title ?? 'Genel';

@@ -45,6 +45,7 @@ export default function ExpensesPage() {
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/expenses/${id}`),
         onSuccess: () => { qc.invalidateQueries(['expenses']); toast.success('Masraf silindi.'); setDeleteConfirm(null) },
+        onError: (err) => { toast.error(err.response?.data?.message || 'Masraf silinemedi.'); setDeleteConfirm(null) }
     })
 
     const openModal = (expense = null) => {
@@ -61,7 +62,13 @@ export default function ExpensesPage() {
     }
 
     const totalExpenses = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
-    const filtered = expenses.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) || e.job?.title?.toLowerCase().includes(search.toLowerCase()))
+    const filtered = expenses.filter(e => {
+        if (!search) return true;
+        const s = search.toLowerCase();
+        const title = e.title?.toLowerCase() || '';
+        const jobTitle = e.job?.title?.toLowerCase() || 'genel';
+        return title.includes(s) || jobTitle.includes(s);
+    })
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)

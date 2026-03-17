@@ -16,30 +16,40 @@ class DashboardController extends Controller
 {
     public function stats(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+        $isUser = $user->role !== 'ADMIN' && !$user->can('jobs.view_all');
 
         $totalCustomers = Customer::where('tenant_id', $tenantId)->count();
 
-        $activeJobs = JobCrm::where('tenant_id', $tenantId)
-            ->whereHas('jobStatus', function($q) {
+        $activeJobsQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $activeJobsQuery->where('user_id', $user->id);
+        $activeJobs = $activeJobsQuery->whereHas('jobStatus', function($q) {
                 $q->where('name', 'NOT LIKE', '%Tamamlandı%')
                   ->where('name', 'NOT LIKE', '%İptal%')
                   ->where('name', 'NOT LIKE', '%Bitti%');
             })
             ->count();
-        // If the above is too complex, we can just say total jobs or let user define.
-        // But let's try a simple heuristic for now or just return total.
-        $totalJobs = JobCrm::where('tenant_id', $tenantId)->count();
+        
+        $totalJobsQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $totalJobsQuery->where('user_id', $user->id);
+        $totalJobs = $totalJobsQuery->count();
 
-        $totalRevenue = JobCrm::where('tenant_id', $tenantId)
-            ->sum('total_price');
+        $totalRevenueQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $totalRevenueQuery->where('user_id', $user->id);
+        $totalRevenue = $totalRevenueQuery->sum('total_price');
 
-        $totalPayments = Payment::where('tenant_id', $tenantId)->sum('amount');
+        $totalPaymentsQuery = Payment::where('tenant_id', $tenantId);
+        if ($isUser) $totalPaymentsQuery->whereHas('job', fn($q) => $q->where('user_id', $user->id));
+        $totalPayments = $totalPaymentsQuery->sum('amount');
 
-        $totalExpenses = Expense::where('tenant_id', $tenantId)->sum('amount');
+        $totalExpensesQuery = Expense::where('tenant_id', $tenantId);
+        if ($isUser) $totalExpensesQuery->whereHas('job', fn($q) => $q->where('user_id', $user->id));
+        $totalExpenses = $totalExpensesQuery->sum('amount');
 
-        $recentJobs = JobCrm::where('tenant_id', $tenantId)
-            ->with(['customer', 'jobStatus'])
+        $recentJobsQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $recentJobsQuery->where('user_id', $user->id);
+        $recentJobs = $recentJobsQuery->with(['customer', 'jobStatus'])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
@@ -52,8 +62,9 @@ class DashboardController extends Controller
                 'createdAt' => $j->created_at,
             ]);
 
-        $recentPayments = Payment::where('tenant_id', $tenantId)
-            ->with(['job'])
+        $recentPaymentsQuery = Payment::where('tenant_id', $tenantId);
+        if ($isUser) $recentPaymentsQuery->whereHas('job', fn($q) => $q->where('user_id', $user->id));
+        $recentPayments = $recentPaymentsQuery->with(['job'])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
@@ -65,15 +76,17 @@ class DashboardController extends Controller
                 'job'         => ['title' => $p->job?->title],
             ]);
 
-        $completedJobs = JobCrm::where('tenant_id', $tenantId)
-            ->whereHas('jobStatus', function($q) {
+        $completedJobsQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $completedJobsQuery->where('user_id', $user->id);
+        $completedJobs = $completedJobsQuery->whereHas('jobStatus', function($q) {
                 $q->where('name', 'LIKE', '%Tamamlandı%')
                   ->orWhere('name', 'LIKE', '%Bitti%');
             })
             ->count();
 
-        $jobsByStatus = JobCrm::where('tenant_id', $tenantId)
-            ->with('jobStatus')
+        $jobsByStatusQuery = JobCrm::where('tenant_id', $tenantId);
+        if ($isUser) $jobsByStatusQuery->where('user_id', $user->id);
+        $jobsByStatus = $jobsByStatusQuery->with('jobStatus')
             ->selectRaw('job_status_id, COUNT(*) as count')
             ->groupBy('job_status_id')
             ->get()

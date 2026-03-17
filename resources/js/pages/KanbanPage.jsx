@@ -9,33 +9,22 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import JobDetailDrawer from '../components/JobDetailDrawer.jsx'
+import { useAuthStore } from '../stores/index.js'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
-// --- Sortable Item (Job Card) ---
-function SortableJobCard({ job, onOpenDetail }) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: job.id,
-        data: { type: 'Job', job }
-    })
-
-    const style = {
-        transition,
-        transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.3 : 1,
-    }
-
+function JobCardContent({ job, canMove, onOpenDetail }) {
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing mb-3">
+        <>
             <div className="flex justify-between items-start mb-2">
                 <button
-                    onClick={() => onOpenDetail(job.id)}
+                    onClick={() => onOpenDetail?.(job.id)}
                     className="text-left text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-2 pr-4"
                     onPointerDown={e => e.stopPropagation()}
                 >
                     {job.title}
                 </button>
-                <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className={`text-gray-400 transition-opacity ${canMove ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
                     <GripVertical size={16} />
                 </div>
             </div>
@@ -45,6 +34,12 @@ function SortableJobCard({ job, onOpenDetail }) {
                     <User size={12} className="text-gray-400" />
                     <span className="truncate">{job.customer?.name || 'Müşteri Belirtilmemiş'}</span>
                 </div>
+                {job.assignedTo && (
+                    <div className="flex items-center gap-2 text-[10px] text-indigo-500 font-semibold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-1 rounded-lg w-fit">
+                        <User size={10} />
+                        <span className="truncate">{job.assignedTo.name}</span>
+                    </div>
+                )}
                 {job.service && (
                     <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
                         {job.service?.name}
@@ -61,6 +56,46 @@ function SortableJobCard({ job, onOpenDetail }) {
                     {formatCurrency(job.totalPrice)}
                 </div>
             </div>
+        </>
+    )
+}
+
+function SortableJobCard({ job, onOpenDetail }) {
+    const { user } = useAuthStore()
+    const canMove = user?.role === 'ADMIN' || job.userId === user?.id || job.user_id === user?.id
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: job.id,
+        data: { type: 'Job', job },
+        disabled: !canMove
+    })
+
+    const style = {
+        transition,
+        transform: CSS.Translate.toString(transform),
+    }
+
+    const handlePointerDown = (e) => {
+        if (!canMove && !e.target.closest('button')) {
+            toast.error('Bu işi taşıma yetkiniz yok. Sadece size atanan işleri taşıyabilirsiniz.', { id: 'drag-error' })
+        } else if (listeners?.onPointerDown) {
+            listeners.onPointerDown(e)
+        }
+    }
+
+    if (isDragging) {
+        return (
+            <div
+                ref={setNodeRef}
+                style={style}
+                className="w-full min-h-[140px] border-2 border-dashed border-indigo-400 bg-indigo-50/50 dark:border-indigo-500/50 dark:bg-indigo-500/10 rounded-2xl mb-3 flex items-center justify-center opacity-70"
+            />
+        )
+    }
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} onPointerDown={handlePointerDown} className={`group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all mb-3 ${canMove ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-not-allowed opacity-50 hover:opacity-100 hover:shadow-md'}`}>
+            <JobCardContent job={job} canMove={canMove} onOpenDetail={onOpenDetail} />
         </div>
     )
 }
@@ -168,6 +203,7 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
 export default function KanbanPage() {
     const qc = useQueryClient()
     const [activeJob, setActiveJob] = useState(null)
+    const [originalStatusId, setOriginalStatusId] = useState(null)
     const [selectedJobId, setSelectedJobId] = useState(null)
     const [collapsedColumns, setCollapsedColumns] = useState(() => {
         const saved = localStorage.getItem('kanban_collapsed_columns')
@@ -206,79 +242,12 @@ export default function KanbanPage() {
         return [...statuses].sort((a, b) => (a.order || 0) - (b.order || 0))
     }, [statuses])
 
-    // Update status mutation
-    const updateJobStatus = useMutation({
-        mutationFn: ({ jobId, statusId }) => {
-            const apiStatusId = statusId === 'unassigned' ? null : statusId;
-            return api.patch(`/jobs/${jobId}/status`, { jobStatusId: apiStatusId });
-        },
-        onMutate: async ({ jobId, statusId, oldStatusId }) => {
-            // Cancel outgoing refetches
-            await qc.cancelQueries({ queryKey: ['jobs', 'column', statusId] })
-            await qc.cancelQueries({ queryKey: ['jobs', 'column', oldStatusId] })
-
-            // Snapshot the previous value
-            const previousSource = qc.getQueryData(['jobs', 'column', oldStatusId])
-            const previousTarget = qc.getQueryData(['jobs', 'column', statusId])
-
-            // Optimistically update
-            let movedJob = null;
-
-            if (previousSource) {
-                qc.setQueryData(['jobs', 'column', oldStatusId], old => {
-                    if (!old) return old;
-                    let found = false;
-                    const newPages = old.pages.map(page => {
-                        const filteredData = page.data.filter(j => j.id !== jobId);
-                        if (filteredData.length !== page.data.length) {
-                            found = true;
-                            const foundJob = page.data.find(j => j.id === jobId);
-                            if (foundJob) movedJob = { ...foundJob, jobStatusId: statusId === 'unassigned' ? null : statusId };
-                            return { ...page, data: filteredData };
-                        }
-                        return page;
-                    });
-                    if (!found) return old;
-                    return {
-                        ...old,
-                        pages: newPages.map((page, i) => i === 0 ? { ...page, meta: { ...page.meta, total: Math.max(0, (page.meta?.total || 0) - 1) } } : page)
-                    };
-                });
-            }
-
-            if (movedJob) {
-                qc.setQueryData(['jobs', 'column', statusId], old => {
-                    if (!old) return {
-                        pages: [{ data: [movedJob], meta: { total: 1, current_page: 1, last_page: 1 } }],
-                        pageParams: [1]
-                    };
-                    const newPages = [...old.pages];
-                    newPages[0] = {
-                        ...newPages[0],
-                        data: [movedJob, ...newPages[0].data],
-                        meta: { ...newPages[0].meta, total: (newPages[0].meta?.total || 0) + 1 }
-                    };
-                    return { ...old, pages: newPages };
-                });
-            }
-
-            return { previousSource, previousTarget }
-        },
-        onSuccess: () => {
-            toast.success('İş durumu güncellendi.', { position: 'bottom-center' })
-        },
-        onError: (err, variables, context) => {
-            if (context?.previousSource) {
-                qc.setQueryData(['jobs', 'column', variables.oldStatusId], context.previousSource)
-            }
-            if (context?.previousTarget) {
-                qc.setQueryData(['jobs', 'column', variables.statusId], context.previousTarget)
-            }
-            toast.error('Durum güncellenemedi.')
-        },
-        onSettled: (data, error, variables) => {
-            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.statusId] })
-            qc.invalidateQueries({ queryKey: ['jobs', 'column', variables.oldStatusId] })
+    // Status update is now handled within handleDragEnd directly 
+    // to strictly enforce the cross-column ordering sequence
+    const updateJobReorder = useMutation({
+        mutationFn: (jobsToUpdate) => api.post('/jobs/reorder', { jobs: jobsToUpdate }),
+        onSettled: () => {
+            qc.invalidateQueries({ queryKey: ['jobs', 'column'] })
         }
     })
 
@@ -286,14 +255,90 @@ export default function KanbanPage() {
         const { active } = event
         if (active.data.current?.type === 'Job') {
             setActiveJob(active.data.current.job)
+            setOriginalStatusId(active.data.current.job.jobStatusId)
         }
+    }
+
+    const handleDragOver = (event) => {
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeId = active.id;
+        const overId = over.id;
+
+        const job = active.data.current?.job;
+        if (!job) return;
+
+        const activeStatusId = job.jobStatusId;
+
+        let targetStatusId = null;
+        if (over.data.current?.type === 'Column') {
+            targetStatusId = overId;
+        } else if (over.data.current?.type === 'Job') {
+            targetStatusId = over.data.current?.job?.jobStatusId;
+        }
+
+        if (targetStatusId === null || String(activeStatusId) === String(targetStatusId)) {
+            return;
+        }
+
+        const sourceData = qc.getQueryData(['jobs', 'column', activeStatusId]);
+        const targetData = qc.getQueryData(['jobs', 'column', targetStatusId]);
+
+        if (!sourceData || !targetData) return;
+
+        let movedJob = null;
+        const newSourcePages = sourceData.pages.map(page => {
+            const filtered = page.data.filter(j => j.id !== activeId);
+            if (filtered.length !== page.data.length && !movedJob) {
+                movedJob = page.data.find(j => j.id === activeId);
+            }
+            return { ...page, data: filtered };
+        });
+
+        if (!movedJob) return;
+
+        movedJob = { ...movedJob, jobStatusId: targetStatusId };
+        active.data.current.job = movedJob;
+
+        qc.setQueryData(['jobs', 'column', activeStatusId], {
+            ...sourceData,
+            pages: newSourcePages
+        });
+
+        const newTargetPages = targetData.pages.map(p => ({ ...p, data: [...p.data] }));
+        let allTargetJobs = newTargetPages.flatMap(p => p.data);
+
+        let insertIndex = allTargetJobs.length;
+        if (over.data.current?.type === 'Job') {
+            const overIndex = allTargetJobs.findIndex(j => j.id === overId);
+            if (overIndex !== -1) {
+                // Approximate position based on index since rect collision can be expensive here manually
+                insertIndex = overIndex;
+            }
+        }
+
+        allTargetJobs.splice(insertIndex, 0, movedJob);
+
+        const finalTargetPages = newTargetPages.map((page, index) => {
+            const len = index === newTargetPages.length - 1 ? allTargetJobs.length : page.data.length;
+            return { ...page, data: allTargetJobs.splice(0, len) };
+        });
+
+        qc.setQueryData(['jobs', 'column', targetStatusId], {
+            ...targetData,
+            pages: finalTargetPages
+        });
     }
 
     const handleDragEnd = (event) => {
         setActiveJob(null)
         const { active, over } = event
 
-        if (!over) return
+        if (!over) {
+            qc.invalidateQueries({ queryKey: ['jobs', 'column'] })
+            return
+        }
 
         const activeId = active.id
         const overId = over.id
@@ -301,32 +346,72 @@ export default function KanbanPage() {
 
         if (!job) return
 
-        // Check if dropped over a column or another job card
         let targetStatusId = null
-
         if (over.data.current?.type === 'Column') {
-            targetStatusId = overId // overId is status.id
+            targetStatusId = overId 
         } else if (over.data.current?.type === 'Job') {
             targetStatusId = over.data.current.job.jobStatusId
         }
 
-        // Only update if the status actually changed
-        // Use String() for safe comparison of numeric IDs vs potentially null/unassigned
-        const currentJobStatusId = job.jobStatusId === null ? 'unassigned' : job.jobStatusId;
+        if (targetStatusId !== null) {
+            const columnData = qc.getQueryData(['jobs', 'column', targetStatusId])
+            if (columnData) {
+                let allJobs = columnData.pages.flatMap(p => p.data)
+                
+                const oldIndex = allJobs.findIndex(j => j.id === activeId)
+                let newIndex = allJobs.findIndex(j => j.id === overId)
+                
+                if (newIndex === -1) {
+                    newIndex = over.data.current?.type === 'Column' ? allJobs.length : oldIndex;
+                }
 
-        if (targetStatusId !== null && String(targetStatusId) !== String(currentJobStatusId)) {
-            updateJobStatus.mutate({
-                jobId: activeId,
-                statusId: targetStatusId,
-                oldStatusId: currentJobStatusId
-            })
+                if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                    allJobs = arrayMove(allJobs, oldIndex, newIndex)
+                }
+
+                const newPages = columnData.pages.map(page => {
+                    const len = page.data.length
+                    const pageData = allJobs.splice(0, len)
+                    return { ...page, data: pageData }
+                })
+
+                qc.setQueryData(['jobs', 'column', targetStatusId], {
+                    ...columnData,
+                    pages: newPages
+                })
+
+                const flattenedNewJobs = newPages.flatMap(p => p.data)
+                const payload = flattenedNewJobs.map((j, idx) => ({ id: j.id, order: idx }))
+
+                const isStatusChanged = String(originalStatusId) !== String(targetStatusId)
+
+                if (isStatusChanged) {
+                    api.patch(`/jobs/${activeId}/status`, { jobStatusId: targetStatusId })
+                    .then(() => {
+                        toast.success('İş durumu güncellendi.', { position: 'bottom-center' })
+                        if (payload.length > 1) {
+                            updateJobReorder.mutate(payload)
+                        } else {
+                            qc.invalidateQueries({ queryKey: ['jobs', 'column'] })
+                        }
+                    })
+                    .catch(() => {
+                        toast.error('Durum güncellenemedi.')
+                        qc.invalidateQueries({ queryKey: ['jobs', 'column'] })
+                    })
+                } else if (oldIndex !== newIndex) {
+                    updateJobReorder.mutate(payload)
+                }
+            }
+        } else {
+            qc.invalidateQueries({ queryKey: ['jobs', 'column'] })
         }
     }
 
     if (statusesLoading) return <div className="flex items-center justify-center min-h-[60vh] text-gray-400">Yükleniyor...</div>
 
     return (
-        <div className="h-[calc(100vh-140px)] flex flex-col overflow-hidden">
+        <div className="h-[calc(100vh-140px)] flex flex-col overflow-hidden select-none">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-6 flex-shrink-0">
                 <div>
@@ -356,6 +441,7 @@ export default function KanbanPage() {
                     sensors={sensors}
                     collisionDetection={rectIntersection} // Using rectIntersection for better target accuracy
                     onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
                     onDragEnd={handleDragEnd}
                 >
                     <div className="inline-flex gap-6 h-full min-w-full pb-2">
@@ -368,14 +454,6 @@ export default function KanbanPage() {
                                 onToggle={toggleColumn}
                             />
                         ))}
-
-                        {/* Fallback column for unassigned jobs if they exist */}
-                        <KanbanColumn
-                            status={{ id: 'unassigned', name: 'Tanımsız', color: '#94a3b8' }}
-                            onOpenDetail={setSelectedJobId}
-                            isCollapsed={collapsedColumns.includes('unassigned')}
-                            onToggle={toggleColumn}
-                        />
 
                         {/* Add Another List (Redirect to Settings) */}
                         <Link
@@ -406,8 +484,8 @@ export default function KanbanPage() {
                         }),
                     }}>
                         {activeJob ? (
-                            <div className="w-80 opacity-90 rotate-2 pointer-events-none">
-                                <SortableJobCard job={activeJob} />
+                            <div className="w-80 group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border-2 border-indigo-500 shadow-2xl transition-all mb-3 rotate-3 cursor-grabbing opacity-90">
+                                <JobCardContent job={activeJob} canMove={true} />
                             </div>
                         ) : null}
                     </DragOverlay>
