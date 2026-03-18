@@ -192,9 +192,12 @@ Route::prefix('admin')->group(function () {
         });
 
         Route::prefix('settings')->group(function () {
-             Route::get('/', [\App\Http\Controllers\Admin\TenantController::class, 'getSettings']);
-             Route::put('/', [\App\Http\Controllers\Admin\TenantController::class, 'updateSettings']);
-             Route::post('/test', [\App\Http\Controllers\Admin\TenantController::class, 'testS3Connection']);
+             Route::get('/', [\App\Http\Controllers\Admin\S3ConfigController::class, 'index']);
+             Route::post('/', [\App\Http\Controllers\Admin\S3ConfigController::class, 'store']);
+             Route::get('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'show']);
+             Route::put('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'update']);
+             Route::delete('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'destroy']);
+             Route::post('/test', [\App\Http\Controllers\Admin\S3ConfigController::class, 'testConnection']);
         });
     });
 });

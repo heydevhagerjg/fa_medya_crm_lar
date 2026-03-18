@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tenant;
+use App\Models\S3Config;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
@@ -103,10 +104,17 @@ class TenantController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
+        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+
+        if (!$s3Config) {
+            return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+        }
+
         $tenant = Tenant::create([
             'id' => Str::uuid()->toString(),
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']) . '-' . rand(1000, 9999),
+            's3_config_id' => $s3Config->id,
         ]);
 
         return response()->json($tenant, 201);

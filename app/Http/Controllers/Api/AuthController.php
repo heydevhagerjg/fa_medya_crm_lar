@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\S3Config;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,11 @@ class AuthController extends Controller
             'tenant_name' => 'required|string|max:255',
         ]);
 
+        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        if (!$s3Config) {
+            return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+        }
+
         // Create tenant
         $tenantId = Str::uuid()->toString();
         $slug = Str::slug($validated['tenant_name']) . '-' . Str::random(6);
@@ -30,6 +36,7 @@ class AuthController extends Controller
             'id'   => $tenantId,
             'name' => $validated['tenant_name'],
             'slug' => $slug,
+            's3_config_id' => $s3Config->id,
         ]);
 
         // Create default cash register for tenant

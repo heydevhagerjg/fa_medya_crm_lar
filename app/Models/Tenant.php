@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tenant extends Model
 {
     protected $fillable = [
-        'id', 'name', 'slug', 'storage_used', 'logo'
+        'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id'
     ];
 
     public $incrementing = false;
     protected $keyType = 'string';
+
+    public function s3Config()
+    {
+        return $this->belongsTo(S3Config::class, 's3_config_id');
+    }
 
     public function users(): HasMany
     {

@@ -26,28 +26,33 @@ class ExpenseController extends Controller
             return true;
         }
 
-        $admin = Admin::first();
-        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
+        $tenant = request()->user()->tenant ?? null;
+        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
+            return false;
+        }
+        $config = $tenant->s3Config;
+
+        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
             return false;
         }
 
-        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
+        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
 
-        Storage::forgetDisk('s3_global');
+        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
 
-        Config::set('filesystems.disks.s3_global', [
+        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => trim($admin->aws_access_key_id),
-            'secret' => trim($admin->aws_secret_access_key),
+            'key'    => trim($config->aws_access_key_id),
+            'secret' => trim($config->aws_secret_access_key),
             'region' => $region,
-            'bucket' => trim($admin->aws_bucket_name),
+            'bucket' => trim($config->aws_bucket_name),
             'use_path_style_endpoint' => false,
             'url_encode_filenames' => true,
             'throw'  => true,
             'version' => 'latest'
         ]);
 
-        self::$globalS3Disk = true;
+        self::$globalS3Disk = 's3_global';
         return true;
     }
 
