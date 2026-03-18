@@ -25,6 +25,7 @@ import ServiceTrackingPage from './pages/ServiceTrackingPage.jsx'
 import ProposalsPage from './pages/ProposalsPage.jsx'
 import PublicProposalPage from './pages/PublicProposalPage.jsx'
 import AdminTenantsPage from './pages/admin/dashboard/TenantsPage.jsx'
+import AdminSettingsPage from './pages/admin/dashboard/SettingsPage.jsx'
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated } = useAuthStore()
@@ -88,6 +89,7 @@ export default function App() {
             <Route element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                 <Route path="/admin/dashboard" element={<AdminTenantsPage />} />
                 <Route path="/admin/tenants" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

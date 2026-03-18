@@ -58,7 +58,7 @@ export default function FilesPage() {
     const handleDownloadSingle = async (file) => {
         const toastId = toast.loading('İndiriliyor...')
         try {
-            const response = await api.get(`/files/proxy?fileId=${file.id}`, { responseType: 'blob' })
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const a = document.createElement('a')
             a.href = url
@@ -96,7 +96,7 @@ export default function FilesPage() {
 
             const promises = filesToDownload.map(async (file) => {
                 try {
-                    const response = await api.get(`/files/proxy?fileId=${file.id}`, { responseType: 'blob' })
+                const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
                     if (!response.data) throw new Error('Ağ hatası')
                     zip.file(file.fileName, response.data)
                 } catch (err) {

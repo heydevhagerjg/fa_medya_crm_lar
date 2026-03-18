@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Payments
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::get('/payments/{id}/receipt', [PaymentController::class, 'receipt']);
     Route::put('/payments/{id}', [PaymentController::class, 'update']);
     Route::delete('/payments/{id}', [PaymentController::class, 'destroy']);
 
@@ -87,8 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Files
     Route::get('/files', [JobFileController::class, 'index']);
-    Route::get('/files/download', [JobFileController::class, 'download']);
-    Route::get('/files/proxy', [JobFileController::class, 'proxyDownload']);
+    Route::get('/files/{id}/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
     Route::post('/jobs/{id}/files', [JobFileController::class, 'store']);
@@ -188,6 +188,12 @@ Route::prefix('admin')->group(function () {
             Route::get('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'show']);
             Route::post('/{id}/users', [\App\Http\Controllers\Admin\TenantController::class, 'addUser']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
+        });
+
+        Route::prefix('settings')->group(function () {
+             Route::get('/', [\App\Http\Controllers\Admin\TenantController::class, 'getSettings']);
+             Route::put('/', [\App\Http\Controllers\Admin\TenantController::class, 'updateSettings']);
+             Route::post('/test', [\App\Http\Controllers\Admin\TenantController::class, 'testS3Connection']);
         });
     });
 });

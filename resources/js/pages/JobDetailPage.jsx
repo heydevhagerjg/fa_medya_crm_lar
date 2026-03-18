@@ -289,7 +289,7 @@ export default function JobDetailPage() {
     const handleDownload = async (file) => {
         const toastId = toast.loading('İndiriliyor...')
         try {
-            const response = await api.get(`/files/proxy?fileId=${file.id}`, { responseType: 'blob' })
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const a = document.createElement('a')
             a.href = url
@@ -331,6 +331,29 @@ export default function JobDetailPage() {
         },
         onError: (err) => toast.error(err.response?.data?.message || 'İş güncellenemedi.'),
     })
+
+    const handleDownloadReceipt = async (payment) => {
+        const toastId = toast.loading('Dekont indiriliyor...')
+        try {
+            const response = await api.get(`/payments/${payment.id}/receipt`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            const contentType = response.headers['content-type']
+            let ext = 'jpg'
+            if (contentType === 'application/pdf') ext = 'pdf'
+            else if (contentType === 'image/png') ext = 'png'
+            a.download = `dekont-${payment.id}.${ext}`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dekont indirilemedi.', { id: toastId })
+        }
+    }
 
     const openEditModal = () => {
         setEditForm({
@@ -389,7 +412,12 @@ export default function JobDetailPage() {
     const files = job.jobfile || []
 
     const financialTransactions = [
-        ...payments.map(p => ({ ...p, _type: 'PAYMENT', _date: new Date(p.paymentDate || p.payment_date).getTime() })),
+        ...payments.map(p => ({ 
+            ...p, 
+            _type: 'PAYMENT', 
+            _date: new Date(p.paymentDate || p.payment_date).getTime(),
+            receiptUrl: (p.receipt_path || p.receiptUrl) ? `/api/payments/${p.id}/receipt` : null
+        })),
         ...expenses.map(e => ({ ...e, _type: 'EXPENSE', _date: new Date(e.date).getTime() }))
     ].sort((a, b) => b._date - a._date)
 
@@ -613,9 +641,9 @@ export default function JobDetailPage() {
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {(t._type === 'PAYMENT' && t.receiptUrl) && (
-                                            <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu Görüntüle">
+                                            <button onClick={() => handleDownloadReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu İndir">
                                                 <FileText size={14} />
-                                            </a>
+                                            </button>
                                         )}
                                         {(t._type === 'PAYMENT' ? hasPermission('payments.edit') : hasPermission('expenses.edit')) && (
                                             <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
@@ -653,10 +681,10 @@ export default function JobDetailPage() {
                         </div>
                     )}
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Link to={`/files/folder/${job.id}`} className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <File size={18} className="text-blue-500" />
                             Dosyalar ({files.length})
-                        </h2>
+                        </Link>
                         <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors relative z-20" onClick={e => e.stopPropagation()}>
                             <Upload size={14} /> Yükle
                             <input type="file" multiple className="hidden" onChange={e => {

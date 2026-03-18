@@ -6,42 +6,51 @@ use App\Http\Controllers\Controller;
 use App\Models\JobFile;
 use App\Models\JobCrm;
 use App\Models\Tenant;
+use App\Models\Admin;
 use App\Services\ActivityLogService;
 use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Config;
 
 class JobFileController extends Controller
 {
     use HasTenantCache;
 
-    /**
-     * Set S3 configuration dynamically for the current tenant
-     */
-// ... existing setS3Config ...
-    private function setS3Config($tenant)
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
     {
-        if (!$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $admin = Admin::first();
+        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
             return false;
         }
 
-        $region = $tenant->aws_region ?? 'eu-central-1';
+        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
 
-        Config::set('filesystems.disks.s3_tenant', [
+        Storage::forgetDisk('s3_global');
+
+        Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
+            'key'    => trim($admin->aws_access_key_id),
+            'secret' => trim($admin->aws_secret_access_key),
             'region' => $region,
-            'bucket' => $tenant->aws_bucket_name,
-            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'bucket' => trim($admin->aws_bucket_name),
             'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
             'throw'  => true,
+            'version' => 'latest'
         ]);
 
+        self::$globalS3Disk = true;
         return true;
     }
 
@@ -57,11 +66,7 @@ class JobFileController extends Controller
             $tenantId = $user->tenant_id;
 
             $query = JobCrm::where('tenant_id', $tenantId);
-            if ($user->role !== 'ADMIN') {
-                if (!$user->can('files.view_all')) {
-                    $query->where('user_id', $user->id);
-                }
-            }
+            // All users in the tenant can view files as per JobsPage rules
 
             return $query->with(['customer', 'jobFiles'])
                 ->get()
@@ -72,7 +77,7 @@ class JobFileController extends Controller
                     'jobfile'  => $j->jobFiles->map(fn($f) => [
                         'id'         => $f->id,
                         'fileName'   => $f->file_name,
-                        'filePath'   => $f->file_path,
+                        'filePath'   => "/api/files/{$f->id}/download",
                         'fileType'   => $f->file_type,
                         'fileSize'   => $f->file_size,
                         'uploadedAt' => $f->uploaded_at,
@@ -115,25 +120,22 @@ class JobFileController extends Controller
         $fileName = $file->getClientOriginalName();
         $path = "tenants/{$tenant->id}/jobs/{$job->id}/" . Str::uuid() . '_' . $fileName;
 
-        if ($this->setS3Config($tenant)) {
+        if ($this->setGlobalS3Config()) {
             try {
-                // Manually trigger a refresh of the storage manager if needed, 
-                // though configured dynamically it should work.
-                $s3Disk = Storage::disk('s3_tenant');
+                $s3Disk = Storage::disk('s3_global');
                 $stream = fopen($file->getRealPath(), 'r+');
                 $s3Disk->put($path, $stream);
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
-                $url = $s3Disk->url($path);
+                // Store RELATIVE path instead of URL
+                $url = $path;
             } catch (\Exception $e) {
-                \Log::error("Tenant S3 Upload Error: " . $e->getMessage());
+                \Log::error("Global S3 Upload Error: " . $e->getMessage());
                 return response()->json(['message' => 'S3 Yükleme hatası: ' . $e->getMessage()], 500);
             }
         } else {
-            // Fallback to local storage if S3 not configured
-            Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
-            $url = Storage::disk('public')->url($path);
+             return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
 
         // Update used storage
@@ -156,7 +158,7 @@ class JobFileController extends Controller
         return response()->json([
             'id'         => $jobFile->id,
             'fileName'   => $jobFile->file_name,
-            'filePath'   => $jobFile->file_path,
+            'filePath'   => "/api/files/{$jobFile->id}/download",
             'fileType'   => $jobFile->file_type,
             'fileSize'   => $jobFile->file_size,
             'uploadedAt' => $jobFile->uploaded_at,
@@ -191,23 +193,16 @@ class JobFileController extends Controller
 
         $job = $jobFile->job;
 
-        if ($this->setS3Config($tenant)) {
-            // Extract path from URL to delete from S3
-            // Format: https://bucket.s3.region.amazonaws.com/path
-            $urlPrefix = "https://{$tenant->aws_bucket_name}.s3.{$tenant->aws_region}.amazonaws.com/";
+        if ($this->setGlobalS3Config()) {
+            $admin = Admin::first();
+            $urlPrefix = "https://{$admin->aws_bucket_name}.s3.{$admin->aws_region}.amazonaws.com/";
             if (Str::startsWith($jobFile->file_path, $urlPrefix)) {
                 $path = Str::after($jobFile->file_path, $urlPrefix);
                 try {
-                    Storage::disk('s3_tenant')->delete($path);
+                    Storage::disk('s3_global')->delete($path);
                 } catch (\Exception $e) {
-                    \Log::error("S3 Delete failed: " . $e->getMessage());
+                    \Log::error("Global S3 Delete failed: " . $e->getMessage());
                 }
-            }
-        } else {
-            // Try deleting from public disk if it's there
-            $path = Str::after($jobFile->file_path, '/storage/');
-            if ($path != $jobFile->file_path) {
-                Storage::disk('public')->delete($path);
             }
         }
 
@@ -227,83 +222,39 @@ class JobFileController extends Controller
     /**
      * Helper to download or redirect to S3 URL
      */
-    public function download(Request $request)
+    public function download(Request $request, $id = null)
     {
-        $fileId = $request->input('fileId') ?? $request->query('fileId');
+        $fileId = $id ?? $request->input('fileId') ?? $request->query('fileId');
         if (!$fileId) return response()->json(['message' => 'Dosya id bulunamadı'], 400);
 
         $user = $request->user();
         $tenantId = $user->tenant_id;
-
-        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId, $user) {
+        
+        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
             $q->where('tenant_id', $tenantId);
-            if ($user->role !== 'ADMIN') {
-                if (!$user->can('files.view_all')) {
-                    $q->where('user_id', $user->id);
-                }
-            }
         })->findOrFail($fileId);
 
-        // Simple redirect to the stored full URL (S3 or local)
-        return redirect($jobFile->file_path);
+        if (!$this->setGlobalS3Config()) {
+            abort(400, 'S3 Configuration missing');
+        }
+
+        $s3 = Storage::disk('s3_global');
+        $path = $jobFile->file_path;
+
+        // If it's a full URL, extract the path
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $parsed = parse_url($path);
+            $path = ltrim($parsed['path'] ?? '', '/');
+            // Decode path because S3 expects raw path, but url might be encoded
+            $path = urldecode($path);
+        }
+
+        if (!$s3->exists($path)) {
+            \Log::warning("File not found on S3: {$path}");
+            abort(404, 'Dosya depolama alanında bulunamadı.');
+        }
+
+        return $s3->response($path, $jobFile->file_name);
     }
 
-    /**
-     * Proxy download to avoid CORS issues for JSZip
-     */
-    public function proxyDownload(Request $request)
-    {
-        $fileId = $request->input('fileId') ?? $request->query('fileId');
-        if (!$fileId) return response()->json(['message' => 'Dosya id bulunamadı'], 400);
-
-        $user = $request->user();
-        $tenantId = $user->tenant_id;
-        $tenant = \App\Models\Tenant::find($tenantId);
-
-        $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId, $user) {
-            $q->where('tenant_id', $tenantId);
-            if ($user->role !== 'ADMIN') {
-                if (!$user->can('files.view_all')) {
-                    $q->where('user_id', $user->id);
-                }
-            }
-        })->findOrFail($fileId);
-
-        // 1. Check if S3
-        if ($this->setS3Config($tenant)) {
-            $urlPrefix = "https://{$tenant->aws_bucket_name}.s3.{$tenant->aws_region}.amazonaws.com/";
-            if (\Illuminate\Support\Str::startsWith($jobFile->file_path, $urlPrefix)) {
-                $path = \Illuminate\Support\Str::after($jobFile->file_path, $urlPrefix);
-                if (\Illuminate\Support\Facades\Storage::disk('s3_tenant')->exists($path)) {
-                    return \Illuminate\Support\Facades\Storage::disk('s3_tenant')->download($path, $jobFile->file_name);
-                }
-            }
-        }
-
-        // 2. Check Local Storage
-        $path = \Illuminate\Support\Str::after($jobFile->file_path, '/storage/');
-        if ($path != $jobFile->file_path) {
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
-                return \Illuminate\Support\Facades\Storage::disk('public')->download($path, $jobFile->file_name);
-            }
-        }
-
-        // 3. Fallback to Http
-        try {
-            $response = \Illuminate\Support\Facades\Http::timeout(30)->withOptions(['verify' => false])->get($jobFile->file_path);
-
-            if ($response->successful()) {
-                return response($response->body(), 200, [
-                    'Content-Type' => $response->header('Content-Type') ?? 'application/octet-stream',
-                    'Content-Length' => $response->header('Content-Length'),
-                    'Content-Disposition' => 'attachment; filename="' . basename($jobFile->file_name) . '"',
-                    'Access-Control-Allow-Origin' => '*',
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error("Proxy fetch error: " . $e->getMessage());
-        }
-
-        return response()->json(['error' => 'Dosya alınamadı.'], 404);
-    }
 }

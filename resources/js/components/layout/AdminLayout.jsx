@@ -5,7 +5,7 @@ import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import {
     Database, LogOut, Menu, X, Sun, Moon,
-    ShieldCheck, User
+    ShieldCheck, User, Settings
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -70,6 +70,20 @@ export default function AdminLayout() {
                     >
                         <Database size={18} />
                         <span>Firmalar (Tenants)</span>
+                    </NavLink>
+                    <NavLink
+                        to="/admin/settings"
+                        onClick={() => setSidebarOpen(false)}
+                        className={({ isActive }) => `
+                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                            ${isActive
+                                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                            }
+                        `}
+                    >
+                        <Settings size={18} />
+                        <span>Sistem Ayarları</span>
                     </NavLink>
                 </nav>
 

@@ -104,6 +104,31 @@ export default function PaymentsPage() {
         setModal({ open: true, payment })
     }
 
+    const handleDownload = async (payment) => {
+        const toastId = toast.loading('Dekont indiriliyor...')
+        try {
+            const response = await api.get(`/payments/${payment.id}/receipt`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            // Try to guess extension from content-type
+            const contentType = response.headers['content-type']
+            let ext = 'jpg'
+            if (contentType === 'application/pdf') ext = 'pdf'
+            else if (contentType === 'image/png') ext = 'png'
+            
+            a.download = `dekont-${payment.id}.${ext}`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dekont indirilemedi. Lütfen oturumunuzu kontrol edin.', { id: toastId })
+        }
+    }
+
     const totalPayments = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const filtered = payments.filter(p => {
         if (!search) return true;
@@ -181,9 +206,9 @@ export default function PaymentsPage() {
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-end gap-2">
                                                 {p.receiptUrl && (
-                                                    <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Dekontu Görüntüle">
+                                                    <button onClick={() => handleDownload(p)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Dekontu İndir">
                                                         <FileText size={16} />
-                                                    </a>
+                                                    </button>
                                                 )}
                                                 <button onClick={() => openModal(p)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
                                                 <button onClick={() => setDeleteConfirm(p)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>

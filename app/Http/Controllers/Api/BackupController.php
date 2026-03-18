@@ -26,6 +26,7 @@ use App\Models\Tenant;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\BackupKey;
+use App\Models\Admin;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
@@ -42,25 +43,36 @@ class BackupController extends Controller
 {
     use HasTenantCache;
 
-    private function setS3Config($tenant)
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
     {
-        if (!$tenant || !$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $admin = Admin::first();
+        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
             return false;
         }
 
-        $region = $tenant->aws_region ?? 'eu-central-1';
+        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
 
-        Config::set('filesystems.disks.s3_tenant', [
+        Storage::forgetDisk('s3_global');
+
+        Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
+            'key'    => trim($admin->aws_access_key_id),
+            'secret' => trim($admin->aws_secret_access_key),
             'region' => $region,
-            'bucket' => $tenant->aws_bucket_name,
-            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'bucket' => trim($admin->aws_bucket_name),
             'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
             'throw'  => true,
+            'version' => 'latest'
         ]);
 
+        self::$globalS3Disk = true;
         return true;
     }
 
@@ -255,12 +267,7 @@ class BackupController extends Controller
                 'service_tracking_logs' => $serviceTrackingLogs,
                 'roles'             => $roles,
             ],
-            'tenant_settings' => [
-                'aws_access_key_id'     => $tenant->aws_access_key_id,
-                'aws_secret_access_key' => $tenant->aws_secret_access_key,
-                'aws_region'            => $tenant->aws_region,
-                'aws_bucket_name'       => $tenant->aws_bucket_name,
-            ],
+            'tenant_settings' => [],
             'exported_from' => 'famedya_crm',
         ];
 
@@ -275,9 +282,9 @@ class BackupController extends Controller
         $jsonContent = json_encode($backup, JSON_UNESCAPED_UNICODE);
         $filename = Str::slug($tenant->name ?? 'yedek', '_') . '_' . now()->timestamp . ".json";
 
-        if ($this->setS3Config($tenant)) {
+        if ($this->setGlobalS3Config()) {
             try {
-                Storage::disk('s3_tenant')->put("backups/{$filename}", $jsonContent);
+                Storage::disk('s3_global')->put("tenants/{$tenantId}/backups/{$filename}", $jsonContent);
                 ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem yedeği AWS S3 üzerine aktarıldı: ' . $filename);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("S3 Backup upload failed: " . $e->getMessage());
@@ -295,22 +302,22 @@ class BackupController extends Controller
     public function listS3Backups(Request $request): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
-        $tenant = Tenant::find($tenantId);
 
-        if (!$this->setS3Config($tenant)) {
-            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        if (!$this->setGlobalS3Config()) {
+            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
 
         try {
-            $files = Storage::disk('s3_tenant')->files('backups');
+            $backupDir = "tenants/{$tenantId}/backups";
+            $files = Storage::disk('s3_global')->files($backupDir);
             $backups = [];
             foreach ($files as $file) {
                 if (Str::endsWith($file, '.json')) {
                     $basename = basename($file);
                     $backups[] = [
                         'name' => $basename,
-                        'size' => Storage::disk('s3_tenant')->size($file),
-                        'last_modified' => Storage::disk('s3_tenant')->lastModified($file),
+                        'size' => Storage::disk('s3_global')->size($file),
+                        'last_modified' => Storage::disk('s3_global')->lastModified($file),
                         'type' => Str::contains($basename, '_auto_') ? 'Otomatik' : 'Manuel',
                     ];
                 }
@@ -336,20 +343,19 @@ class BackupController extends Controller
         }
 
         $tenantId = $request->user()->tenant_id;
-        $tenant = Tenant::find($tenantId);
 
-        if (!$this->setS3Config($tenant)) {
-            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        if (!$this->setGlobalS3Config()) {
+            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
 
         try {
-            $path = "backups/" . basename($filename);
+            $path = "tenants/{$tenantId}/backups/" . basename($filename);
             
-            if (!Storage::disk('s3_tenant')->exists($path)) {
+            if (!Storage::disk('s3_global')->exists($path)) {
                 return response()->json(['message' => 'Yedek dosyası S3 üzerinde bulunamadı.'], 404);
             }
 
-            return Storage::disk('s3_tenant')->download($path);
+            return Storage::disk('s3_global')->download($path);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("S3 Backup Download error: " . $e->getMessage());
             return response()->json(['message' => 'Yedek dosyası indirilirken hata oluştu.'], 500);
@@ -399,15 +405,8 @@ class BackupController extends Controller
         \Illuminate\Database\Eloquent\Model::unguard();
         try {
             DB::transaction(function () use ($data, $tenantId, $settings, $user) {
-                // Restore Tenant Settings (S3, etc.)
-                if (!empty($settings)) {
-                    Tenant::where('id', $tenantId)->update([
-                        'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
-                        'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
-                        'aws_region'            => $settings['aws_region'] ?? null,
-                        'aws_bucket_name'       => $settings['aws_bucket_name'] ?? null,
-                    ]);
-                }
+                // Restore Tenant Settings (S3 no longer restored here)
+
 
                 // Import services & custom fields
                 $serviceIdMap = [];

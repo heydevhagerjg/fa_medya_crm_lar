@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\Tenant;
+use App\Models\Admin;
 use App\Services\ActivityLogService;
 use App\Traits\HasTenantCache;
 use Illuminate\Http\JsonResponse;
@@ -17,25 +18,36 @@ class PaymentController extends Controller
 {
     use HasTenantCache;
 
-    private function setS3Config($tenant)
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
     {
-        if (!$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $admin = Admin::first();
+        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
             return false;
         }
 
-        $region = $tenant->aws_region ?? 'eu-central-1';
+        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
 
-        Config::set('filesystems.disks.s3_tenant', [
+        Storage::forgetDisk('s3_global');
+
+        Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
+            'key'    => trim($admin->aws_access_key_id),
+            'secret' => trim($admin->aws_secret_access_key),
             'region' => $region,
-            'bucket' => $tenant->aws_bucket_name,
-            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'bucket' => trim($admin->aws_bucket_name),
             'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
             'throw'  => true,
+            'version' => 'latest'
         ]);
 
+        self::$globalS3Disk = true;
         return true;
     }
 
@@ -97,9 +109,10 @@ class PaymentController extends Controller
 
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
-            $tenant = Tenant::find($tenantId);
-            $disk = $this->setS3Config($tenant) ? 's3_tenant' : 's3';
-            $receiptPath = $request->file('receipt')->store('receipts/' . $tenantId, $disk);
+            if (!$this->setGlobalS3Config()) {
+                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
+            }
+            $receiptPath = $request->file('receipt')->store('tenants/' . $tenantId . '/receipts', 's3_global');
         }
 
         $payment = Payment::create([
@@ -154,12 +167,13 @@ class PaymentController extends Controller
 
         $receiptPath = $payment->receipt_path;
         if ($request->hasFile('receipt')) {
-            $tenant = Tenant::find($tenantId);
-            $disk = $this->setS3Config($tenant) ? 's3_tenant' : 's3';
-            if ($receiptPath) {
-                Storage::disk($disk)->delete($receiptPath);
+            if (!$this->setGlobalS3Config()) {
+                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
             }
-            $receiptPath = $request->file('receipt')->store('receipts/' . $tenantId, $disk);
+            if ($receiptPath) {
+                Storage::disk('s3_global')->delete($receiptPath);
+            }
+            $receiptPath = $request->file('receipt')->store('tenants/' . $tenantId . '/receipts', 's3_global');
         }
 
         $payment->update([
@@ -188,13 +202,37 @@ class PaymentController extends Controller
     {
         $data = $payment instanceof Payment ? $payment->toArray() : $payment;
         if (!empty($data['receipt_path'])) {
-            $tenant = Tenant::find($data['tenant_id']);
-            $disk = $this->setS3Config($tenant) ? 's3_tenant' : 's3';
-            $data['receiptUrl'] = Storage::disk($disk)->temporaryUrl($data['receipt_path'], now()->addMinutes(60));
+            // Use a local proxy URL instead of a direct S3 URL
+            $data['receiptUrl'] = "/api/payments/" . $data['id'] . "/receipt";
         } else {
             $data['receiptUrl'] = null;
         }
         return $data;
+    }
+
+    public function receipt(Request $request, int $id)
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $query = Payment::where('tenant_id', $tenantId);
+        // All users in the tenant can view receipts as per business requirements
+        $payment = $query->findOrFail($id);
+
+        if (!$payment->receipt_path) {
+            abort(404);
+        }
+
+        if (!$this->setGlobalS3Config()) {
+            abort(400, 'S3 Configuration missing');
+        }
+
+        $s3 = Storage::disk('s3_global');
+        if (!$s3->exists($payment->receipt_path)) {
+            abort(404);
+        }
+
+        return $s3->response($payment->receipt_path);
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -221,9 +259,9 @@ class PaymentController extends Controller
             "{$jobTitle} işindeki {$payment->amount} TL'lik ödeme silindi.");
 
         if ($payment->receipt_path) {
-            $tenant = Tenant::find($tenantId);
-            $disk = $this->setS3Config($tenant) ? 's3_tenant' : 's3';
-            Storage::disk($disk)->delete($payment->receipt_path);
+            if ($this->setGlobalS3Config()) {
+                Storage::disk('s3_global')->delete($payment->receipt_path);
+            }
         }
 
         $payment->delete();

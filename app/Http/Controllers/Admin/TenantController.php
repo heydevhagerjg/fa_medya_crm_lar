@@ -6,9 +6,91 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tenant;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 
 class TenantController extends Controller
 {
+    public function getSettings(Request $request)
+    {
+        $admin = $request->user();
+        return response()->json([
+            'aws_access_key_id'     => $admin->aws_access_key_id,
+            'aws_secret_access_key' => $admin->aws_secret_access_key,
+            'aws_region'            => $admin->aws_region,
+            'aws_bucket_name'       => $admin->aws_bucket_name,
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $admin = $request->user();
+        $validated = $request->validate([
+            'aws_access_key_id'     => 'nullable|string|max:255',
+            'aws_secret_access_key' => 'nullable|string|max:255',
+            'aws_region'            => 'nullable|string|max:255',
+            'aws_bucket_name'       => 'nullable|string|max:255',
+        ]);
+
+        $admin->update($validated);
+        return response()->json(['message' => 'S3 Ayarları güncellendi.']);
+    }
+
+    public function testS3Connection(Request $request)
+    {
+        $validated = $request->validate([
+            'aws_access_key_id'     => 'required|string',
+            'aws_secret_access_key' => 'required|string',
+            'aws_region'            => 'required|string',
+            'aws_bucket_name'       => 'required|string',
+        ]);
+
+        try {
+            // Trim inputs and lowercase region to be safe
+            $key = trim($validated['aws_access_key_id']);
+            $secret = trim($validated['aws_secret_access_key']);
+            $region = strtolower(trim($validated['aws_region']));
+            $bucket = trim($validated['aws_bucket_name']);
+
+            // Build temporary disk directly
+            $disk = Storage::build([
+                'driver' => 's3',
+                'key'    => $key,
+                'secret' => $secret,
+                'region' => $region,
+                'bucket' => $bucket,
+                'use_path_style_endpoint' => false,
+                'throw'  => true,
+                'version' => 'latest'
+            ]);
+            
+            // 1. Test List Permission
+            $disk->files();
+
+            // 2. Test Write/Delete Permission
+            $testPath = 'admin_connection_test_' . Str::random(8) . '.txt';
+            $disk->put($testPath, 'CRM Admin S3 Test');
+            $disk->delete($testPath);
+
+            return response()->json(['success' => true, 'message' => 'Bağlantı başarılı!']);
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            
+            if (str_contains($message, 'SignatureDoesNotMatch')) {
+                $message = "İmza hatası (SignatureDoesNotMatch). Lütfen Secret Access Key ve Bölge (Region) bilgilerini kontrol edin. Key kopyalanırken başta veya sonda boşluk kalmış olabilir.";
+            } elseif (str_contains($message, '403 Forbidden')) {
+                $message = "Erişim reddedildi (403). IAM yetkilerini kontrol edin (ListObjects, PutObject, DeleteObject).";
+            } elseif (str_contains($message, 'Could not resolve host')) {
+                $message = "Bucket veya Bölge hatalı (Host çözülemedi).";
+            }
+
+            return response()->json([
+                'success' => false, 
+                'message' => 'Hata: ' . $message
+            ], 400);
+        }
+    }
     public function index()
     {
         $tenants = Tenant::withCount('users')->get();
@@ -53,7 +135,7 @@ class TenantController extends Controller
             'id' => Str::uuid()->toString(),
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
+            'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'is_approved' => true,
             'tenant_id' => $tenant->id,

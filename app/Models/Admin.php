@@ -16,6 +16,7 @@ class Admin extends Authenticatable
 
     protected $fillable = [
         'id', 'name', 'email', 'password',
+        'aws_access_key_id', 'aws_secret_access_key', 'aws_region', 'aws_bucket_name',
     ];
 
     protected $hidden = [

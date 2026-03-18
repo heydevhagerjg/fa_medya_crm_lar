@@ -36,7 +36,6 @@ export default function SettingsPage() {
         { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen, permission: 'settings.view' },
 
         // Tech / System
-        { path: '/settings/s3', label: 'S3 Ayarları', icon: Cloud, permission: 'settings.manage' },
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key, permission: 'settings.manage' },
         { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock, permission: 'settings.manage' },
     ]
@@ -80,7 +79,13 @@ export default function SettingsPage() {
                 <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
                 <Route path="appointment-titles" element={<AppointmentTitlesTab />} />
                 <Route path="api-keys" element={<ApiKeysTab />} />
-                <Route path="s3" element={<S3Tab />} />
+                <Route path="s3" element={<div className="p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                    <Cloud size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Depolama Ayarları Taşındı</h3>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                        Sistem depolama ayarları artık merkezi olarak yönetilmektedir. Kişisel S3 ayarlarınızı yapmanıza gerek yoktur.
+                    </p>
+                </div>} />
                 <Route path="import-keys" element={<BackupKeysTab />} />
                 <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
             </Routes>
