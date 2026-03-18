@@ -131,7 +131,7 @@ class JobFileController extends Controller
                 // Store RELATIVE path instead of URL
                 $url = $path;
             } catch (\Exception $e) {
-                \Log::error("Global S3 Upload Error: " . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error("Global S3 Upload Error: " . $e->getMessage());
                 return response()->json(['message' => 'S3 Yükleme hatası: ' . $e->getMessage()], 500);
             }
         } else {

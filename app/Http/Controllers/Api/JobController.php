@@ -14,10 +14,46 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Config;
+use App\Models\Admin;
 
 class JobController extends Controller
 {
     use HasTenantCache;
+
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
+    {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $admin = Admin::first();
+        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
+            return false;
+        }
+
+        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
+
+        Storage::forgetDisk('s3_global');
+
+        Config::set('filesystems.disks.s3_global', [
+            'driver' => 's3',
+            'key'    => trim($admin->aws_access_key_id),
+            'secret' => trim($admin->aws_secret_access_key),
+            'region' => $region,
+            'bucket' => trim($admin->aws_bucket_name),
+            'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
+            'throw'  => true,
+            'version' => 'latest'
+        ]);
+
+        self::$globalS3Disk = true;
+        return true;
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -385,10 +421,24 @@ class JobController extends Controller
             return response()->json(['message' => 'Bu işlem için yetkiniz yok.'], 403);
         }
 
-        $job = $query->findOrFail($id);
+        $job = $query->with('payments')->findOrFail($id);
 
         ActivityLogService::log($request->user(), 'DELETE', 'JOB', $job->id, $job->title,
             "{$job->title} işi sistemden silindi.");
+
+        if ($this->setGlobalS3Config()) {
+            $s3 = Storage::disk('s3_global');
+            
+            // İşin dosyalarını içeren klasörü sil
+            $s3->deleteDirectory("tenants/{$tenantId}/jobs/{$job->id}");
+            
+            // İşin ödemelerine ait dekontları sil
+            foreach ($job->payments as $payment) {
+                if ($payment->receipt_path) {
+                    $s3->delete($payment->receipt_path);
+                }
+            }
+        }
 
         $job->delete();
         $this->clearTenantCache('jobs');

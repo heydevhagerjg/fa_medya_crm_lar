@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
 import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar } from 'lucide-react'
+import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar, Eye } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -21,7 +21,7 @@ export default function JobDetailPage() {
 
     const [expenseModal, setExpenseModal] = useState(false)
     const [editingExpense, setEditingExpense] = useState(null)
-    const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+    const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '', receipt: null })
 
     const [selectedTemplate, setSelectedTemplate] = useState('')
 
@@ -37,6 +37,7 @@ export default function JobDetailPage() {
     const [isDragging, setIsDragging] = useState(false)
     const [dragCounter, setDragCounter] = useState(0)
     const [uploadingFiles, setUploadingFiles] = useState([])
+    const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -136,14 +137,29 @@ export default function JobDetailPage() {
 
     const saveExpense = useMutation({
         mutationFn: () => {
-            if (editingExpense) return api.put(`/expenses/${editingExpense}`, { ...expenseForm, jobId: parseInt(id) })
-            return api.post('/expenses', { ...expenseForm, jobId: parseInt(id) })
+            const formData = new FormData();
+            Object.keys(expenseForm).forEach(key => {
+                if (expenseForm[key] !== null && expenseForm[key] !== undefined) {
+                    formData.append(key, expenseForm[key]);
+                }
+            });
+            formData.append('jobId', parseInt(id));
+
+            if (editingExpense) {
+                formData.append('_method', 'PUT');
+                return api.post(`/expenses/${editingExpense}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            return api.post('/expenses', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
         },
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success(editingExpense ? 'Masraf güncellendi.' : 'Masraf eklendi.')
             setExpenseModal(false)
-            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '', receipt: null })
             setEditingExpense(null)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -201,7 +217,8 @@ export default function JobDetailPage() {
                 date: (e.date || '').toString().substring(0, 10),
                 description: e.description || '',
                 categoryId: e.categoryId || e.category_id || '',
-                cashRegisterId: e.cashRegisterId || e.cash_register_id || ''
+                cashRegisterId: e.cashRegisterId || e.cash_register_id || '',
+                receipt: null
             })
             setEditingExpense(e.id)
         } else {
@@ -212,7 +229,8 @@ export default function JobDetailPage() {
                 date: new Date().toISOString().substring(0, 10),
                 description: '',
                 categoryId: '',
-                cashRegisterId: defaultCash ? defaultCash.id : ''
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+                receipt: null
             })
             setEditingExpense(null)
         }
@@ -332,10 +350,57 @@ export default function JobDetailPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'İş güncellenemedi.'),
     })
 
-    const handleDownloadReceipt = async (payment) => {
+    const handlePreviewReceipt = async (transaction) => {
+        const toastId = toast.loading('Dekont yükleniyor...')
+        try {
+            const endpoint = transaction._type === 'PAYMENT' ? 'payments' : 'expenses';
+            const response = await api.get(`/${endpoint}/${transaction.id}/receipt`, { responseType: 'blob' })
+            const contentType = response.headers['content-type']
+            const blob = new Blob([response.data], { type: contentType })
+            const url = window.URL.createObjectURL(blob)
+            
+            let ext = 'jpg'
+            if (contentType === 'application/pdf') ext = 'pdf'
+            else if (contentType === 'image/png') ext = 'png'
+            
+            setPreview({
+                open: true,
+                url,
+                type: contentType,
+                fileName: `dekont-${transaction.id}.${ext}`,
+                transactionData: transaction
+            })
+            toast.dismiss(toastId)
+        } catch (error) {
+            console.error('Preview error:', error)
+            toast.error('Dekont yüklenemedi.', { id: toastId })
+        }
+    }
+
+    const handleDownloadReceipt = async (transaction = null) => {
+        // If we have a preview open, download that URL
+        if (preview.open && preview.url) {
+            const a = document.createElement('a')
+            a.href = preview.url
+            a.download = preview.fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            return;
+        }
+
+        if (!transaction) {
+            if (preview.open && preview.transactionData) {
+                transaction = preview.transactionData;
+            } else {
+                return;
+            }
+        }
+
         const toastId = toast.loading('Dekont indiriliyor...')
         try {
-            const response = await api.get(`/payments/${payment.id}/receipt`, { responseType: 'blob' })
+            const endpoint = transaction._type === 'PAYMENT' ? 'payments' : 'expenses';
+            const response = await api.get(`/${endpoint}/${transaction.id}/receipt`, { responseType: 'blob' })
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const a = document.createElement('a')
             a.href = url
@@ -343,7 +408,7 @@ export default function JobDetailPage() {
             let ext = 'jpg'
             if (contentType === 'application/pdf') ext = 'pdf'
             else if (contentType === 'image/png') ext = 'png'
-            a.download = `dekont-${payment.id}.${ext}`
+            a.download = `dekont-${transaction.id}.${ext}`
             document.body.appendChild(a)
             a.click()
             a.remove()
@@ -418,7 +483,12 @@ export default function JobDetailPage() {
             _date: new Date(p.paymentDate || p.payment_date).getTime(),
             receiptUrl: (p.receipt_path || p.receiptUrl) ? `/api/payments/${p.id}/receipt` : null
         })),
-        ...expenses.map(e => ({ ...e, _type: 'EXPENSE', _date: new Date(e.date).getTime() }))
+        ...expenses.map(e => ({ 
+            ...e, 
+            _type: 'EXPENSE', 
+            _date: new Date(e.date).getTime(),
+            receiptUrl: (e.receipt_path || e.receiptUrl) ? `/api/expenses/${e.id}/receipt` : null
+        }))
     ].sort((a, b) => b._date - a._date)
 
     const installments = job.installments || []
@@ -640,10 +710,15 @@ export default function JobDetailPage() {
                                         {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {(t._type === 'PAYMENT' && t.receiptUrl) && (
-                                            <button onClick={() => handleDownloadReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu İndir">
-                                                <FileText size={14} />
-                                            </button>
+                                        {t.receiptUrl && (
+                                            <>
+                                                <button onClick={() => handlePreviewReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors relative z-20" title="Dekontu Önizle">
+                                                    <Eye size={14} />
+                                                </button>
+                                                <button onClick={() => handleDownloadReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu İndir">
+                                                    <FileText size={14} />
+                                                </button>
+                                            </>
                                         )}
                                         {(t._type === 'PAYMENT' ? hasPermission('payments.edit') : hasPermission('expenses.edit')) && (
                                             <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
@@ -862,6 +937,10 @@ export default function JobDetailPage() {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                         <input type="text" value={expenseForm.description} onChange={e => setExpenseForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dekont (Opsiyonel)</label>
+                        <input type="file" onChange={e => setExpenseForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setExpenseModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveExpense.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
@@ -983,6 +1062,37 @@ export default function JobDetailPage() {
                     </div>
                 </>
             )}
+            {/* Receipt Preview Modal */}
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dekont Önizleme" size="xl">
+                <div className="flex flex-col h-[70vh]">
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
+                        {preview.type?.includes('pdf') ? (
+                            <iframe src={preview.url} className="w-full h-full border-none" title="PDF Preview" />
+                        ) : preview.type?.includes('image') ? (
+                            <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Receipt Preview" />
+                        ) : (
+                            <div className="text-center p-12">
+                                <FileText size={48} className="mx-auto text-gray-400 mb-4" />
+                                <p className="text-gray-500">Bu dosya önizlenemiyor.</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-between items-center mt-6">
+                        <button 
+                            onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} 
+                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Kapat
+                        </button>
+                        <button 
+                            onClick={() => handleDownloadReceipt()} 
+                            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                        >
+                            <Download size={18} /> İndir
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }

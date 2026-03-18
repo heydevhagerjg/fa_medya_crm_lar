@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/expenses', [ExpenseController::class, 'store']);
     Route::put('/expenses/{id}', [ExpenseController::class, 'update']);
     Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy']);
+    Route::get('/expenses/{id}/receipt', [ExpenseController::class, 'receipt']);
 
     // Job Steps
     Route::patch('/steps/{id}', [JobStepController::class, 'update']);
