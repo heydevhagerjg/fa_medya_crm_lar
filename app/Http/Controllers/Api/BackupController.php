@@ -27,6 +27,10 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\BackupKey;
 use App\Models\Admin;
+use App\Models\Proposal;
+use App\Models\ProposalItem;
+use App\Models\ProposalInstallment;
+use App\Models\ProposalRevisionRequest;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
@@ -142,6 +146,11 @@ class BackupController extends Controller
                 'startDate'        => $j->start_date,
                 'endDate'          => $j->end_date,
                 'totalPrice'       => $j->total_price,
+                'subtotal'         => $j->subtotal,
+                'vat'              => $j->is_vat_included,
+                'vatAmount'        => $j->vat_amount,
+                'proposalId'       => $j->proposal_id,
+                'order'            => $j->order,
                 'createdAt'        => $j->created_at,
                 'updatedAt'        => $j->updated_at,
                 'jobdetail'        => $j->jobDetail ? [
@@ -150,13 +159,41 @@ class BackupController extends Controller
                 ] : null,
                 'jobfile'          => $j->jobFiles->map(fn($f) => ['id' => $f->id, 'jobId' => $f->job_id, 'fileName' => $f->file_name, 'filePath' => $f->file_path, 'fileType' => $f->file_type, 'fileSize' => $f->file_size, 'uploadedAt' => $f->uploaded_at]),
                 'jobstep'          => $j->jobSteps->map(fn($s) => ['id' => $s->id, 'jobId' => $s->job_id, 'title' => $s->title, 'isCompleted' => $s->is_completed, 'order' => $s->order, 'createdAt' => $s->created_at, 'updatedAt' => $s->updated_at]),
-                'payment'          => $j->payments->map(fn($p) => ['id' => $p->id, 'tenantId' => $p->tenant_id, 'jobId' => $p->job_id, 'amount' => $p->amount, 'paymentDate' => $p->payment_date, 'paymentType' => $p->payment_type, 'description' => $p->description, 'cashRegisterId' => $p->cash_register_id, 'createdAt' => $p->created_at, 'updatedAt' => $p->updated_at]),
+                'payment'          => $j->payments->map(fn($p) => ['id' => $p->id, 'tenantId' => $p->tenant_id, 'jobId' => $p->job_id, 'amount' => $p->amount, 'paymentDate' => $p->payment_date, 'paymentType' => $p->payment_type, 'description' => $p->description, 'cashRegisterId' => $p->cash_register_id, 'receiptPath' => $p->receipt_path, 'createdAt' => $p->created_at, 'updatedAt' => $p->updated_at]),
                 'customfieldvalue' => $j->customFieldValues->map(fn($v) => ['id' => $v->id, 'jobId' => $v->job_id, 'customFieldId' => $v->custom_field_id, 'value' => $v->value, 'createdAt' => $v->created_at, 'updatedAt' => $v->updated_at]),
             ]);
 
         $expenses = Expense::where('tenant_id', $tenantId)
             ->get()
-            ->map(fn($e) => ['id' => $e->id, 'tenantId' => $e->tenant_id, 'jobId' => $e->job_id, 'categoryId' => $e->category_id, 'title' => $e->title, 'amount' => $e->amount, 'date' => $e->date, 'description' => $e->description, 'createdAt' => $e->created_at, 'updatedAt' => $e->updated_at, 'cashRegisterId' => $e->cash_register_id]);
+            ->map(fn($e) => ['id' => $e->id, 'tenantId' => $e->tenant_id, 'jobId' => $e->job_id, 'categoryId' => $e->category_id, 'title' => $e->title, 'amount' => $e->amount, 'date' => $e->date, 'description' => $e->description, 'receiptPath' => $e->receipt_path, 'createdAt' => $e->created_at, 'updatedAt' => $e->updated_at, 'cashRegisterId' => $e->cash_register_id]);
+
+        $proposals = Proposal::where('tenant_id', $tenantId)
+            ->with(['items', 'installments', 'revisionRequests'])
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'tenantId' => $p->tenant_id,
+                'customerId' => $p->customer_id,
+                'serviceId' => $p->service_id,
+                'title' => $p->title,
+                'description' => $p->description,
+                'totalPrice' => $p->total_price,
+                'subtotal' => $p->subtotal,
+                'vatAmount' => $p->vat_amount,
+                'isVatIncluded' => $p->is_vat_included,
+                'vatRate' => $p->vat_rate,
+                'status' => $p->status,
+                'notes' => $p->notes,
+                'customerNotes' => $p->customer_notes,
+                'sentAt' => $p->sent_at,
+                'validUntil' => $p->valid_until,
+                'createdAt' => $p->created_at,
+                'updatedAt' => $p->updated_at,
+                'items' => $p->items->map(fn($i) => ['id' => $i->id, 'description' => $i->description, 'quantity' => $i->quantity, 'unitPrice' => $i->unit_price, 'totalPrice' => $i->total_price, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+                'installments' => $p->installments->map(fn($i) => ['id' => $i->id, 'jobId' => $i->job_id, 'amount' => $i->amount, 'percentage' => $i->percentage, 'paymentDate' => $i->payment_date, 'description' => $i->description, 'isPaid' => $i->is_paid, 'paidAt' => $i->paid_at, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+                'revisionRequests' => $p->revisionRequests->map(fn($i) => ['id' => $i->id, 'notes' => $i->notes, 'status' => $i->status, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+            ]);
 
         $apiKeys = ApiKey::where('tenant_id', $tenantId)->get()->map(fn($k) => ['id' => $k->id, 'key' => $k->key, 'name' => $k->name, 'tenantId' => $k->tenant_id, 'createdAt' => $k->created_at, 'lastUsed' => $k->last_used]);
 
@@ -258,7 +295,8 @@ class BackupController extends Controller
                 'services'       => $services,
                 'jobstatuses'    => $jobStatuses,
                 'steptemplates'  => $stepTemplates,
-                'customers'      => $customers,
+                'customers'         => $customers,
+                'proposals'         => $proposals,
                 'jobs'              => $jobs,
                 'expenses'          => $expenses,
                 'expensecategories' => $expenseCategories,
@@ -480,6 +518,74 @@ class BackupController extends Controller
                 $customerIdMap[$c['id']] = $customer->id;
             }
 
+            // Import proposals
+            $proposalIdMap = [];
+            foreach (($data['proposals'] ?? []) as $p) {
+                $customerId = $customerIdMap[$p['customerId']] ?? null;
+                if (!$customerId) continue;
+
+                $proposal = Proposal::create([
+                    'tenant_id' => $tenantId,
+                    'customer_id' => $customerId,
+                    'service_id' => isset($p['serviceId']) && isset($serviceIdMap[$p['serviceId']]) ? $serviceIdMap[$p['serviceId']] : null,
+                    'title' => $p['title'],
+                    'description' => $p['description'] ?? null,
+                    'total_price' => $p['totalPrice'] ?? 0,
+                    'subtotal' => $p['subtotal'] ?? 0,
+                    'vat_amount' => $p['vatAmount'] ?? 0,
+                    'is_vat_included' => $p['isVatIncluded'] ?? false,
+                    'vat_rate' => $p['vatRate'] ?? 20,
+                    'status' => $p['status'] ?? 'DRAFT',
+                    'notes' => $p['notes'] ?? null,
+                    'customer_notes' => $p['customerNotes'] ?? null,
+                    'sent_at' => $p['sentAt'] ?? null,
+                    'valid_until' => $p['validUntil'] ?? null,
+                    'created_at' => $p['createdAt'] ?? now(),
+                    'updated_at' => $p['updatedAt'] ?? now(),
+                ]);
+                $proposalIdMap[$p['id']] = $proposal->id;
+
+                if (!empty($p['items'])) {
+                    foreach ($p['items'] as $item) {
+                        $proposal->items()->create([
+                            'description' => $item['description'],
+                            'quantity' => $item['quantity'] ?? 1,
+                            'unit_price' => $item['unitPrice'] ?? 0,
+                            'total_price' => $item['totalPrice'] ?? 0,
+                            'created_at' => $item['createdAt'] ?? now(),
+                            'updated_at' => $item['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
+
+                if (!empty($p['installments'])) {
+                    foreach ($p['installments'] as $inst) {
+                        $proposal->installments()->create([
+                            'job_id' => null, // Will map later if we can
+                            'amount' => $inst['amount'] ?? 0,
+                            'percentage' => $inst['percentage'] ?? 0,
+                            'payment_date' => isset($inst['paymentDate']) ? substr($inst['paymentDate'], 0, 10) : null,
+                            'description' => $inst['description'] ?? null,
+                            'is_paid' => $inst['isPaid'] ?? false,
+                            'paid_at' => $inst['paidAt'] ?? null,
+                            'created_at' => $inst['createdAt'] ?? now(),
+                            'updated_at' => $inst['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
+
+                if (!empty($p['revisionRequests'])) {
+                    foreach ($p['revisionRequests'] as $rev) {
+                        $proposal->revisionRequests()->create([
+                            'notes' => $rev['notes'],
+                            'status' => $rev['status'] ?? 'PENDING',
+                            'created_at' => $rev['createdAt'] ?? now(),
+                            'updated_at' => $rev['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
+            }
+
             // Import jobs
             $jobIdMap = [];
             foreach (($data['jobs'] ?? []) as $j) {
@@ -512,6 +618,11 @@ class BackupController extends Controller
                         'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),
                         'end_date'      => isset($j['endDate']) ? substr($j['endDate'], 0, 10) : null,
                         'total_price'   => $j['totalPrice'] ?? 0,
+                        'subtotal'      => $j['subtotal'] ?? 0,
+                        'is_vat_included' => $j['vat'] ?? $j['is_vat_included'] ?? false,
+                        'vat_amount'    => $j['vatAmount'] ?? $j['vat_amount'] ?? 0,
+                        'proposal_id'   => isset($j['proposalId']) && isset($proposalIdMap[$j['proposalId']]) ? $proposalIdMap[$j['proposalId']] : null,
+                        'order'         => $j['order'] ?? 0,
                         'user_id'       => $j['userId'] ?? $j['user_id'] ?? null,
                         'created_at'    => $j['createdAt'] ?? now(),
                         'updated_at'    => $j['updatedAt'] ?? now(),
@@ -644,6 +755,7 @@ class BackupController extends Controller
                             'payment_type'     => $p['paymentType'] ?? $p['payment_type'] ?? 'CASH',
                             'description'      => $p['description'] ?? null,
                             'cash_register_id' => $cashRegisterId,
+                            'receipt_path'     => $p['receiptPath'] ?? $p['receipt_path'] ?? null,
                             'created_at'       => $p['createdAt'] ?? now(),
                             'updated_at'       => $p['updatedAt'] ?? now(),
                         ]
@@ -750,6 +862,7 @@ class BackupController extends Controller
                         'description'      => $e['description'] ?? null,
                         'category_id'      => $categoryId,
                         'cash_register_id' => $cashRegisterId,
+                        'receipt_path'     => $e['receiptPath'] ?? $e['receipt_path'] ?? null,
                         'created_at'       => $e['createdAt'] ?? now(),
                         'updated_at'       => $e['updatedAt'] ?? now(),
                     ]
@@ -807,8 +920,14 @@ class BackupController extends Controller
             Expense::whereIn('job_id', $jobIds)->delete();
             JobCrm::where('tenant_id', $tenantId)->delete();
 
-            // Delete customers
+            // Delete customers and proposals
             Customer::where('tenant_id', $tenantId)->delete();
+            
+            $proposalIds = Proposal::where('tenant_id', $tenantId)->pluck('id');
+            ProposalItem::whereIn('proposal_id', $proposalIds)->delete();
+            ProposalInstallment::whereIn('proposal_id', $proposalIds)->delete();
+            ProposalRevisionRequest::whereIn('proposal_id', $proposalIds)->delete();
+            Proposal::where('tenant_id', $tenantId)->delete();
 
             // Delete specific settings
             Payment::where('tenant_id', $tenantId)->delete(); // Catch-all for tenant payments

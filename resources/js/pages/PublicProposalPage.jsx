@@ -78,16 +78,18 @@ export default function PublicProposalPage() {
                         <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0)) ? 'bg-black text-white border-black' :
                             proposal.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
                                 proposal.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    proposal.status === 'RENEWAL_REQUESTED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                        proposal.status === 'REVISION_REQUESTED' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                            'bg-blue-50 text-blue-700 border-blue-200'
+                                    proposal.status === 'CANCELLED' ? 'bg-gray-100 text-gray-600 border-gray-300' :
+                                        proposal.status === 'RENEWAL_REQUESTED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                            proposal.status === 'REVISION_REQUESTED' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                'bg-blue-50 text-blue-700 border-blue-200'
                             }`}>
                             {(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0) && proposal.status === 'SENT') ? 'Süresi Dolmuş' :
                                 proposal.status === 'DRAFT' ? 'Taslak' :
                                     proposal.status === 'SENT' ? 'Bekliyor' :
                                         proposal.status === 'ACCEPTED' ? 'Onaylandı' :
                                             proposal.status === 'REJECTED' ? 'Reddedildi' :
-                                                proposal.status === 'RENEWAL_REQUESTED' ? 'Yenileme Talebi' : 'Revize İstendi'}
+                                                proposal.status === 'CANCELLED' ? 'Teklif Geri Çekildi' :
+                                                    proposal.status === 'RENEWAL_REQUESTED' ? 'Yenileme Talebi' : 'Revize İstendi'}
                         </span>
                         <div className={`flex items-center gap-2 text-sm font-medium ${(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0)) ? 'text-red-500' : 'text-gray-500'
                             }`}>

@@ -70,16 +70,16 @@ class PublicProposalController extends Controller
                     break;
 
                 case 'REJECT':
-                    $proposal->update(['status' => 'REJECTED', 'customer_notes' => $validated['customer_notes']]);
+                    $proposal->update(['status' => 'REJECTED', 'customer_notes' => $validated['customer_notes'] ?? null]);
                     $message = 'Teklif reddedildi.';
                     $logDetails = "Müşteri teklifi reddetti. Not: " . ($validated['customer_notes'] ?? '-');
                     break;
 
                 case 'REVISE':
-                    $proposal->update(['status' => 'REVISION_REQUESTED', 'customer_notes' => $validated['customer_notes']]);
+                    $proposal->update(['status' => 'REVISION_REQUESTED', 'customer_notes' => $validated['customer_notes'] ?? null]);
                     ProposalRevisionRequest::create([
                         'proposal_id' => $proposal->id,
-                        'notes' => $validated['customer_notes'],
+                        'notes' => $validated['customer_notes'] ?? null,
                         'status' => 'PENDING'
                     ]);
                     $message = 'Revize talebiniz iletildi. Teklif güncellendiğinde tekrar bilgilendirileceksiniz.';

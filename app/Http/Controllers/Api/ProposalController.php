@@ -24,7 +24,7 @@ class ProposalController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         $proposals = Proposal::where('tenant_id', $tenantId)
-            ->with(['customer', 'items', 'service', 'revisionRequests', 'installments'])
+            ->with(['customer', 'items', 'service', 'revisionRequests', 'installments', 'job'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -294,6 +294,67 @@ class ProposalController extends Controller
 
         return response()->json(['message' => 'Revize talebi yanıtlandı.', 'revision' => $revision]);
     }
+    public function createJob(Request $request, int $id): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $proposal = Proposal::where('tenant_id', $tenantId)
+            ->with(['job', 'installments', 'customer'])
+            ->findOrFail($id);
+
+        if ($proposal->status !== 'ACCEPTED') {
+            return response()->json(['message' => 'Teklif kabul edilmiş durumda değil.'], 422);
+        }
+
+        if ($proposal->job) {
+            return response()->json(['message' => 'Bu teklife ait bir iş zaten mevcut.'], 422);
+        }
+
+        return DB::transaction(function () use ($proposal, $tenantId, $request) {
+            // İlk iş durumunu bul veya oluştur
+            $jobStatus = \App\Models\JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
+            if (!$jobStatus) {
+                $jobStatus = \App\Models\JobStatus::create([
+                    'tenant_id' => $tenantId,
+                    'name'      => 'Varsayılan',
+                    'color'     => '#6366f1',
+                    'order'     => 0,
+                ]);
+            }
+
+            $job = \App\Models\JobCrm::create([
+                'tenant_id'       => $tenantId,
+                'customer_id'     => $proposal->customer_id,
+                'service_id'      => $proposal->service_id,
+                'proposal_id'     => $proposal->id,
+                'job_status_id'   => $jobStatus->id,
+                'title'           => $proposal->title,
+                'description'     => $proposal->description,
+                'status'          => 'PENDING',
+                'total_price'     => $proposal->total_price,
+                'is_vat_included' => $proposal->is_vat_included,
+                'vat_rate'        => $proposal->vat_rate,
+                'subtotal'        => $proposal->subtotal,
+                'vat_amount'      => $proposal->vat_amount,
+                'start_date'      => now(),
+            ]);
+
+            // Teklifteki ödeme taksitlerini işe bağla
+            if ($proposal->installments->isNotEmpty()) {
+                foreach ($proposal->installments as $installment) {
+                    $installment->update(['job_id' => $job->id]);
+                }
+            }
+
+            ActivityLogService::log($request->user(), 'CREATE', 'JOB', $job->id, $job->title,
+                "{$proposal->title} teklifinden {$job->title} isimli iş oluşturuldu.");
+
+            return response()->json([
+                'message' => 'İş başarıyla oluşturuldu.',
+                'job'     => $job->load(['customer', 'service', 'jobStatus']),
+            ], 201);
+        });
+    }
+
     public function toggleInstallmentPaid(Request $request, int $id): JsonResponse
     {
         $installment = ProposalInstallment::with(['proposal', 'job'])->findOrFail($id);

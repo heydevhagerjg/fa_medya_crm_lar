@@ -115,6 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/proposals/installments/{id}/toggle-paid', [\App\Http\Controllers\Api\ProposalController::class, 'toggleInstallmentPaid']);
     Route::post('/proposals/{id}/send', [\App\Http\Controllers\Api\ProposalController::class, 'send']);
     Route::post('/proposals/{id}/recall', [App\Http\Controllers\Api\ProposalController::class, 'recall']);
+    Route::post('/proposals/{id}/create-job', [App\Http\Controllers\Api\ProposalController::class, 'createJob']);
     Route::post('/proposals/{proposalId}/revisions/{revisionId}/respond', [App\Http\Controllers\Api\ProposalController::class, 'respondToRevision']);
     Route::apiResource('proposals', App\Http\Controllers\Api\ProposalController::class);
 

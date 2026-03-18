@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
     FileText, Plus, Search, Edit2, Trash2, Send,
     MoreHorizontal, Check, X, Clock, PlusCircle, Link,
-    RotateCcw, MessageSquare, CheckCircle, XCircle, Download
+    RotateCcw, MessageSquare, CheckCircle, XCircle, Download, Briefcase
 } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
@@ -110,6 +110,7 @@ export default function ProposalsPage() {
     const updateStatusMutation = useMutation({
         mutationFn: ({ id, status }) => api.put(`/proposals/${id}`, { status }),
         onSuccess: () => {
+            qc.invalidateQueries(['proposals'])
             toast.success('Durum güncellendi.')
         },
     })
@@ -128,6 +129,16 @@ export default function ProposalsPage() {
             qc.invalidateQueries(['proposals'])
             toast.success('Talep yanıtlandı.')
         },
+    })
+
+    const createJobMutation = useMutation({
+        mutationFn: (id) => api.post(`/proposals/${id}/create-job`),
+        onSuccess: () => {
+            qc.invalidateQueries(['proposals'])
+            qc.invalidateQueries(['jobs'])
+            toast.success('İş başarıyla oluşturuldu.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'İş oluşturulamadı.'),
     })
 
     const openModal = (proposal = null) => {
@@ -353,29 +364,6 @@ export default function ProposalsPage() {
                                                     <MessageSquare size={12} /> {proposal.status === 'RENEWAL_REQUESTED' ? 'Yeni Teklif Talebi' : 'Bekleyen Revizeler'}
                                                 </button>
                                             )}
-                                            {proposal.installments?.length > 0 && (
-                                                <div className="mt-2 space-y-1">
-                                                    <div className="flex items-center justify-between text-[10px] font-bold text-gray-400">
-                                                        <span>ÖDEME PERİYODU</span>
-                                                        <span className={proposal.installments.every(i => i.is_paid) ? "text-green-500" : "text-amber-500"}>
-                                                            {proposal.installments.filter(i => i.is_paid).length} / {proposal.installments.length}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex gap-1 h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-1.5">
-                                                        {proposal.installments.map(i => (
-                                                            <div
-                                                                key={i.id}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    toggleInstallmentPaidMutation.mutate(i.id)
-                                                                }}
-                                                                className={`flex-1 cursor-pointer transition-all hover:opacity-80 ${i.is_paid ? 'bg-green-500 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]' : 'bg-gray-300 dark:bg-gray-700'}`}
-                                                                title={`${i.description || 'Ödeme'}: ${formatCurrency(i.amount)} (${i.is_paid ? 'Ödendi' : 'Bekliyor'})`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-end gap-1.5">
@@ -417,6 +405,16 @@ export default function ProposalsPage() {
                                                         <RotateCcw size={16} />
                                                     </button>
                                                 )}
+                                                {proposal.status === 'ACCEPTED' && !proposal.job && (
+                                                    <button
+                                                        onClick={() => createJobMutation.mutate(proposal.id)}
+                                                        disabled={createJobMutation.isPending}
+                                                        title="İş Oluştur"
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                                                    >
+                                                        <Briefcase size={16} />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => openModal(proposal)}
                                                     className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
@@ -424,7 +422,16 @@ export default function ProposalsPage() {
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
-                                                {proposal.status !== 'CANCELLED' && proposal.status !== 'ACCEPTED' && (
+                                                {proposal.status === 'REJECTED' && (
+                                                    <button
+                                                        onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'ACCEPTED' })}
+                                                        title="Manuel Onayla (Kabul Et)"
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
+                                                    >
+                                                        <CheckCircle size={16} />
+                                                    </button>
+                                                )}
+                                                {proposal.status !== 'CANCELLED' && (
                                                     <button
                                                         onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'CANCELLED' })}
                                                         title="İptal Et"
@@ -436,7 +443,7 @@ export default function ProposalsPage() {
                                                 {proposal.status === 'CANCELLED' && (
                                                     <button
                                                         onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'DRAFT' })}
-                                                        title="Tekrar Aktif Et"
+                                                        title="Tekrar Aktif Et (Taslağa Al)"
                                                         className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
                                                     >
                                                         <RotateCcw size={16} />
