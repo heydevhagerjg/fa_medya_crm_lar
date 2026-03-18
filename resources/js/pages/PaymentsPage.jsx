@@ -68,14 +68,22 @@ export default function PaymentsPage() {
     })
 
     const openModal = (payment = null) => {
-        setForm(payment ? {
-            amount: payment.amount,
-            paymentDate: (payment.paymentDate || payment.payment_date || '').toString().substring(0, 10),
-            paymentType: payment.paymentType || payment.payment_type || 'FINAL',
-            description: payment.description || '',
-            jobId: payment.jobId || payment.job_id || '',
-            cashRegisterId: payment.cashRegisterId || payment.cash_register_id || '',
-        } : emptyForm)
+        if (payment) {
+            setForm({
+                amount: payment.amount,
+                paymentDate: (payment.paymentDate || payment.payment_date || '').toString().substring(0, 10),
+                paymentType: payment.paymentType || payment.payment_type || 'FINAL',
+                description: payment.description || '',
+                jobId: payment.jobId || payment.job_id || '',
+                cashRegisterId: payment.cashRegisterId || payment.cash_register_id || '',
+            })
+        } else {
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setForm({
+                ...emptyForm,
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+            })
+        }
         setModal({ open: true, payment })
     }
 

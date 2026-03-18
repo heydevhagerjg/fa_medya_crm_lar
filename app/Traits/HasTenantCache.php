@@ -53,12 +53,17 @@ trait HasTenantCache
     /**
      * Clear the cache for a specific module by incrementing the version
      */
-    protected function clearTenantCache(string $module): void
+    protected function clearTenantCache(string $module, ?string $tenantId = null): void
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = $tenantId ?? (auth()->check() ? auth()->user()->tenant_id : null);
+        
+        if (!$tenantId) {
+            return;
+        }
+
         $key = "tenant_{$tenantId}_{$module}_version";
         
         $current = Cache::get($key, 1);
-        Cache::forever($key, $current + 1);
+        Cache::forever($key, (int)$current + 1);
     }
 }

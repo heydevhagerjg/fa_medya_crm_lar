@@ -49,15 +49,23 @@ export default function ExpensesPage() {
     })
 
     const openModal = (expense = null) => {
-        setForm(expense ? {
-            title: expense.title,
-            amount: expense.amount,
-            date: (expense.date || '').toString().substring(0, 10),
-            description: expense.description || '',
-            jobId: expense.jobId || expense.job_id || '',
-            categoryId: expense.categoryId || expense.category_id || '',
-            cashRegisterId: expense.cashRegisterId || expense.cash_register_id || '',
-        } : emptyForm)
+        if (expense) {
+            setForm({
+                title: expense.title,
+                amount: expense.amount,
+                date: (expense.date || '').toString().substring(0, 10),
+                description: expense.description || '',
+                jobId: expense.jobId || expense.job_id || '',
+                categoryId: expense.categoryId || expense.category_id || '',
+                cashRegisterId: expense.cashRegisterId || expense.cash_register_id || '',
+            })
+        } else {
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setForm({
+                ...emptyForm,
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+            })
+        }
         setModal({ open: true, expense })
     }
 

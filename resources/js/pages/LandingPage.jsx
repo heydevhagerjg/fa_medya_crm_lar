@@ -26,7 +26,7 @@ export default function LandingPage() {
                                 <LayoutDashboard className="text-white" size={24} />
                             </div>
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
-                                FA MEDYA CRM
+                                {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
                         </div>
                         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-400">
@@ -61,7 +61,7 @@ export default function LandingPage() {
                         İşlerinizi Akıllıca <br /> <span className="text-indigo-600 dark:text-indigo-400">Yönetin ve Büyütün</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
-                        Müşteri ilişkileri, proje takibi, finansal veriler ve ekip yönetimi tek bir platformda. FA Medya CRM ile verimliliğinizi ikiye katlayın.
+                        Müşteri ilişkileri, proje takibi, finansal veriler ve ekip yönetimi tek bir platformda. {import.meta.env.VITE_APP_NAME} ile verimliliğinizi ikiye katlayın.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link to="/register" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg transition-all shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 group">
@@ -165,10 +165,10 @@ export default function LandingPage() {
                         <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                             <LayoutDashboard className="text-white" size={18} />
                         </div>
-                        <span className="text-lg font-black text-gray-900 dark:text-white">FA MEDYA CRM</span>
+                        <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
                     </div>
                     <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">
-                        © 2026 FA Medya CRM. Tüm hakları saklıdır.
+                        © 2026 {import.meta.env.VITE_APP_NAME}. Tüm hakları saklıdır.
                     </div>
                     <div className="flex items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400">
                         <a href="#" className="hover:text-indigo-600 transition-colors">Gizlilik Politikası</a>

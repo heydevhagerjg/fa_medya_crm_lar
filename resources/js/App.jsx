@@ -22,6 +22,8 @@ import KanbanPage from './pages/KanbanPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import AppointmentsPage from './pages/AppointmentsPage.jsx'
 import ServiceTrackingPage from './pages/ServiceTrackingPage.jsx'
+import ProposalsPage from './pages/ProposalsPage.jsx'
+import PublicProposalPage from './pages/PublicProposalPage.jsx'
 import AdminTenantsPage from './pages/admin/dashboard/TenantsPage.jsx'
 
 const ProtectedRoute = ({ children }) => {
@@ -66,6 +68,7 @@ export default function App() {
                 <Route path="/kanban" element={<KanbanPage />} />
                 <Route path="/appointments" element={<AppointmentsPage />} />
                 <Route path="/service-trackings" element={<ServiceTrackingPage />} />
+                <Route path="/proposals" element={<ProposalsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/expenses" element={<ExpensesPage />} />
                 <Route path="/files" element={<FilesPage />} />
@@ -76,6 +79,9 @@ export default function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/api-docs" element={<ApiDocsPage />} />
             </Route>
+
+            {/* Public Access Link for Clients */}
+            <Route path="/public-proposal/:uuid" element={<PublicProposalPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminPublicRoute><AdminLoginPage /></AdminPublicRoute>} />

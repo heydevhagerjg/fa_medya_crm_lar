@@ -10,6 +10,26 @@ import { useEffect } from 'react'
 import { useAuthStore } from '../stores/index.js'
 import { User } from 'lucide-react'
 
+// Hook up effects for VAT calculation
+const useJobVatEffect = (form, setForm) => {
+    useEffect(() => {
+        const subtotal = parseFloat(form.subtotal || 0)
+        const isVatIncluded = form.isVatIncluded
+        const vatRate = parseFloat(form.vatRate || 0)
+
+        const vatAmount = isVatIncluded ? (subtotal * vatRate / 100) : 0
+        const totalPrice = subtotal + vatAmount
+
+        if (totalPrice !== parseFloat(form.totalPrice || 0) || vatAmount !== parseFloat(form.vatAmount || 0)) {
+            setForm(prev => ({
+                ...prev,
+                vatAmount: vatAmount.toFixed(2),
+                totalPrice: totalPrice.toFixed(2)
+            }))
+        }
+    }, [form.subtotal, form.isVatIncluded, form.vatRate])
+}
+
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
@@ -29,6 +49,8 @@ export default function JobsPage() {
     useEffect(() => {
         setCurrentPage(1)
     }, [search, filterStatus])
+
+    useJobVatEffect(form, setForm)
 
     const { data: jobs = [], isLoading } = useQuery({
         queryKey: ['jobs'],
@@ -67,6 +89,10 @@ export default function JobsPage() {
             startDate: job.startDate || job.start_date ? (job.startDate || job.start_date).toString().substring(0, 10) : '',
             endDate: job.endDate || job.end_date ? (job.endDate || job.end_date).toString().substring(0, 10) : '',
             userId: job.userId || job.user_id || '',
+            isVatIncluded: job.isVatIncluded || false,
+            vatRate: job.vatRate || 20,
+            subtotal: job.subtotal || job.totalPrice || job.total_price || 0,
+            vatAmount: job.vatAmount || 0,
             customFields: job.customfieldvalue ? Object.fromEntries(job.customfieldvalue.map(cf => [cf.custom_field_id, cf.value])) : {}
         } : {
             customerId: customers[0]?.id || '',
@@ -75,6 +101,10 @@ export default function JobsPage() {
             title: '',
             description: '',
             totalPrice: 0,
+            subtotal: 0,
+            vatAmount: 0,
+            isVatIncluded: false,
+            vatRate: 20,
             startDate: new Date().toISOString().substring(0, 10),
             endDate: '',
             userId: '',
@@ -199,7 +229,12 @@ export default function JobsPage() {
                                                 {formatDate(job.startDate || job.start_date)}
                                             </td>
                                             <td className="px-5 py-4 hidden lg:table-cell">
-                                                <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(job.totalPrice || job.total_price)}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(job.totalPrice || job.total_price)}</span>
+                                                    <span className={`text-[10px] font-bold ${job.isVatIncluded ? 'text-emerald-500' : 'text-orange-500'}`}>
+                                                        {job.isVatIncluded ? 'KDV DAHİL' : 'KDV HARİÇ'}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-2">
@@ -286,17 +321,64 @@ export default function JobsPage() {
                                 ))}
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplam Fiyat (₺)</label>
-                            <input type="number" min="0" step="0.01" value={form.totalPrice || 0} onChange={e => setForm(p => ({ ...p, totalPrice: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlangıç Tarihi</label>
+                                <input type="date" value={form.startDate || ''} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bitiş Tarihi</label>
+                                <input type="date" value={form.endDate || ''} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlangıç Tarihi</label>
-                            <input type="date" value={form.startDate || ''} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+
+                        <div className="sm:col-span-2 pt-2">
+                            <div className="flex items-center justify-between mb-4 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <div className="flex items-center gap-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={form.isVatIncluded}
+                                            onChange={e => setForm(f => ({ ...f, isVatIncluded: e.target.checked }))}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                        <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">KDV Eklensin mi?</span>
+                                    </label>
+                                    {form.isVatIncluded && (
+                                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                            <span className="text-[10px] font-bold text-gray-400">ORAN (%)</span>
+                                            <input
+                                                type="number"
+                                                value={form.vatRate}
+                                                onChange={e => setForm(f => ({ ...f, vatRate: e.target.value }))}
+                                                className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bitiş Tarihi</label>
-                            <input type="date" value={form.endDate || ''} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+
+                        <div className={form.isVatIncluded ? 'sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4' : 'sm:col-span-2'}>
+                            <div className={form.isVatIncluded ? '' : 'w-full'}>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{form.isVatIncluded ? 'Ara Toplam (₺)' : 'Fiyat (₺)'}</label>
+                                <input type="number" min="0" step="0.01" value={form.subtotal || 0} onChange={e => setForm(p => ({ ...p, subtotal: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium" />
+                            </div>
+                            {form.isVatIncluded && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">KDV (%{form.vatRate})</label>
+                                        <input type="text" readOnly value={formatCurrency(form.vatAmount)} className="w-full px-3 py-2 border border-gray-100 dark:border-gray-800 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/50 text-gray-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Genel Toplam</label>
+                                        <div className="px-3 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                                            {formatCurrency(form.totalPrice)}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                         <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>

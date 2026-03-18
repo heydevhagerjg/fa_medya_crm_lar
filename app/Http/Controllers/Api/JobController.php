@@ -84,7 +84,7 @@ class JobController extends Controller
 
         $job = $query->with([
                 'customer', 'service.customFields', 'jobStatus',
-                'jobDetail', 'jobFiles', 'jobSteps',
+                'jobDetail', 'jobFiles', 'jobSteps', 'installments',
                 'payments.cashRegister', 'customFieldValues.customField',
                 'expenses.category', 'expenses.cashRegister',
                 'assignedTo'
@@ -112,6 +112,10 @@ class JobController extends Controller
             'userId'        => 'nullable|uuid|exists:users,id',
             'customerRequests' => 'nullable|string',
             'notes'         => 'nullable|string',
+            'isVatIncluded' => 'nullable|boolean',
+            'vatRate'       => 'nullable|integer|min:0',
+            'subtotal'      => 'nullable|numeric|min:0',
+            'vatAmount'     => 'nullable|numeric|min:0',
         ]);
 
         if (!empty($validated['userId'])) {
@@ -151,6 +155,10 @@ class JobController extends Controller
                 'start_date'    => $validated['startDate'] ?? now(),
                 'end_date'      => $validated['endDate'] ?? null,
                 'user_id'       => $validated['userId'] ?? null,
+                'is_vat_included' => $validated['isVatIncluded'] ?? false,
+                'vat_rate'        => $validated['vatRate'] ?? 0,
+                'subtotal'        => $validated['subtotal'] ?? ($validated['totalPrice'] ?? 0),
+                'vat_amount'      => $validated['vatAmount'] ?? 0,
             ]);
 
             if (!empty($validated['steps'])) {
@@ -227,8 +235,11 @@ class JobController extends Controller
             'endDate'       => 'nullable|date',
             'customFields'  => 'nullable|array',
             'userId'        => 'nullable|uuid|exists:users,id',
-            'customerRequests' => 'nullable|string',
             'notes'         => 'nullable|string',
+            'isVatIncluded' => 'nullable|boolean',
+            'vatRate'       => 'nullable|integer|min:0',
+            'subtotal'      => 'nullable|numeric|min:0',
+            'vatAmount'     => 'nullable|numeric|min:0',
         ]);
 
         if (!empty($validated['userId'])) {
@@ -252,6 +263,10 @@ class JobController extends Controller
                 'start_date'    => $validated['startDate'] ?? $job->start_date,
                 'end_date'      => array_key_exists('endDate', $validated) ? $validated['endDate'] : $job->end_date,
                 'user_id'       => array_key_exists('userId', $validated) ? $validated['userId'] : $job->user_id,
+                'is_vat_included' => $validated['isVatIncluded'] ?? $job->is_vat_included,
+                'vat_rate'        => $validated['vatRate'] ?? $job->vat_rate,
+                'subtotal'        => $validated['subtotal'] ?? $job->subtotal,
+                'vat_amount'      => $validated['vatAmount'] ?? $job->vat_amount,
             ]);
 
             if (isset($validated['customerRequests']) || isset($validated['notes'])) {
@@ -271,6 +286,18 @@ class JobController extends Controller
                         ['value' => $value]
                     );
                 }
+            }
+
+            // Sync back to proposal if exists
+            if ($job->proposal_id) {
+                \App\Models\Proposal::where('id', $job->proposal_id)->update([
+                    'is_vat_included' => $job->is_vat_included,
+                    'vat_rate'        => $job->vat_rate,
+                    'subtotal'        => $job->subtotal,
+                    'vat_amount'      => $job->vat_amount,
+                    'total_price'     => $job->total_price,
+                ]);
+                $this->clearTenantCache('proposals');
             }
         });
 
@@ -384,6 +411,10 @@ class JobController extends Controller
             'startDate'   => $job->start_date,
             'endDate'     => $job->end_date,
             'totalPrice'  => $job->total_price,
+            'isVatIncluded' => $job->is_vat_included,
+            'vatRate'       => $job->vat_rate,
+            'subtotal'      => $job->subtotal,
+            'vatAmount'     => $job->vat_amount,
             'createdAt'   => $job->created_at,
             'updatedAt'   => $job->updated_at,
             'userId'      => $job->user_id,
@@ -405,6 +436,7 @@ class JobController extends Controller
         $base['payment']          = $job->payments;
         $base['expense']          = $job->expenses;
         $base['customfieldvalue'] = $job->customFieldValues;
+        $base['installments']     = $job->installments;
         return $base;
     }
 }

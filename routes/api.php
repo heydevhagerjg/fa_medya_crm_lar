@@ -37,6 +37,13 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Public Proposal Routes
+Route::prefix('public')->group(function () {
+    Route::get('/proposals/{uuid}', [App\Http\Controllers\Api\PublicProposalController::class, 'show']);
+    Route::get('/proposals/{uuid}/pdf', [App\Http\Controllers\Api\PublicProposalController::class, 'downloadPdf']);
+    Route::post('/proposals/{uuid}/respond', [App\Http\Controllers\Api\PublicProposalController::class, 'respond']);
+});
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -102,6 +109,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('service-tracking-logs/{logId}', [ServiceTrackingController::class, 'deleteLog']);
     Route::post('service-trackings/{id}/cancel', [ServiceTrackingController::class, 'cancel']);
     Route::post('service-trackings/{id}/activate', [ServiceTrackingController::class, 'activate']);
+
+    // Proposals
+    Route::patch('/proposals/installments/{id}/toggle-paid', [\App\Http\Controllers\Api\ProposalController::class, 'toggleInstallmentPaid']);
+    Route::post('/proposals/{id}/send', [\App\Http\Controllers\Api\ProposalController::class, 'send']);
+    Route::post('/proposals/{id}/recall', [App\Http\Controllers\Api\ProposalController::class, 'recall']);
+    Route::post('/proposals/{proposalId}/revisions/{revisionId}/respond', [App\Http\Controllers\Api\ProposalController::class, 'respondToRevision']);
+    Route::apiResource('proposals', App\Http\Controllers\Api\ProposalController::class);
 
     // Settings
     Route::prefix('settings')->group(function () {

@@ -15,6 +15,7 @@ const navItems = [
     { to: '/jobs', icon: Briefcase, label: 'İşler', permission: 'jobs.view' },
     { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)', permission: 'jobs.view' },
     { to: '/appointments', icon: Calendar, label: 'Randevular', permission: 'appointments.view' },
+    { to: '/proposals', icon: FileText, label: 'Teklifler' },
     { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi' }, // Base permission if needed
     { to: '/payments', icon: CreditCard, label: 'Tahsilatlar', permission: 'payments.view' },
     { to: '/expenses', icon: TrendingDown, label: 'Masraflar', permission: 'expenses.view' },
@@ -80,8 +81,8 @@ export default function DashboardLayout() {
                             <img src="/favicon.ico" alt="Logo" className="w-8 h-8" />
                         </div>
                         <div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white">FA Medya</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">CRM Panel</div>
+                            <div className="text-sm font-bold text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Yönetim Paneli</div>
                         </div>
                     </div>
                     <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">

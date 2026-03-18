@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
 import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X } from 'lucide-react'
+import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -143,6 +143,15 @@ export default function JobDetailPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Masraf silinemedi.'),
     })
 
+    const toggleInstallmentPaidMutation = useMutation({
+        mutationFn: (insId) => api.patch(`/proposals/installments/${insId}/toggle-paid`),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success('Ödeme takvimi güncellendi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Güncellenemedi.'),
+    })
+
     const openPaymentModal = (p = null) => {
         if (p) {
             setPaymentForm({
@@ -154,7 +163,14 @@ export default function JobDetailPage() {
             })
             setEditingPayment(p.id)
         } else {
-            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setPaymentForm({
+                amount: '',
+                paymentDate: new Date().toISOString().substring(0, 10),
+                paymentType: 'FINAL',
+                description: '',
+                cashRegisterId: defaultCash ? defaultCash.id : ''
+            })
             setEditingPayment(null)
         }
         setPaymentModal(true)
@@ -172,7 +188,15 @@ export default function JobDetailPage() {
             })
             setEditingExpense(e.id)
         } else {
-            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setExpenseForm({
+                title: '',
+                amount: '',
+                date: new Date().toISOString().substring(0, 10),
+                description: '',
+                categoryId: '',
+                cashRegisterId: defaultCash ? defaultCash.id : ''
+            })
             setEditingExpense(null)
         }
         setExpenseModal(true)
@@ -352,6 +376,8 @@ export default function JobDetailPage() {
         ...expenses.map(e => ({ ...e, _type: 'EXPENSE', _date: new Date(e.date).getTime() }))
     ].sort((a, b) => b._date - a._date)
 
+    const installments = job.installments || []
+
     const completedSteps = steps.filter(s => s.is_completed).length
     const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const totalPrice = parseFloat(job.totalPrice || job.total_price || 0)
@@ -407,12 +433,12 @@ export default function JobDetailPage() {
                 {[
                     { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
                     { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500', permission: 'payments.view' },
+                    { label: `KDV Tutarı ${job.vatRate ? `(%${job.vatRate})` : ''}`, value: formatCurrency(job.vatAmount), color: 'text-purple-500' },
                     { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500', permission: 'payments.view' },
                     { label: 'İş Aşamaları', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
-                    { label: 'İş Tamamlama', value: steps.length ? `%${completionProgress}` : '-', color: 'text-purple-500' },
                     { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500', permission: 'payments.view' },
                 ].filter(card => hasPermission(card.permission)).map(({ label, value, color }) => (
-                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center">
+                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center transition-all hover:border-gray-300 dark:hover:border-gray-700">
                         <div className={`text-lg font-bold ${color}`}>{value}</div>
                         <div className="text-xs text-gray-500">{label}</div>
                     </div>
@@ -654,6 +680,47 @@ export default function JobDetailPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Payment Schedule Section */}
+                {installments.length > 0 && (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <Calendar size={18} className="text-blue-500" />
+                            Ödeme Takvimi ({installments.length})
+                        </h2>
+                        <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                            {installments.map(ins => (
+                                <div key={ins.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${ins.is_paid ? 'bg-green-50/50 dark:bg-green-500/5 border-green-100 dark:border-green-500/20' : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800'}`}>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                            <div className={`font-bold text-sm ${ins.is_paid ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
+                                                {formatCurrency(ins.amount)}
+                                            </div>
+                                            <div className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                                                %{ins.percentage}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                                            <Calendar size={12} />
+                                            {formatDate(ins.payment_date)}
+                                        </div>
+                                        {ins.description && (
+                                            <div className="text-[11px] text-gray-400 mt-1 truncate">{ins.description}</div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => toggleInstallmentPaidMutation.mutate(ins.id)}
+                                        disabled={toggleInstallmentPaidMutation.isPending}
+                                        className={`flex-shrink-0 p-2 rounded-lg border transition-all ${ins.is_paid ? 'bg-green-500 border-green-600 text-white' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 hover:border-indigo-500 hover:text-indigo-500'}`}
+                                        title={ins.is_paid ? 'Ödendi Olarak İşaretli' : 'Ödeme Bekliyor'}
+                                    >
+                                        <Check size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Payment Modal */}

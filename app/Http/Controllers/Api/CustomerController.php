@@ -58,6 +58,8 @@ class CustomerController extends Controller
                   ->orderByDesc('created_at');
             }, 'appointments' => function ($q) {
                 $q->orderByDesc('start_time');
+            }, 'proposals' => function ($q) {
+                $q->with('items')->orderByDesc('created_at');
             }])
             ->findOrFail($id);
 
@@ -87,6 +89,14 @@ class CustomerController extends Controller
                 'startTime'   => $a->start_time,
                 'endTime'     => $a->end_time,
                 'status'      => $a->status,
+            ]),
+            'proposals' => $customer->proposals->map(fn($p) => [
+                'id'          => $p->id,
+                'uuid'        => $p->uuid,
+                'title'       => $p->title,
+                'status'      => $p->status,
+                'total_price' => $p->total_price,
+                'created_at'  => $p->created_at,
             ]),
         ]);
     }

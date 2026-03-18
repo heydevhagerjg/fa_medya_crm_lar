@@ -42,7 +42,7 @@ export default function LoginPage() {
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-4">
                             <Briefcase size={28} className="text-white" />
                         </div>
-                        <h1 className="text-2xl font-bold text-white">FA Medya CRM</h1>
+                        <h1 className="text-2xl font-bold text-white">{import.meta.env.VITE_APP_NAME}</h1>
                         <p className="text-gray-400 text-sm mt-1">Hesabınıza giriş yapın</p>
                     </div>
 

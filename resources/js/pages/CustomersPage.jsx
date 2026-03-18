@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '../lib/api.js'
+import { formatPhoneNumber } from '../lib/utils'
+
 import toast from 'react-hot-toast'
 import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, ChevronRight, X, Check } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
@@ -61,7 +63,14 @@ export default function CustomersPage() {
     }
 
     const filtered = customers
-        .filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search) || c.email?.toLowerCase().includes(search.toLowerCase()))
+        .filter(c => {
+            const low = search.toLowerCase();
+            const clean = search.replace(/\D/g, '');
+            return c.name.toLowerCase().includes(low) || 
+                   c.email?.toLowerCase().includes(low) || 
+                   (c.phone && c.phone.includes(clean)) || 
+                   (c.phone && formatPhoneNumber(c.phone).includes(search));
+        })
         .sort((a, b) => b.id - a.id)
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -134,7 +143,8 @@ export default function CustomersPage() {
                                         </td>
                                         <td className="px-5 py-4 hidden md:table-cell">
                                             <div className="space-y-1">
-                                                {customer.phone && <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400"><Phone size={12} />{customer.phone}</div>}
+                                                {customer.phone && <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400"><Phone size={12} />{formatPhoneNumber(customer.phone)}</div>}
+
                                                 {customer.email && <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400"><Mail size={12} />{customer.email}</div>}
                                             </div>
                                         </td>
@@ -182,8 +192,18 @@ export default function CustomersPage() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
                             <input
                                 type={type}
-                                value={form[key]}
-                                onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                                value={key === 'phone' ? formatPhoneNumber(form[key]) : (form[key] || '')}
+                                onChange={e => {
+                                    let val = e.target.value;
+                                    if (key === 'phone') {
+                                        // Store cleaned numeric value in state
+                                        val = val.replace(/\D/g, '');
+                                        // If it starts with 0 and they are typing, we might want to keep it or clean it
+                                        // Our formatPhoneNumber handles 05... -> 905...
+                                        if (val.length > 12) val = val.substring(0, 12);
+                                    }
+                                    setForm(p => ({ ...p, [key]: val }));
+                                }}
                                 required={required}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
                             />
