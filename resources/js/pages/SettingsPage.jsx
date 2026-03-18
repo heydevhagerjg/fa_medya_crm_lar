@@ -109,7 +109,7 @@ function ServicesTab() {
     const saveMutation = useMutation({
         mutationFn: () => modal.service ? api.put(`/settings/services/${modal.service.id}`, form) : api.post('/settings/services', form),
         onSuccess: () => { qc.invalidateQueries(['services']); toast.success('Hizmet kaydedildi.'); setModal({ open: false, service: null }) },
-        onError: () => toast.error('Hata.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
 
     const deleteMutation = useMutation({
@@ -380,7 +380,7 @@ function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formT
     const saveMutation = useMutation({
         mutationFn: () => modal.item ? api.put(`${apiPath}/${modal.item.id}`, formToPayload(form)) : api.post(apiPath, formToPayload(form)),
         onSuccess: () => { qc.invalidateQueries([queryKey]); toast.success('Kaydedildi.'); setModal({ open: false, item: null }) },
-        onError: () => toast.error('Hata.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`${apiPath}/${id}`),

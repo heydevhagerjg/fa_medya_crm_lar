@@ -94,7 +94,7 @@ class TenantController extends Controller
     }
     public function index()
     {
-        $tenants = Tenant::withCount('users')->get();
+        $tenants = Tenant::with('package')->withCount('users')->get();
         return response()->json($tenants);
     }
 
@@ -102,6 +102,7 @@ class TenantController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'package_id' => 'required|exists:packages,id',
         ]);
 
         $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
@@ -110,11 +111,34 @@ class TenantController extends Controller
             return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
         }
 
+        $package = \App\Models\Package::findOrFail($validated['package_id']);
+
         $tenant = Tenant::create([
             'id' => Str::uuid()->toString(),
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']) . '-' . rand(1000, 9999),
             's3_config_id' => $s3Config->id,
+            'package_id' => $package->id,
+            'plan_personnel_limit' => $package->personnel_limit,
+            'plan_customer_limit' => $package->customer_limit,
+            'plan_job_limit' => $package->job_limit,
+            'plan_appointment_feature' => $package->appointment_feature,
+            'plan_appointment_limit' => $package->appointment_limit,
+            'plan_service_tracking_feature' => $package->service_tracking_feature,
+            'plan_service_tracking_limit' => $package->service_tracking_limit,
+            'plan_service_tracking_category_feature' => $package->service_tracking_category_feature,
+            'plan_service_tracking_category_limit' => $package->service_tracking_category_limit,
+            'plan_proposal_feature' => $package->proposal_feature,
+            'plan_proposal_limit' => $package->proposal_limit,
+            'plan_backup_feature' => $package->backup_feature,
+            'plan_backup_limit' => $package->backup_limit,
+            'plan_services_section_feature' => $package->services_section_feature,
+            'plan_service_limit' => $package->service_limit,
+            'plan_step_templates_feature' => $package->step_templates_feature,
+            'plan_step_template_limit' => $package->step_template_limit,
+            'plan_cash_register_limit' => $package->cash_register_limit,
+            'plan_api_key_feature' => $package->api_key_feature,
+            'plan_disk_usage_limit' => $package->disk_usage_limit,
         ]);
 
         return response()->json($tenant, 201);
@@ -122,10 +146,54 @@ class TenantController extends Controller
 
     public function show($id)
     {
-        $tenant = Tenant::with(['users' => function($q) {
+        $tenant = Tenant::with(['package', 'users' => function($q) {
             $q->select('id', 'name', 'email', 'role', 'is_approved', 'tenant_id', 'created_at');
         }])->findOrFail($id);
         return response()->json($tenant);
+    }
+
+    public function updateLimits(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $validated = $request->validate([
+            'package_id' => 'nullable|exists:packages,id',
+            'plan_personnel_limit' => 'required|integer|min:0',
+            'plan_customer_limit' => 'required|integer|min:0',
+            'plan_job_limit' => 'required|integer|min:0',
+            'plan_appointment_feature' => 'required|boolean',
+            'plan_appointment_limit' => 'required|integer|min:0',
+            'plan_service_tracking_feature' => 'required|boolean',
+            'plan_service_tracking_limit' => 'required|integer|min:0',
+            'plan_service_tracking_category_feature' => 'required|boolean',
+            'plan_service_tracking_category_limit' => 'required|integer|min:0',
+            'plan_proposal_feature' => 'required|boolean',
+            'plan_proposal_limit' => 'required|integer|min:0',
+            'plan_backup_feature' => 'required|boolean',
+            'plan_backup_limit' => 'required|integer|min:0',
+            'plan_services_section_feature' => 'required|boolean',
+            'plan_service_limit' => 'required|integer|min:0',
+            'plan_step_templates_feature' => 'required|boolean',
+            'plan_step_template_limit' => 'required|integer|min:0',
+            'plan_cash_register_limit' => 'required|integer|min:0',
+            'plan_api_key_feature' => 'required|boolean',
+            'plan_disk_usage_limit' => 'required|integer|min:0',
+        ]);
+
+        $tenant->update($validated);
+        return response()->json(['message' => 'Tenant limitleri güncellendi.', 'tenant' => $tenant]);
+    }
+
+    public function changePackage(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $validated = $request->validate([
+            'package_id' => 'required|exists:packages,id',
+        ]);
+
+        $package = \App\Models\Package::findOrFail($validated['package_id']);
+        $tenant->applyPackage($package);
+
+        return response()->json(['message' => 'Tenant paketi güncellendi ve limitleri senkronize edildi.', 'tenant' => $tenant]);
     }
 
     public function addUser(Request $request, $id)

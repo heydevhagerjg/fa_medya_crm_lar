@@ -113,6 +113,13 @@ class JobFileController extends Controller
         
         $tenant = Tenant::find($user->tenant_id);
 
+        if ($tenant->reachedDiskLimit()) {
+            $limit = $tenant->plan_disk_usage_limit;
+            return response()->json([
+                'message' => "Dosya yükleme limitiniz (disk kotası: {$limit} MB) dolmuştur. Daha fazla dosya yüklemek için lütfen paketinizi yükseltiniz."
+            ], 403);
+        }
+
         $query = JobCrm::where('tenant_id', $tenant->id);
         if ($user->role !== 'ADMIN') {
             if (!$user->can('files.view_all')) {

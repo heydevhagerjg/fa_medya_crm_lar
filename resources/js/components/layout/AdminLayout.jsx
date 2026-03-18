@@ -72,6 +72,20 @@ export default function AdminLayout() {
                         <span>Firmalar (Tenants)</span>
                     </NavLink>
                     <NavLink
+                        to="/admin/packages"
+                        onClick={() => setSidebarOpen(false)}
+                        className={({ isActive }) => `
+                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                            ${isActive
+                                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                            }
+                        `}
+                    >
+                        <Settings size={18} className="text-blue-500" />
+                        <span>Sistem Paketleri</span>
+                    </NavLink>
+                    <NavLink
                         to="/admin/settings"
                         onClick={() => setSidebarOpen(false)}
                         className={({ isActive }) => `

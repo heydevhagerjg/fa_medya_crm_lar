@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\JobController;
@@ -23,7 +24,6 @@ use App\Http\Controllers\Api\ServiceTrackingController;
 use App\Http\Controllers\Api\Settings\ServiceTrackingCategoryController;
 use App\Http\Controllers\Api\Settings\RoleController;
 use App\Http\Controllers\Api\Settings\PermissionController;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/packages', [\App\Http\Controllers\Admin\PackageController::class, 'index']);
 });
 
 // Public Proposal Routes
@@ -60,11 +61,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
     // Customers
-    Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('customers', CustomerController::class)->middleware('check.plan:customer');
 
     // Jobs
     Route::post('/jobs/reorder', [JobController::class, 'reorder']);
-    Route::apiResource('jobs', JobController::class);
+    Route::apiResource('jobs', JobController::class)->middleware('check.plan:job');
     Route::patch('/jobs/{id}/status', [JobController::class, 'updateStatus']);
 
     // Payments
@@ -99,10 +100,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/logs', [LogController::class, 'index'])->middleware('role.admin');
 
     // Appointments
-    Route::apiResource('appointments', AppointmentController::class);
+    Route::apiResource('appointments', AppointmentController::class)->middleware('check.plan:appointment');
 
     // Service Tracking
-    Route::apiResource('service-trackings', ServiceTrackingController::class);
+    Route::apiResource('service-trackings', ServiceTrackingController::class)->middleware('check.plan:service_tracking');
     Route::post('service-trackings/{id}/complete', [ServiceTrackingController::class, 'complete']);
     Route::post('service-trackings/{id}/catch-up', [ServiceTrackingController::class, 'catchUp']);
     Route::get('service-trackings/{id}/logs', [ServiceTrackingController::class, 'logs']);
@@ -117,24 +118,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/proposals/{id}/recall', [App\Http\Controllers\Api\ProposalController::class, 'recall']);
     Route::post('/proposals/{id}/create-job', [App\Http\Controllers\Api\ProposalController::class, 'createJob']);
     Route::post('/proposals/{proposalId}/revisions/{revisionId}/respond', [App\Http\Controllers\Api\ProposalController::class, 'respondToRevision']);
-    Route::apiResource('proposals', App\Http\Controllers\Api\ProposalController::class);
+    Route::apiResource('proposals', App\Http\Controllers\Api\ProposalController::class)->middleware('check.plan:proposal');
 
     // Settings
     Route::prefix('settings')->group(function () {
         // Admin-only Settings
         Route::middleware('role.admin')->group(function () {
             // Backup
-            Route::get('/backup/export', [BackupController::class, 'export']);
-            Route::post('/backup/import', [BackupController::class, 'import']);
+            Route::get('/backup/export', [BackupController::class, 'export'])->middleware('check.plan:backup');
+            Route::post('/backup/import', [BackupController::class, 'import'])->middleware('check.plan:backup');
             Route::post('/backup/reset', [BackupController::class, 'reset']);
             Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
             Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
 
             // Activity Logs
-            Route::apiResource('api-keys', ApiKeyController::class)->except(['show']);
+            Route::apiResource('api-keys', ApiKeyController::class)->except(['show'])->middleware('check.plan:api_key');
             
             // User Management
-            Route::apiResource('users', \App\Http\Controllers\Api\UserController::class)->except(['show']);
+            Route::apiResource('users', \App\Http\Controllers\Api\UserController::class)->except(['show'])->middleware('check.plan:personnel');
             
             // Backup Keys
             Route::post('/backup-keys/clear', [\App\Http\Controllers\Api\Settings\BackupKeyController::class, 'clearAll']);
@@ -143,20 +144,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Common Settings (or other non-critical ones if any)
         // Service Tracking Categories
-        Route::apiResource('service-tracking-categories', ServiceTrackingCategoryController::class);
+        Route::apiResource('service-tracking-categories', ServiceTrackingCategoryController::class)->middleware('check.plan:service_tracking_category');
 
         // Services
-        Route::apiResource('services', ServiceController::class);
+        Route::apiResource('services', ServiceController::class)->middleware('check.plan:service');
 
         // Job Statuses
         Route::post('/statuses/reorder', [JobStatusController::class, 'reorder']);
         Route::apiResource('statuses', JobStatusController::class);
 
         // Step Templates
-        Route::apiResource('templates', StepTemplateController::class);
+        Route::apiResource('templates', StepTemplateController::class)->middleware('check.plan:step_template');
 
         // Cash Registers
-        Route::apiResource('cash-registers', CashRegisterController::class);
+        Route::apiResource('cash-registers', CashRegisterController::class)->middleware('check.plan:cash_register');
 
         // Expense Categories
         Route::apiResource('expense-categories', ExpenseCategoryController::class);
@@ -189,7 +190,18 @@ Route::prefix('admin')->group(function () {
             Route::post('/', [\App\Http\Controllers\Admin\TenantController::class, 'store']);
             Route::get('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'show']);
             Route::post('/{id}/users', [\App\Http\Controllers\Admin\TenantController::class, 'addUser']);
+            Route::put('/{id}/limits', [\App\Http\Controllers\Admin\TenantController::class, 'updateLimits']);
+            Route::put('/{id}/change-package', [\App\Http\Controllers\Admin\TenantController::class, 'changePackage']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
+        });
+
+        Route::prefix('packages')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PackageController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Admin\PackageController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Admin\PackageController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\Admin\PackageController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\PackageController::class, 'destroy']);
+            Route::post('/{id}/sync-tenants', [\App\Http\Controllers\Admin\PackageController::class, 'syncTenants']);
         });
 
         Route::prefix('settings')->group(function () {

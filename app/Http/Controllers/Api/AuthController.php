@@ -22,11 +22,17 @@ class AuthController extends Controller
             'email'       => 'required|email|unique:users,email',
             'password'    => 'required|string|min:8|confirmed',
             'tenant_name' => 'required|string|max:255',
+            'package_id'  => 'required|exists:packages,id',
         ]);
 
         $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
         if (!$s3Config) {
             return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+        }
+
+        $package = \App\Models\Package::findOrFail($validated['package_id']);
+        if (!$package->is_active) {
+            return response()->json(['message' => 'Seçilen paket şu anda aktif değil.'], 400);
         }
 
         // Create tenant
@@ -37,6 +43,26 @@ class AuthController extends Controller
             'name' => $validated['tenant_name'],
             'slug' => $slug,
             's3_config_id' => $s3Config->id,
+            'package_id' => $package->id,
+            'plan_personnel_limit' => $package->personnel_limit,
+            'plan_customer_limit' => $package->customer_limit,
+            'plan_job_limit' => $package->job_limit,
+            'plan_appointment_feature' => $package->appointment_feature,
+            'plan_appointment_limit' => $package->appointment_limit,
+            'plan_service_tracking_feature' => $package->service_tracking_feature,
+            'plan_service_tracking_limit' => $package->service_tracking_limit,
+            'plan_service_tracking_category_feature' => $package->service_tracking_category_feature,
+            'plan_proposal_feature' => $package->proposal_feature,
+            'plan_proposal_limit' => $package->proposal_limit,
+            'plan_backup_feature' => $package->backup_feature,
+            'plan_backup_limit' => $package->backup_limit,
+            'plan_services_section_feature' => $package->services_section_feature,
+            'plan_service_limit' => $package->service_limit,
+            'plan_step_templates_feature' => $package->step_templates_feature,
+            'plan_step_template_limit' => $package->step_template_limit,
+            'plan_cash_register_limit' => $package->cash_register_limit,
+            'plan_api_key_feature' => $package->api_key_feature,
+            'plan_disk_usage_limit' => $package->disk_usage_limit,
         ]);
 
         // Create default cash register for tenant
@@ -71,7 +97,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::where('email', $validated['email'])->with('tenant')->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -83,13 +109,17 @@ class AuthController extends Controller
             return response()->json(['message' => 'Hesabınız henüz onaylanmamış.'], 403);
         }
 
+        if ($user->tenant_id && (!$user->tenant || !$user->tenant->package_id)) {
+            return response()->json(['message' => 'Hesabınıza tanımlı bir paket bulunamadı. Lütfen yönetici ile iletişime geçin.'], 403);
+        }
+
         // REMOVED: $user->tokens()->delete(); - allow multiple sessions
 
         $device = $request->header('User-Agent', 'Unknown Device');
         $token = $user->createToken($device, ['*'], now()->addDays(30))->plainTextToken;
 
         return response()->json([
-            'user'  => $this->userResource($user->load('tenant')),
+            'user'  => $this->userResource($user),
             'token' => $token,
         ]);
     }
