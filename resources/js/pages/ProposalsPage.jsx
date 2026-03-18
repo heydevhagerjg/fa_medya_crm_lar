@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
@@ -24,6 +25,8 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
 export default function ProposalsPage() {
+    const location = useLocation()
+    const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
     const [modal, setModal] = useState({ open: false, proposal: null })
@@ -48,6 +51,14 @@ export default function ProposalsPage() {
         queryKey: ['proposals'],
         queryFn: () => api.get('/proposals').then(r => r.data),
     })
+
+    useEffect(() => {
+        const idParam = queryParams.get('id')
+        if (idParam && proposals.length > 0 && !modal.open) {
+            const prop = proposals.find(p => p.id.toString() === idParam)
+            if (prop) openModal(prop)
+        }
+    }, [queryParams, proposals, modal.open])
 
     const { data: customers = [] } = useQuery({
         queryKey: ['customers'],

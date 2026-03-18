@@ -323,11 +323,17 @@ class ProposalController extends Controller
                 // Determine if this is the last installment in the schedule
                 $isLast = !ProposalInstallment::where('job_id', $installment->job_id)
                     ->where(function($q) use ($installment) {
-                        $q->where('payment_date', '>', $installment->payment_date)
-                          ->orWhere(function($sub) use ($installment) {
-                              $sub->where('payment_date', $installment->payment_date)
-                                  ->where('id', '>', $installment->id);
-                          });
+                        if ($installment->payment_date) {
+                            $q->where('payment_date', '>', $installment->payment_date)
+                              ->orWhere(function($sub) use ($installment) {
+                                  $sub->where('payment_date', $installment->payment_date)
+                                      ->where('id', '>', $installment->id);
+                              })
+                              ->orWhereNull('payment_date');
+                        } else {
+                            $q->whereNull('payment_date')
+                              ->where('id', '>', $installment->id);
+                        }
                     })
                     ->exists();
 

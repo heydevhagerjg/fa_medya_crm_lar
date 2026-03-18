@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { CreditCard, Plus, Trash2, Edit2, Search } from 'lucide-react'
+import { CreditCard, Plus, Trash2, Edit2, Search, FileText } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useEffect } from 'react'
@@ -11,7 +11,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 const paymentTypeLabel = { ADVANCE: 'Avans', PARTIAL: 'Taksit', FINAL: 'Final' }
 
-const emptyForm = { amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', jobId: '', cashRegisterId: '' }
+const emptyForm = { amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', jobId: '', cashRegisterId: '', receipt: null }
 
 export default function PaymentsPage() {
     const [search, setSearch] = useState('')
@@ -42,9 +42,25 @@ export default function PaymentsPage() {
     })
 
     const saveMutation = useMutation({
-        mutationFn: () => modal.payment
-            ? api.put(`/payments/${modal.payment.id}`, { ...form, jobId: form.jobId || null, cashRegisterId: form.cashRegisterId || null })
-            : api.post('/payments', { ...form, jobId: form.jobId || null, cashRegisterId: form.cashRegisterId || null }),
+        mutationFn: () => {
+            const formData = new FormData();
+            Object.keys(form).forEach(key => {
+                const value = form[key];
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value);
+                }
+            });
+            
+            if (modal.payment) {
+                formData.append('_method', 'PUT');
+                return api.post(`/payments/${modal.payment.id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            return api.post('/payments', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        },
         onSuccess: () => {
             qc.invalidateQueries(['payments'])
             toast.success(modal.payment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
@@ -76,6 +92,7 @@ export default function PaymentsPage() {
                 description: payment.description || '',
                 jobId: payment.jobId || payment.job_id || '',
                 cashRegisterId: payment.cashRegisterId || payment.cash_register_id || '',
+                receipt: null
             })
         } else {
             const defaultCash = cashRegisters.find(c => c.is_default);
@@ -163,6 +180,11 @@ export default function PaymentsPage() {
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-end gap-2">
+                                                {p.receiptUrl && (
+                                                    <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Dekontu Görüntüle">
+                                                        <FileText size={16} />
+                                                    </a>
+                                                )}
                                                 <button onClick={() => openModal(p)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
                                                 <button onClick={() => setDeleteConfirm(p)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
                                             </div>
@@ -221,6 +243,10 @@ export default function PaymentsPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                         <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dekont (Opsiyonel)</label>
+                        <input type="file" onChange={e => setForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModal({ open: false, payment: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>

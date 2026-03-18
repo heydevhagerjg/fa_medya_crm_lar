@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
-import { Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3, ArrowUpRight, Activity, Plus, ChevronDown, UserPlus, Calendar as CalendarIcon } from 'lucide-react'
+import {
+    Users, Briefcase, TrendingUp, CreditCard, TrendingDown, CheckSquare, Clock, BarChart3,
+    ArrowUpRight, Activity, Plus, ChevronDown, UserPlus, Calendar as CalendarIcon, FileText
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/index.js'
 import { useState, useRef, useEffect } from 'react'
@@ -42,6 +45,7 @@ export default function DashboardPage() {
         { label: 'Toplam İş', value: stats?.totalJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
         { label: 'Toplam Tahsilat', value: formatCurrency(stats?.totalPayments), icon: CreditCard, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', isText: true, permission: 'payments.view' },
         { label: 'Toplam Masraf', value: formatCurrency(stats?.totalExpenses), icon: TrendingDown, color: 'from-red-500 to-red-600', bg: 'bg-red-500/10', iconColor: 'text-red-500', isText: true, permission: 'expenses.view' },
+        { label: 'Toplam KDV', value: formatCurrency(stats?.totalVat), icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
     ]
 
     if (isLoading) return <LoadingSkeleton />
@@ -252,7 +256,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="space-y-3">
                             {(stats?.recentPayments || []).map(p => (
-                                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
                                     <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                                         <CreditCard size={16} className="text-emerald-500" />
                                     </div>
@@ -260,7 +264,14 @@ export default function DashboardPage() {
                                         <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{p.job?.title || 'Genel'}</div>
                                         <div className="text-xs text-gray-500">{formatDate(p.paymentDate)}</div>
                                     </div>
-                                    <span className="text-sm font-bold text-emerald-500">{formatCurrency(p.amount)}</span>
+                                    <div className="flex items-center gap-2">
+                                        {p.receiptUrl && (
+                                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all opacity-0 group-hover:opacity-100" title="Dekontu Görüntüle">
+                                                <FileText size={14} />
+                                            </a>
+                                        )}
+                                        <span className="text-sm font-bold text-emerald-500">{formatCurrency(p.amount)}</span>
+                                    </div>
                                 </div>
                             ))}
                             {!stats?.recentPayments?.length && <p className="text-center text-gray-400 text-sm py-4">Henüz tahsilat yok.</p>}

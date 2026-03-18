@@ -17,7 +17,7 @@ export default function JobDetailPage() {
     const [addStepTitle, setAddStepTitle] = useState('')
     const [paymentModal, setPaymentModal] = useState(false)
     const [editingPayment, setEditingPayment] = useState(null)
-    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '', receipt: null })
 
     const [expenseModal, setExpenseModal] = useState(false)
     const [editingExpense, setEditingExpense] = useState(null)
@@ -97,14 +97,29 @@ export default function JobDetailPage() {
 
     const savePayment = useMutation({
         mutationFn: () => {
-            if (editingPayment) return api.put(`/payments/${editingPayment}`, { ...paymentForm, jobId: parseInt(id) })
-            return api.post('/payments', { ...paymentForm, jobId: parseInt(id) })
+            const formData = new FormData();
+            Object.keys(paymentForm).forEach(key => {
+                if (paymentForm[key] !== null && paymentForm[key] !== undefined) {
+                    formData.append(key, paymentForm[key]);
+                }
+            });
+            formData.append('jobId', parseInt(id));
+
+            if (editingPayment) {
+                formData.append('_method', 'PUT');
+                return api.post(`/payments/${editingPayment}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+            }
+            return api.post('/payments', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
         },
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success(editingPayment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
             setPaymentModal(false)
-            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '', receipt: null })
             setEditingPayment(null)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -159,7 +174,8 @@ export default function JobDetailPage() {
                 paymentDate: (p.paymentDate || p.payment_date).toString().substring(0, 10),
                 paymentType: p.paymentType || p.payment_type || 'FINAL',
                 description: p.description || '',
-                cashRegisterId: p.cashRegisterId || p.cash_register_id || ''
+                cashRegisterId: p.cashRegisterId || p.cash_register_id || '',
+                receipt: null
             })
             setEditingPayment(p.id)
         } else {
@@ -169,7 +185,8 @@ export default function JobDetailPage() {
                 paymentDate: new Date().toISOString().substring(0, 10),
                 paymentType: 'FINAL',
                 description: '',
-                cashRegisterId: defaultCash ? defaultCash.id : ''
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+                receipt: null
             })
             setEditingPayment(null)
         }
@@ -410,6 +427,11 @@ export default function JobDetailPage() {
                         </div>
                     </div>
                 </div>
+                {job.proposalId && (
+                    <Link to={`/proposals?id=${job.proposalId}`} className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 transition-colors" title="Teklifi Görüntüle">
+                        <FileText size={18} />
+                    </Link>
+                )}
                 <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors" title="İşi Düzenle">
                     <Edit2 size={18} />
                 </button>
@@ -432,8 +454,8 @@ export default function JobDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
                     { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
+                    { label: `Toplam KDV Tutarı ${job.vatRate ? `(%${job.vatRate})` : ''}`, value: formatCurrency(job.vatAmount), color: 'text-purple-500' },
                     { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500', permission: 'payments.view' },
-                    { label: `KDV Tutarı ${job.vatRate ? `(%${job.vatRate})` : ''}`, value: formatCurrency(job.vatAmount), color: 'text-purple-500' },
                     { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500', permission: 'payments.view' },
                     { label: 'İş Aşamaları', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
                     { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500', permission: 'payments.view' },
@@ -590,6 +612,11 @@ export default function JobDetailPage() {
                                         {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {(t._type === 'PAYMENT' && t.receiptUrl) && (
+                                            <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu Görüntüle">
+                                                <FileText size={14} />
+                                            </a>
+                                        )}
                                         {(t._type === 'PAYMENT' ? hasPermission('payments.edit') : hasPermission('expenses.edit')) && (
                                             <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
                                                 <Edit2 size={14} />
@@ -754,6 +781,10 @@ export default function JobDetailPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                         <input type="text" value={paymentForm.description} onChange={e => setPaymentForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dekont (Opsiyonel)</label>
+                        <input type="file" onChange={e => setPaymentForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>

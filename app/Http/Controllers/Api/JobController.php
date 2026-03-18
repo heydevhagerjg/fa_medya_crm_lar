@@ -415,6 +415,7 @@ class JobController extends Controller
             'vatRate'       => $job->vat_rate,
             'subtotal'      => $job->subtotal,
             'vatAmount'     => $job->vat_amount,
+            'proposalId'    => $job->proposal_id,
             'createdAt'   => $job->created_at,
             'updatedAt'   => $job->updated_at,
             'userId'      => $job->user_id,

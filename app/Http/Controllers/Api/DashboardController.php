@@ -137,6 +137,19 @@ class DashboardController extends Controller
                 'missed_count' => count($t->getMissedDates()),
             ]);
 
+        $paymentsForVatQuery = Payment::where('tenant_id', $tenantId)
+            ->whereHas('job', function($q) use ($isUser, $user) {
+                $q->where('is_vat_included', true);
+                if ($isUser) $q->where('user_id', $user->id);
+            })
+            ->with('job');
+            
+        $totalVat = $paymentsForVatQuery->get()->sum(function($p) {
+            $vatRate = $p->job->vat_rate ?? 20;
+            if ($vatRate <= 0) return 0;
+            return (float) $p->amount * ($vatRate / (100 + $vatRate));
+        });
+
         return response()->json([
             'totalCustomers'       => $totalCustomers,
             'totalJobs'            => $totalJobs,
@@ -145,6 +158,7 @@ class DashboardController extends Controller
             'totalRevenue'         => $totalRevenue,
             'totalPayments'        => $totalPayments,
             'totalExpenses'        => $totalExpenses,
+            'totalVat'             => $totalVat,
             'netProfit'            => $totalPayments - $totalExpenses,
             'recentJobs'           => $recentJobs,
             'recentPayments'       => $recentPayments,
