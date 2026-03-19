@@ -40,8 +40,17 @@ class BillingController extends Controller
         $tenant = $request->user()->tenant;
         
         if ($tenant->subscribed()) {
-            $tenant->subscription()->cancel();
-            return response()->json(['message' => 'Aboneliğiniz dönem sonunda sona erecek şekilde iptal edildi.']);
+            try {
+                $tenant->subscription()->cancel();
+                return response()->json(['message' => 'Aboneliğiniz dönem sonunda sona erecek şekilde iptal edildi.']);
+            } catch (\Exception $e) {
+                // Handle Paddle API error 'cannot update subscription, pending scheduled changes'
+                if (str_contains(strtolower($e->getMessage()), 'pending scheduled changes')) {
+                    return response()->json(['message' => 'Abonelik üzerinde bekleyen bir işlem (ödeme hazırlığı vb.) olduğu için şu an iptal edilemiyor. Lütfen kısa bir süre sonra tekrar deneyin.'], 422);
+                }
+                
+                return response()->json(['message' => 'Paddle hatası: ' . $e->getMessage()], 500);
+            }
         }
 
         return response()->json(['message' => 'Aktif bir abonelik bulunamadı veya zaten iptal edilmiş.'], 400);
