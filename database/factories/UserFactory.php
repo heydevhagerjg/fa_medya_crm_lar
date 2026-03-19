@@ -27,6 +27,7 @@ class UserFactory extends Factory
         $fakerAvailable = function_exists('fake') && @fake();
         
         return [
+            'id' => (string) Str::uuid(),
             'name' => $fakerAvailable ? fake()->name() : 'User ' . Str::random(5),
             'email' => $fakerAvailable ? fake()->unique()->safeEmail() : 'user'.Str::random(5).'@example.com',
             'email_verified_at' => now(),
