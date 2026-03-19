@@ -89,10 +89,12 @@ class BillingController extends Controller
     public function checkout(Request $request)
     {
         $tenant = $request->user()->tenant;
-        $package = $tenant->package;
+        
+        $packageId = $request->get('package_id');
+        $package = $packageId ? \App\Models\Package::find($packageId) : $tenant->package;
 
         if (!$package || !$package->paddle_price_id) {
-            return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış. Lütfen yönetici ile iletişime geçin.'], 400);
+            return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
         }
 
         // Generate checkout

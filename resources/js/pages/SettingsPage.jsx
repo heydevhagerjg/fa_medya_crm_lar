@@ -1671,7 +1671,7 @@ function SubscriptionTab() {
     })
 
     const checkoutMutation = useMutation({
-        mutationFn: () => api.get('/billing/checkout').then(r => r.data),
+        mutationFn: (package_id) => api.get(`/billing/checkout${package_id ? `?package_id=${package_id}` : ''}`).then(r => r.data),
         onSuccess: (res) => {
             if (res.checkout && window.Paddle) {
                 try {
@@ -1681,16 +1681,10 @@ function SubscriptionTab() {
                     toast.error('Ödeme ekranı açılırken bir hata oluştu.');
                 }
             } else {
-                if (!window.Paddle) {
-                    toast.error('Paddle sistemi yüklenemedi. Lütfen sayfayı yenileyin.');
-                } else if (!res.checkout) {
-                    toast.error('Ödeme bilgileri alınamadı.');
-                }
+                toast.error(res.message || 'Ödeme bilgileri alınamadı.');
             }
         },
-        onError: (err) => {
-            toast.error(err.response?.data?.message || 'Ödeme linki oluşturulamadı.');
-        }
+        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme linki oluşturulamadı.')
     })
 
     const cancelMutation = useMutation({
@@ -1795,14 +1789,16 @@ function SubscriptionTab() {
                 </div>
             </div>
 
-            {sub.is_subscribed && sub.all_packages?.length > 0 && (
+            {sub.all_packages?.length > 0 && (
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden p-6">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Layers size={18} className="text-indigo-500" /> Paket Değiştir / Yükselt
+                        <Layers size={18} className="text-indigo-500" /> {sub.is_subscribed ? 'Paket Değiştir / Yükselt' : 'Bir Paket Seçin ve Başlayın'}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {sub.all_packages.map(p => {
                             const isCurrent = p.id === sub.package?.id;
+                            const isPending = sub.is_subscribed ? swapMutation.isPending : checkoutMutation.isPending;
+                            
                             return (
                                 <div key={p.id} className={`p-4 rounded-xl border ${isCurrent ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-gray-100 dark:border-gray-800'} transition-all`}>
                                     <div className="flex justify-between items-start mb-2">
@@ -1813,15 +1809,19 @@ function SubscriptionTab() {
                                         {Number(p.price).toLocaleString('tr-TR')} <span className="text-xs font-normal text-gray-400">₺ / ay</span>
                                     </p>
                                     <button
-                                        disabled={isCurrent || swapMutation.isPending}
+                                        disabled={(isCurrent && sub.is_subscribed) || isPending}
                                         onClick={() => {
-                                            if (window.confirm(`${p.name} paketine geçmek istediğinizden emin misiniz? Aradaki fiyat farkı Paddle tarafından otomatik hesaplanacaktır.`)) {
-                                                swapMutation.mutate(p.id)
+                                            if (sub.is_subscribed) {
+                                                if (window.confirm(`${p.name} paketine geçmek istediğinizden emin misiniz? Aradaki fiyat farkı Paddle tarafından otomatik hesaplanacaktır.`)) {
+                                                    swapMutation.mutate(p.id)
+                                                }
+                                            } else {
+                                                checkoutMutation.mutate(p.id)
                                             }
                                         }}
-                                        className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${isCurrent ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'}`}
+                                        className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${(isCurrent && sub.is_subscribed) ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'}`}
                                     >
-                                        {swapMutation.isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : isCurrent ? 'Şu Anki Paketiniz' : 'Bu Pakete Geç'}
+                                        {isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : isCurrent && sub.is_subscribed ? 'Şu Anki Paketiniz' : sub.is_subscribed ? 'Bu Pakete Geç' : 'Bu Paketle Başla'}
                                     </button>
                                 </div>
                             )
