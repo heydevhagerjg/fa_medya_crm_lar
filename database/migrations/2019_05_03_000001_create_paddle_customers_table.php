@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('paddle_customers', function (Blueprint $table) {
             $table->id();
             $table->morphs('billable');
             $table->string('paddle_id')->unique();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('paddle_customers');
     }
 };
