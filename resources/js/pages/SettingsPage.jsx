@@ -1818,7 +1818,7 @@ function SubscriptionTab() {
                 </div>
             </div>
 
-            {sub.all_packages?.length > 0 && (
+            {!sub.is_gifted && sub.all_packages?.length > 0 && (
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden p-6">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Layers size={18} className="text-indigo-500" /> {sub.is_subscribed ? 'Paket Değiştir / Yükselt' : 'Bir Paket Seçin ve Başlayın'}
