@@ -1673,11 +1673,8 @@ function SubscriptionTab() {
     const checkoutMutation = useMutation({
         mutationFn: () => api.get('/billing/checkout').then(r => r.data),
         onSuccess: (res) => {
-            console.log('Checkout Response:', res);
-            
             if (res.checkout && window.Paddle) {
                 try {
-                    // Paddle v2 standardı
                     window.Paddle.Checkout.open(res.checkout);
                 } catch (error) {
                     console.error('Paddle Checkout Error:', error);
@@ -1685,7 +1682,6 @@ function SubscriptionTab() {
                 }
             } else {
                 if (!window.Paddle) {
-                    console.error('Paddle.js not loaded on window');
                     toast.error('Paddle sistemi yüklenemedi. Lütfen sayfayı yenileyin.');
                 } else if (!res.checkout) {
                     toast.error('Ödeme bilgileri alınamadı.');
@@ -1693,12 +1689,22 @@ function SubscriptionTab() {
             }
         },
         onError: (err) => {
-            console.error('Checkout API Error:', err);
             toast.error(err.response?.data?.message || 'Ödeme linki oluşturulamadı.');
         }
     })
 
+    const cancelMutation = useMutation({
+        mutationFn: () => api.post('/billing/cancel').then(r => r.data),
+        onSuccess: (res) => {
+            qc.invalidateQueries(['subscription'])
+            toast.success(res.message)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'İşlem başarısız.')
+    })
+
     if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
+
+    const nextBilledAt = sub.subscription?.next_billed_at || sub.subscription?.scheduled_change?.effective_at || sub.subscription?.billing_period?.ends_at;
 
     return (
         <div className="max-w-4xl space-y-6">
@@ -1749,9 +1755,32 @@ function SubscriptionTab() {
                         </>
                     )}
                     {sub.is_subscribed && (
-                        <div className="space-y-2">
-                             <p className="text-sm font-bold text-gray-900 dark:text-white">Abonelik Aktif</p>
-                             <p className="text-xs text-gray-500">Bir sonraki ödeme: {sub.subscription?.next_billed_at ? new Date(sub.subscription.next_billed_at).toLocaleDateString('tr-TR') : '-'}</p>
+                        <div className="space-y-4 w-full">
+                             <div className="text-center">
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">Abonelik Aktif</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {sub.subscription?.ends_at 
+                                        ? `Bitiş: ${new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')}`
+                                        : `Yenileme: ${nextBilledAt ? new Date(nextBilledAt).toLocaleDateString('tr-TR') : '-'}`
+                                    }
+                                </p>
+                             </div>
+                             
+                             {!sub.subscription?.ends_at && (
+                                <button 
+                                    onClick={() => { if(window.confirm('Aboneliğinizi dönem sonunda sona ermek üzere iptal etmek istediğinize emin misiniz?')) cancelMutation.mutate() }}
+                                    disabled={cancelMutation.isPending}
+                                    className="w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg border border-red-100 dark:border-red-500/20 transition-colors"
+                                >
+                                    {cancelMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                                    Aboneliği İptal Et
+                                </button>
+                             )}
+                             {sub.subscription?.ends_at && (
+                                <div className="text-[10px] p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-100 dark:border-amber-500/20 font-medium leading-tight">
+                                    Abonelik iptal edildi, {new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')} tarihinde sona erecek.
+                                </div>
+                             )}
                         </div>
                     )}
                 </div>

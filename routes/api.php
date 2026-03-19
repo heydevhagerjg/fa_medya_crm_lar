@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum', 'check.plan'])->group(function () {
     // Billing
     Route::get('/billing/subscription', [\App\Http\Controllers\Api\BillingController::class, 'subscription']);
     Route::get('/billing/checkout', [\App\Http\Controllers\Api\BillingController::class, 'checkout']);
+    Route::post('/billing/cancel', [\App\Http\Controllers\Api\BillingController::class, 'cancel']);
 
     // Customers
     Route::apiResource('customers', CustomerController::class)->middleware('check.plan:customer');
