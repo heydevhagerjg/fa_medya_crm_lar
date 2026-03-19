@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->morphs('billable');
+            $table->string('billable_id');
+            $table->string('billable_type');
+            $table->index(['billable_id', 'billable_type']);
             $table->string('paddle_id')->unique();
             $table->string('paddle_subscription_id')->nullable()->index();
             $table->string('invoice_number')->nullable();

@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->morphs('billable');
+            $table->string('billable_id');
+            $table->string('billable_type');
+            $table->index(['billable_id', 'billable_type']);
             $table->string('type');
             $table->string('paddle_id')->unique();
             $table->string('status');

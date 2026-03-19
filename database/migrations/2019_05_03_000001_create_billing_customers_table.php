@@ -13,7 +13,11 @@ return new class extends Migration
     {
         Schema::create('billing_customers', function (Blueprint $table) {
             $table->id();
-            $table->morphs('billable');
+            // UUID desteği için stringMorphs yerine manuel tanımlıyoruz
+            $table->string('billable_id');
+            $table->string('billable_type');
+            $table->index(['billable_id', 'billable_type']);
+            
             $table->string('paddle_id')->unique();
             $table->string('name');
             $table->string('email');
