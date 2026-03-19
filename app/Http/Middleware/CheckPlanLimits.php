@@ -28,10 +28,10 @@ class CheckPlanLimits
         $isFree = $package && $package->price <= 0;
 
         if (!$isFree && !$tenant->onTrial() && !$tenant->subscribed()) {
-            // Allow access to billing routes even if not subscribed
-            if (!$request->is('api/billing/*') && !$request->is('api/auth/me')) {
+            // Allow access to billing, auth AND all GET requests (read-only) even if not subscribed
+            if (!$request->isMethod('GET') && !$request->is('api/billing/*') && !$request->is('api/auth/*')) {
                 return response()->json([
-                    'message' => 'Deneme süreniz sona ermiştir. Lütfen devam etmek için abone olunuz.',
+                    'message' => 'Abonelik süreniz sona ermiştir. Verilerinizi görmeye devam edebilirsiniz ancak yeni işlem yapabilmek için lütfen abone olunuz.',
                     'subscription_required' => true
                 ], 402);
             }
