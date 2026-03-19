@@ -19,9 +19,15 @@ class BillingController extends Controller
                 $paddleSub = $subscription->asPaddleSubscription();
                 $nextBilledAt = $paddleSub->nextBilledAt ? $paddleSub->nextBilledAt->format('Y-m-d H:i:s') : null;
                 
-                // If nextBilledAt is null, it might be in scheduled_change
-                if (!$nextBilledAt && !empty($paddleSub->scheduledChange)) {
-                    $nextBilledAt = $paddleSub->scheduledChange['effective_at'] ?? null;
+                // If nextBilledAt is null, it might be in scheduled_change or billing cycle
+                if (!$nextBilledAt) {
+                    if (!empty($paddleSub->scheduledChange)) {
+                        $nextBilledAt = $paddleSub->scheduledChange['effective_at'] ?? null;
+                    } elseif (!empty($paddleSub->billingCycle)) {
+                        $nextBilledAt = $paddleSub->billingCycle['next_step_at'] ?? null;
+                    } elseif (!empty($paddleSub->currentBillingPeriod)) {
+                        $nextBilledAt = $paddleSub->currentBillingPeriod['ends_at'] ?? null;
+                    }
                 }
             } catch (\Exception $e) {
                 // If API fails, log it or ignore

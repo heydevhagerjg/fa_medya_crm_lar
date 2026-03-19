@@ -1723,7 +1723,7 @@ function SubscriptionTab() {
     const totalPages = Math.ceil(receipts.length / perPage);
     const paginatedReceipts = receipts.slice((page - 1) * perPage, page * perPage);
 
-    const nextBilledAt = sub.subscription?.next_billed_at || sub.subscription?.scheduled_change?.effective_at || sub.subscription?.billing_period?.ends_at;
+    const nextBilledAt = sub.subscription?.next_billed_at || sub.subscription?.scheduled_change?.effective_at || sub.subscription?.billing_period?.ends_at || sub.trial_ends_at;
 
     return (
         <div className="max-w-4xl space-y-6">
