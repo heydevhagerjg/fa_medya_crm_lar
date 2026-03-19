@@ -1673,13 +1673,29 @@ function SubscriptionTab() {
     const checkoutMutation = useMutation({
         mutationFn: () => api.get('/billing/checkout').then(r => r.data),
         onSuccess: (res) => {
+            console.log('Checkout Response:', res);
+            
             if (res.checkout && window.Paddle) {
-                window.Paddle.Checkout.open(res.checkout)
+                try {
+                    // Paddle v2 standardı
+                    window.Paddle.Checkout.open(res.checkout);
+                } catch (error) {
+                    console.error('Paddle Checkout Error:', error);
+                    toast.error('Ödeme ekranı açılırken bir hata oluştu.');
+                }
             } else {
-                toast.error('Ödeme sistemi başlatılamadı.')
+                if (!window.Paddle) {
+                    console.error('Paddle.js not loaded on window');
+                    toast.error('Paddle sistemi yüklenemedi. Lütfen sayfayı yenileyin.');
+                } else if (!res.checkout) {
+                    toast.error('Ödeme bilgileri alınamadı.');
+                }
             }
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme hatası.')
+        onError: (err) => {
+            console.error('Checkout API Error:', err);
+            toast.error(err.response?.data?.message || 'Ödeme linki oluşturulamadı.');
+        }
     })
 
     if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
