@@ -9,6 +9,15 @@
         <meta name="csrf-token" content="{{ csrf_token() }}" />
         @viteReactRefresh
         @vite(['resources/js/main.jsx'])
+        <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+        <script type="text/javascript">
+            Paddle.Initialize({ 
+                token: "{{ config('cashier.client_side_token') }}",
+                @if(config('cashier.sandbox'))
+                environment: 'sandbox'
+                @endif
+            });
+        </script>
     </head>
     <body>
         <div id="root"></div>

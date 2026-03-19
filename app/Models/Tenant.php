@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Paddle\Billable;
 use App\Traits\HasPlanLimits;
 
 class Tenant extends Model
 {
-    use HasPlanLimits;
+    use HasPlanLimits, Billable;
 
     protected $fillable = [
         'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id',

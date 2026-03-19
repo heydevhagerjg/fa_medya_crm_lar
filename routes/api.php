@@ -46,7 +46,7 @@ Route::prefix('public')->group(function () {
 });
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'check.plan'])->group(function () {
 
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -59,6 +59,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+
+    // Billing
+    Route::get('/billing/subscription', [\App\Http\Controllers\Api\BillingController::class, 'subscription']);
+    Route::get('/billing/checkout', [\App\Http\Controllers\Api\BillingController::class, 'checkout']);
 
     // Customers
     Route::apiResource('customers', CustomerController::class)->middleware('check.plan:customer');

@@ -8,6 +8,10 @@ import Pagination from '../../../components/ui/Pagination.jsx'
 
 const emptyPackage = {
     name: '',
+    price: 0,
+    trial_days: 14,
+    paddle_product_id: '',
+    paddle_price_id: '',
     personnel_limit: 0,
     customer_limit: 0,
     job_limit: 0,
@@ -45,8 +49,8 @@ export default function PackagesPage() {
     })
 
     const saveMutation = useMutation({
-        mutationFn: (data) => modal.mode === 'create' 
-            ? api.post('/admin/packages', data) 
+        mutationFn: (data) => modal.mode === 'create'
+            ? api.post('/admin/packages', data)
             : api.put(`/admin/packages/${modal.package.id}`, data),
         onSuccess: () => {
             qc.invalidateQueries(['admin-packages'])
@@ -134,6 +138,7 @@ export default function PackagesPage() {
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     <th className="px-5 py-4">Paket Adı</th>
+                                    <th className="px-5 py-4">Fiyat</th>
                                     <th className="px-5 py-4">Personel/Müşteri/İş</th>
                                     <th className="px-5 py-4">Kota</th>
                                     <th className="px-5 py-4">Durum</th>
@@ -148,16 +153,22 @@ export default function PackagesPage() {
                                             <div className="text-[10px] text-gray-400 mt-0.5">ID: {pkg.id}</div>
                                         </td>
                                         <td className="px-5 py-4">
+                                            <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">₺{pkg.price}</div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5">/ aylık</div>
+                                        </td>
+                                        <td className="px-5 py-4">
                                             <div className="flex gap-2">
-                                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[10px] font-bold rounded">U: {pkg.personnel_limit}</span>
-                                                <span className="px-2 py-0.5 bg-green-50 dark:bg-green-500/10 text-green-600 text-[10px] font-bold rounded">C: {pkg.customer_limit}</span>
-                                                <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded">J: {pkg.job_limit}</span>
+                                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[10px] font-bold rounded">U: {pkg.personnel_limit === 0 ? '∞' : pkg.personnel_limit}</span>
+                                                <span className="px-2 py-0.5 bg-green-50 dark:bg-green-500/10 text-green-600 text-[10px] font-bold rounded">C: {pkg.customer_limit === 0 ? '∞' : pkg.customer_limit}</span>
+                                                <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded">J: {pkg.job_limit === 0 ? '∞' : pkg.job_limit}</span>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {pkg.disk_usage_limit >= 1024 
-                                                ? (pkg.disk_usage_limit / 1024).toFixed(1) + ' GB' 
-                                                : pkg.disk_usage_limit + ' MB'
+                                        <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 font-bold">
+                                            {pkg.disk_usage_limit === 0
+                                                ? 'Sınırsız'
+                                                : (pkg.disk_usage_limit >= 1024
+                                                    ? (pkg.disk_usage_limit / 1024).toFixed(1) + ' GB'
+                                                    : pkg.disk_usage_limit + ' MB')
                                             }
                                         </td>
                                         <td className="px-5 py-4">
@@ -173,8 +184,8 @@ export default function PackagesPage() {
                                         </td>
                                         <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button 
-                                                    onClick={() => { if(confirm('Bu paketi kullanan TÜM firmaların limitlerini şu anki paket özellikleriyle güncellemek istediğinize emin misiniz?')) syncMutation.mutate(pkg.id) }} 
+                                                <button
+                                                    onClick={() => { if (confirm('Bu paketi kullanan TÜM firmaların limitlerini şu anki paket özellikleriyle güncellemek istediğinize emin misiniz?')) syncMutation.mutate(pkg.id) }}
                                                     disabled={syncMutation.isPending}
                                                     className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors"
                                                     title="Limitleri Firmalara Senkronize Et"
@@ -184,7 +195,7 @@ export default function PackagesPage() {
                                                 <button onClick={() => openEditModal(pkg)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button onClick={() => { if(confirm('Silmek istediğinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                                <button onClick={() => { if (confirm('Silmek istediğinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -201,7 +212,7 @@ export default function PackagesPage() {
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-6 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
                     {/* Temel Bilgiler */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-1">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Paket Adı *</label>
                             <input
                                 type="text"
@@ -212,10 +223,62 @@ export default function PackagesPage() {
                                 placeholder="Örn: Gold Paket"
                             />
                         </div>
-                        
+
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 text-indigo-500">Aylık Fiyat (TL) *</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={form.price}
+                                onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                                required
+                                className="w-full px-4 py-2.5 bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-indigo-700 dark:text-indigo-400"
+                                placeholder="0.00"
+                            />
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                <Users size={14} /> Personel Limiti
+                                Deneme Süresi (Gün)
+                            </label>
+                            <input
+                                type="number"
+                                value={form.trial_days}
+                                onChange={e => setForm({ ...form, trial_days: parseInt(e.target.value) || 0 })}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                                Paddle Product ID
+                            </label>
+                            <input
+                                type="text"
+                                value={form.paddle_product_id}
+                                onChange={e => setForm({ ...form, paddle_product_id: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                                placeholder="pro_..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                                Paddle Price ID
+                            </label>
+                            <input
+                                type="text"
+                                value={form.paddle_price_id}
+                                onChange={e => setForm({ ...form, paddle_price_id: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                                placeholder="pri_..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><Users size={14} /> Personel Limiti</span>
+                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
                             </label>
                             <input
                                 type="number"
@@ -226,8 +289,9 @@ export default function PackagesPage() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                <Users size={14} className="text-green-500" /> Müşteri Limiti
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><Users size={14} className="text-green-500" /> Müşteri Limiti</span>
+                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
                             </label>
                             <input
                                 type="number"
@@ -238,8 +302,9 @@ export default function PackagesPage() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                <Briefcase size={14} className="text-orange-500" /> İş Limiti
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><Briefcase size={14} className="text-orange-500" /> İş Limiti</span>
+                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
                             </label>
                             <input
                                 type="number"
@@ -250,8 +315,9 @@ export default function PackagesPage() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                <HardDrive size={14} className="text-red-500" /> Disk Kotası (MB)
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><HardDrive size={14} className="text-red-500" /> Disk Kotası (MB)</span>
+                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
                             </label>
                             <input
                                 type="number"
@@ -266,21 +332,21 @@ export default function PackagesPage() {
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <Layers size={18} className="text-purple-500" /> Modül Özellikleri & Limitleri
                         </h3>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            
+
                             {/* Randevu */}
                             <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Calendar size={16} className="text-blue-500" /> Randevu Feature
+                                        <Calendar size={16} className="text-blue-500" /> Randevu Modülü
                                     </span>
-                                    <Switch checked={form.appointment_feature} onChange={v => setForm({...form, appointment_feature: v})} />
+                                    <Switch checked={form.appointment_feature} onChange={v => setForm({ ...form, appointment_feature: v })} />
                                 </div>
                                 {form.appointment_feature && (
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Randevu Limiti</label>
-                                        <input type="number" value={form.appointment_limit} onChange={e => setForm({...form, appointment_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        <input type="number" value={form.appointment_limit} onChange={e => setForm({ ...form, appointment_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                     </div>
                                 )}
                             </div>
@@ -291,17 +357,17 @@ export default function PackagesPage() {
                                     <span className="text-sm font-semibold flex items-center gap-2">
                                         <Activity size={16} className="text-green-500" /> Hizmet Takibi
                                     </span>
-                                    <Switch checked={form.service_tracking_feature} onChange={v => setForm({...form, service_tracking_feature: v})} />
+                                    <Switch checked={form.service_tracking_feature} onChange={v => setForm({ ...form, service_tracking_feature: v })} />
                                 </div>
                                 {form.service_tracking_feature && (
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Takip Limiti</label>
-                                            <input type="number" value={form.service_tracking_limit} onChange={e => setForm({...form, service_tracking_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                            <input type="number" value={form.service_tracking_limit} onChange={e => setForm({ ...form, service_tracking_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Takip Kategori Limiti</label>
-                                            <input type="number" value={form.service_tracking_category_limit || 0} onChange={e => setForm({...form, service_tracking_category_limit: parseInt(e.target.value) || 0})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                            <input type="number" value={form.service_tracking_category_limit || 0} onChange={e => setForm({ ...form, service_tracking_category_limit: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                         </div>
                                     </div>
                                 )}
@@ -313,12 +379,12 @@ export default function PackagesPage() {
                                     <span className="text-sm font-semibold flex items-center gap-2">
                                         <FileText size={16} className="text-red-500" /> Teklif Modülü
                                     </span>
-                                    <Switch checked={form.proposal_feature} onChange={v => setForm({...form, proposal_feature: v})} />
+                                    <Switch checked={form.proposal_feature} onChange={v => setForm({ ...form, proposal_feature: v })} />
                                 </div>
                                 {form.proposal_feature && (
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Teklif Limiti</label>
-                                        <input type="number" value={form.proposal_limit} onChange={e => setForm({...form, proposal_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        <input type="number" value={form.proposal_limit} onChange={e => setForm({ ...form, proposal_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                     </div>
                                 )}
                             </div>
@@ -329,12 +395,12 @@ export default function PackagesPage() {
                                     <span className="text-sm font-semibold flex items-center gap-2">
                                         <Database size={16} className="text-yellow-500" /> Yedekleme
                                     </span>
-                                    <Switch checked={form.backup_feature} onChange={v => setForm({...form, backup_feature: v})} />
+                                    <Switch checked={form.backup_feature} onChange={v => setForm({ ...form, backup_feature: v })} />
                                 </div>
                                 {form.backup_feature && (
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Yedek Limiti</label>
-                                        <input type="number" value={form.backup_limit} onChange={e => setForm({...form, backup_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        <input type="number" value={form.backup_limit} onChange={e => setForm({ ...form, backup_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                     </div>
                                 )}
                             </div>
@@ -345,12 +411,12 @@ export default function PackagesPage() {
                                     <span className="text-sm font-semibold flex items-center gap-2">
                                         <Layers size={16} className="text-indigo-500" /> Hizmetler Bölümü
                                     </span>
-                                    <Switch checked={form.services_section_feature} onChange={v => setForm({...form, services_section_feature: v})} />
+                                    <Switch checked={form.services_section_feature} onChange={v => setForm({ ...form, services_section_feature: v })} />
                                 </div>
                                 {form.services_section_feature && (
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hizmet Tanım Limiti</label>
-                                        <input type="number" value={form.service_limit} onChange={e => setForm({...form, service_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        <input type="number" value={form.service_limit} onChange={e => setForm({ ...form, service_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                     </div>
                                 )}
                             </div>
@@ -361,12 +427,12 @@ export default function PackagesPage() {
                                     <span className="text-sm font-semibold flex items-center gap-2">
                                         <Layers size={16} className="text-pink-500" /> Adım Şablonları
                                     </span>
-                                    <Switch checked={form.step_templates_feature} onChange={v => setForm({...form, step_templates_feature: v})} />
+                                    <Switch checked={form.step_templates_feature} onChange={v => setForm({ ...form, step_templates_feature: v })} />
                                 </div>
                                 {form.step_templates_feature && (
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Şablon Limiti</label>
-                                        <input type="number" value={form.step_template_limit} onChange={e => setForm({...form, step_template_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        <input type="number" value={form.step_template_limit} onChange={e => setForm({ ...form, step_template_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
                                     </div>
                                 )}
                             </div>
@@ -374,18 +440,18 @@ export default function PackagesPage() {
                             {/* Diğerleri */}
                             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl">
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Kasa Limiti</label>
-                                    <input type="number" value={form.cash_register_limit} onChange={e => setForm({...form, cash_register_limit: parseInt(e.target.value)})} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm mb-3" />
+                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2 flex items-center justify-between">Kasa Limiti <span className="text-[10px] text-blue-500 lowercase normal-case">(0 = sınırsız)</span></label>
+                                    <input type="number" value={form.cash_register_limit} onChange={e => setForm({ ...form, cash_register_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm mb-3" />
                                     <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
                                         <span className="text-sm font-semibold flex items-center gap-2">
                                             <Shield size={16} className="text-cyan-500" /> API Anahtarı Özelliği
                                         </span>
-                                        <Switch checked={form.api_key_feature} onChange={v => setForm({...form, api_key_feature: v})} />
+                                        <Switch checked={form.api_key_feature} onChange={v => setForm({ ...form, api_key_feature: v })} />
                                     </div>
                                 </div>
                                 <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-between">
                                     <span className="text-sm font-semibold">Paket Aktiflik Durumu</span>
-                                    <Switch checked={form.is_active} onChange={v => setForm({...form, is_active: v})} />
+                                    <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
                                 </div>
                             </div>
 

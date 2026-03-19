@@ -9,6 +9,10 @@ class Package extends Model
 {
     protected $fillable = [
         'name',
+        'price',
+        'trial_days',
+        'paddle_product_id',
+        'paddle_price_id',
         'personnel_limit',
         'customer_limit',
         'job_limit',

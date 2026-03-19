@@ -27,6 +27,10 @@ import PublicProposalPage from './pages/PublicProposalPage.jsx'
 import AdminTenantsPage from './pages/admin/dashboard/TenantsPage.jsx'
 import AdminPackagesPage from './pages/admin/dashboard/PackagesPage.jsx'
 import AdminSettingsPage from './pages/admin/dashboard/SettingsPage.jsx'
+import PricingPage from './pages/PricingPage.jsx'
+import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
+import RefundPolicyPage from './pages/RefundPolicyPage.jsx'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx'
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated } = useAuthStore()
@@ -60,6 +64,10 @@ export default function App() {
             {/* Standard User Routes */}
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/tos" element={<TermsOfServicePage />} />
+            <Route path="/refund" element={<RefundPolicyPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
             <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<DashboardPage />} />

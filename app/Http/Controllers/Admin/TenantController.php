@@ -141,6 +141,11 @@ class TenantController extends Controller
             'plan_disk_usage_limit' => $package->disk_usage_limit,
         ]);
 
+        // Create as Paddle customer with trial
+        $tenant->createAsCustomer([
+            'trial_ends_at' => now()->addDays($package->trial_days),
+        ]);
+
         return response()->json($tenant, 201);
     }
 

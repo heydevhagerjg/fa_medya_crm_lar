@@ -38,6 +38,7 @@ export default function SettingsPage() {
         // Tech / System
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key, permission: 'settings.manage' },
         { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock, permission: 'settings.manage' },
+        { path: '/settings/subscription', label: 'Abonelik', icon: Wallet, permission: 'settings.manage' },
     ]
 
     return (
@@ -88,6 +89,7 @@ export default function SettingsPage() {
                 </div>} />
                 <Route path="import-keys" element={<BackupKeysTab />} />
                 <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
+                <Route path="subscription" element={<SubscriptionTab />} />
             </Routes>
         </div>
     )
@@ -1658,6 +1660,123 @@ function UsersTab() {
                     </div>
                 </div>
             </Modal>
+        </div>
+    )
+}
+
+function SubscriptionTab() {
+    const { data: sub, isLoading } = useQuery({
+        queryKey: ['subscription'],
+        queryFn: () => api.get('/billing/subscription').then(r => r.data)
+    })
+
+    const checkoutMutation = useMutation({
+        mutationFn: () => api.get('/billing/checkout').then(r => r.data),
+        onSuccess: (res) => {
+            if (res.checkout && window.Paddle) {
+                window.Paddle.Checkout.open(res.checkout)
+            } else {
+                toast.error('Ödeme sistemi başlatılamadı.')
+            }
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme hatası.')
+    })
+
+    if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
+
+    return (
+        <div className="max-w-4xl space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3">
+                        <Activity className="text-indigo-500 opacity-20" size={48} />
+                    </div>
+                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Mevcut Paket</h3>
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{sub.package?.name || 'Paket Bilgisi Yok'}</p>
+                    <div className="mt-4 flex items-center gap-2">
+                        {sub.is_subscribed ? (
+                            <span className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
+                                <ShieldCheck size={10} /> Aktif Abone
+                            </span>
+                        ) : sub.is_on_trial ? (
+                            <span className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-lg border border-blue-200 dark:border-blue-500/20 uppercase">
+                                <Activity size={10} /> Deneme Süresinde
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg border border-red-200 dark:border-red-500/20 uppercase">
+                                <AlertCircle size={10} /> Pasif / Süresi Dolmuş
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Deneme Bitiş</h3>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                        {sub.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2 font-medium">Kredi kartı gerekmeden 14 gün ücretsiz kullanım.</p>
+                </div>
+
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-center items-center text-center">
+                    {!sub.is_subscribed && (
+                        <>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Tam özellikler için abone olun</p>
+                            <button 
+                                onClick={() => checkoutMutation.mutate()} 
+                                disabled={checkoutMutation.isPending}
+                                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                            >
+                                {checkoutMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                                Şimdi Abone Ol
+                            </button>
+                        </>
+                    )}
+                    {sub.is_subscribed && (
+                        <div className="space-y-2">
+                             <p className="text-sm font-bold text-gray-900 dark:text-white">Abonelik Aktif</p>
+                             <p className="text-xs text-gray-500">Bir sonraki ödeme: {sub.subscription?.next_billed_at ? new Date(sub.subscription.next_billed_at).toLocaleDateString('tr-TR') : '-'}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">Ödeme Geçmişi</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 text-[10px] uppercase font-bold">
+                            <tr>
+                                <th className="px-6 py-3">Tarih</th>
+                                <th className="px-6 py-3">Açıklama</th>
+                                <th className="px-6 py-3 text-right">Tutar</th>
+                                <th className="px-6 py-3 text-right">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {(sub.receipts || []).map((r, i) => (
+                                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{r.description || 'Abonelik Ödemesi'}</td>
+                                    <td className="px-6 py-4 text-right font-mono font-bold text-gray-900 dark:text-white">{r.amount} {r.currency}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
+                                            Başarılı
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                            {(!sub.receipts || sub.receipts.length === 0) && (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-8 text-center text-gray-400">Henüz bir ödeme kaydı bulunmamaktadır.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     )
 }

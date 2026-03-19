@@ -23,6 +23,17 @@ class CheckPlanLimits
 
         $tenant = $user->tenant;
 
+        // Check subscription/trial status
+        if (!$tenant->onTrial() && !$tenant->subscribed()) {
+            // Allow access to billing routes even if not subscribed
+            if (!$request->is('api/billing/*') && !$request->is('api/auth/me')) {
+                return response()->json([
+                    'message' => 'Deneme süreniz sona ermiştir. Lütfen devam etmek için abone olunuz.',
+                    'subscription_required' => true
+                ], 402);
+            }
+        }
+
         // If a specific feature is passed to the middleware, check if it's enabled
         if ($feature) {
             $label = $tenant->getFeatureLabel($feature);

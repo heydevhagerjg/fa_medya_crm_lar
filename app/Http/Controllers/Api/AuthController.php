@@ -71,6 +71,11 @@ class AuthController extends Controller
             'is_default' => true,
         ]);
 
+        // Create as Paddle customer with trial
+        $tenant->createAsCustomer([
+            'trial_ends_at' => now()->addDays($package->trial_days),
+        ]);
+
         // Create user as ADMIN
         $user = User::create([
             'id'          => Str::uuid()->toString(),

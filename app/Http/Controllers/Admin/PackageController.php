@@ -17,6 +17,10 @@ class PackageController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'trial_days' => 'required|integer|min:0',
+            'paddle_product_id' => 'nullable|string|max:255',
+            'paddle_price_id' => 'nullable|string|max:255',
             'personnel_limit' => 'required|integer|min:0',
             'customer_limit' => 'required|integer|min:0',
             'job_limit' => 'required|integer|min:0',
@@ -55,6 +59,10 @@ class PackageController extends Controller
         $package = Package::findOrFail($id);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'trial_days' => 'required|integer|min:0',
+            'paddle_product_id' => 'nullable|string|max:255',
+            'paddle_price_id' => 'nullable|string|max:255',
             'personnel_limit' => 'required|integer|min:0',
             'customer_limit' => 'required|integer|min:0',
             'job_limit' => 'required|integer|min:0',

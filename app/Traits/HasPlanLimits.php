@@ -35,9 +35,9 @@ trait HasPlanLimits
         }
 
         $limit = $this->{$limitField};
-
-        // If limit is null, it's unlimited
-        if ($limit === null) {
+        
+        // If limit is 0 or null, it's unlimited
+        if ($limit === 0 || $limit === null) {
             return false;
         }
         
@@ -72,6 +72,10 @@ trait HasPlanLimits
      */
     public function reachedDiskLimit(): bool
     {
+        if ($this->plan_disk_usage_limit === 0) {
+            return false;
+        }
+        
         // storage_used is in bytes, plan_disk_usage_limit is in MB
         return $this->storage_used >= ($this->plan_disk_usage_limit * 1024 * 1024);
     }
