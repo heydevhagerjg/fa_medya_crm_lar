@@ -198,11 +198,9 @@ class TenantController extends Controller
         $package = \App\Models\Package::findOrFail($validated['package_id']);
         $tenant->applyPackage($package);
 
-        // Reset "Gifted/Unlimited" status and clear the long trial fallback
-        // This will force the system to check Paddle for real subscriptions again.
+        // Reset "Gifted/Unlimited" status
         $tenant->update([
             'is_gifted' => false,
-            'trial_ends_at' => null, // Reset trial
         ]);
 
         return response()->json(['message' => 'Tenant paketi güncellendi, hediye durumu sıfırlandı ve standart ödeme kontrolüne dönüldü.', 'tenant' => $tenant->load('package')]);
@@ -251,9 +249,8 @@ class TenantController extends Controller
         // 1. Apply features and limits
         $tenant->applyPackage($package);
         
-        // 2. Set as GIFTED and set long trial fallback
+        // 2. Set as GIFTED
         $tenant->update([
-            'trial_ends_at' => now()->addYears(100),
             'is_gifted' => true,
         ]);
 

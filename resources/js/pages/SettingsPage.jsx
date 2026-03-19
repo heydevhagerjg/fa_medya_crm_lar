@@ -1402,7 +1402,7 @@ function UsersTab() {
     const [modal, setModal] = useState({ open: false, user: null })
     const [form, setForm] = useState({ name: '', email: '', password: '', role: 'USER', roleId: '' })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
-    
+
     const [highlightId, setHighlightId] = useState(null)
 
     // Automatically scrolling feature can be triggered by useEffect
@@ -1414,7 +1414,7 @@ function UsersTab() {
                 const el = document.getElementById(`user-${h}`)
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
             }, 500)
-            
+
             // Remove highlight after 3 seconds to create a blink/flash effect
             setTimeout(() => {
                 setHighlightId(null)
@@ -1495,54 +1495,55 @@ function UsersTab() {
 
     const renderUserCard = (u) => {
         const isHighlighted = highlightId && String(highlightId) === String(u.id);
-        
+
         return (
-        <div 
-            key={u.id} 
-            id={`user-${u.id}`}
-            className={
-                isHighlighted 
-                ? "bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500 rounded-2xl p-4 flex items-center justify-between group shadow-lg ring-4 ring-indigo-500/20 transition-all"
-                : "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm"
-            }
-        >
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                    {u.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 truncate">
-                        {u.name}
-                        {u.role === 'ADMIN' && <ShieldCheck size={14} className="text-indigo-500" title="Yönetici" />}
+            <div
+                key={u.id}
+                id={`user-${u.id}`}
+                className={
+                    isHighlighted
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500 rounded-2xl p-4 flex items-center justify-between group shadow-lg ring-4 ring-indigo-500/20 transition-all"
+                        : "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm"
+                }
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                        {u.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${u.role === 'ADMIN' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
-                            }`}>
-                            {u.role === 'ADMIN' ? 'Yetkili' : 'Personel'}
-                        </span>
-                        {u.roles?.map(r => (
-                            <span key={r.id} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded font-bold uppercase flex items-center gap-1">
-                                <Shield size={10} /> {r.name}
+                    <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 truncate">
+                            {u.name}
+                            {u.role === 'ADMIN' && <ShieldCheck size={14} className="text-indigo-500" title="Yönetici" />}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${u.role === 'ADMIN' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
+                                }`}>
+                                {u.role === 'ADMIN' ? 'Yetkili' : 'Personel'}
                             </span>
-                        ))}
+                            {u.roles?.map(r => (
+                                <span key={r.id} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded font-bold uppercase flex items-center gap-1">
+                                    <Shield size={10} /> {r.name}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
+                <div className="flex gap-1 items-center">
+                    {u.role !== 'ADMIN' && (
+                        <button onClick={() => openModal(u)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                            <Edit2 size={16} />
+                        </button>
+                    )}
+                    {u.id !== currentUser?.id && u.role !== 'ADMIN' && (
+                        <button onClick={() => setDeleteConfirm(u)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                            <Trash2 size={16} />
+                        </button>
+                    )}
+                </div>
             </div>
-            <div className="flex gap-1 items-center">
-                {u.role !== 'ADMIN' && (
-                    <button onClick={() => openModal(u)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                        <Edit2 size={16} />
-                    </button>
-                )}
-                {u.id !== currentUser?.id && u.role !== 'ADMIN' && (
-                    <button onClick={() => setDeleteConfirm(u)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                        <Trash2 size={16} />
-                    </button>
-                )}
-            </div>
-        </div>
-    )}
+        )
+    }
 
     return (
         <div className="space-y-4">
@@ -1729,82 +1730,83 @@ function SubscriptionTab() {
 
     return (
         <div className="max-w-4xl space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3">
-                        <Activity className="text-indigo-500 opacity-20" size={48} />
+            <div className={`grid grid-cols-1 ${sub.is_gifted ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6`}>
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">MEVCUT PAKET</div>
+                        <CreditCard size={18} className="text-indigo-500" />
                     </div>
-                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Mevcut Paket</h3>
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">{sub.package?.name || 'Paket Bilgisi Yok'}</p>
-                    <div className="mt-4 flex items-center gap-2">
-                        {sub.is_subscribed ? (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
-                                <ShieldCheck size={10} /> Aktif Abone
-                            </span>
-                        ) : sub.is_on_trial ? (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-lg border border-blue-200 dark:border-blue-500/20 uppercase">
-                                <Activity size={10} /> Deneme Süresinde
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg border border-red-200 dark:border-red-500/20 uppercase">
-                                <AlertCircle size={10} /> Pasif / Süresi Dolmuş
-                            </span>
-                        )}
+                    <div className="flex items-end gap-2 mb-2">
+                        <p className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{sub.package?.name || 'Paket Seçilmedi'}</p>
                     </div>
+                    {sub.is_subscribed || sub.on_trial || sub.is_gifted ? (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-100 dark:border-green-500/20 w-fit">
+                            <ShieldCheck size={12} /> AKTİF
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg border border-red-100 dark:border-red-500/20 w-fit uppercase">
+                             Pasif / Süresi Dolmuş
+                        </div>
+                    )}
                 </div>
 
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Deneme Bitiş</h3>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                        {sub.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2 font-medium">Kredi kartı gerekmeden 14 gün ücretsiz kullanım.</p>
-                </div>
+                {!sub.is_gifted && (
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">DENEME BİTİŞ</div>
+                            <Clock size={16} className="text-amber-500" />
+                        </div>
+                        <p className="text-xl font-bold text-gray-900 dark:text-white">
+                            {sub.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2 font-medium">Kredi kartı gerekmeden ücretsiz deneyin.</p>
+                    </div>
+                )}
 
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-center items-center text-center">
                     {sub.is_subscribed ? (
                         <div className="space-y-4 w-full">
-                             <div className="text-center">
+                            <div className="text-center">
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">Abonelik Aktif</p>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {sub.subscription?.ends_at 
+                                    {sub.subscription?.ends_at
                                         ? `Bitiş: ${new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')}`
                                         : `Yenileme: ${nextBilledAt ? new Date(nextBilledAt).toLocaleDateString('tr-TR') : '-'}`
                                     }
                                 </p>
-                             </div>
-                             
-                             {!sub.subscription?.ends_at && (
-                                <button 
-                                    onClick={() => { if(window.confirm('Aboneliğinizi dönem sonunda sona ermek üzere iptal etmek istediğinize emin misiniz?')) cancelMutation.mutate() }}
+                            </div>
+
+                            {!sub.subscription?.ends_at && (
+                                <button
+                                    onClick={() => { if (window.confirm('Aboneliğinizi dönem sonunda sona ermek üzere iptal etmek istediğinize emin misiniz?')) cancelMutation.mutate() }}
                                     disabled={cancelMutation.isPending}
                                     className="w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg border border-red-100 dark:border-red-500/20 transition-colors"
                                 >
                                     {cancelMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                                     Aboneliği İptal Et
                                 </button>
-                             )}
-                             {sub.subscription?.ends_at && (
+                            )}
+                            {sub.subscription?.ends_at && (
                                 <div className="text-[10px] p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-100 dark:border-amber-500/20 font-medium leading-tight">
                                     Abonelik iptal edildi, {new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')} tarihinde sona erecek.
                                 </div>
-                             )}
+                            )}
                         </div>
                     ) : isUnlimited ? (
                         <div className="text-center space-y-2">
-                             <div className="mx-auto w-10 h-10 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center">
-                                 <ShieldCheck size={20} />
-                             </div>
-                             <div>
+                            <div className="mx-auto w-10 h-10 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center">
+                                <ShieldCheck size={20} />
+                            </div>
+                            <div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">Sınırsız Erişim</p>
                                 <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Yönetici Paketi</p>
-                             </div>
+                            </div>
                         </div>
                     ) : (
                         <>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Tam özellikler için abone olun</p>
-                            <button 
-                                onClick={() => checkoutMutation.mutate()} 
+                            <button
+                                onClick={() => checkoutMutation.mutate()}
                                 disabled={checkoutMutation.isPending}
                                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                             >
@@ -1825,7 +1827,7 @@ function SubscriptionTab() {
                         {sub.all_packages.map(p => {
                             const isCurrent = p.id === sub.package?.id;
                             const isPending = sub.is_subscribed ? swapMutation.isPending : checkoutMutation.isPending;
-                            
+
                             return (
                                 <div key={p.id} className={`p-4 rounded-xl border ${isCurrent ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-gray-100 dark:border-gray-800'} transition-all`}>
                                     <div className="flex justify-between items-start mb-2">
@@ -1884,7 +1886,7 @@ function SubscriptionTab() {
                                             <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
                                                 Başarılı
                                             </span>
-                                            <button 
+                                            <button
                                                 onClick={() => api.get(`/billing/receipt/${r.id}`).then(res => res.data.url && window.open(res.data.url, '_blank')).catch(() => toast.error('Fatura alınamadı'))}
                                                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-indigo-500 transition-colors"
                                                 title="Faturayı İndir"
@@ -1903,10 +1905,10 @@ function SubscriptionTab() {
                         </tbody>
                     </table>
                 </div>
-                <Pagination 
-                    currentPage={page} 
-                    totalPages={totalPages} 
-                    onPageChange={setPage} 
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
                     totalItems={receipts.length}
                 />
             </div>
@@ -1922,7 +1924,7 @@ function SubscriptionTab() {
                             Ödemeniz başarıyla alındı. Yeni limitleriniz ve özellikleriniz tanımlandı.
                         </p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => window.location.reload()}
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
                     >
