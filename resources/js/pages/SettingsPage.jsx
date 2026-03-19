@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-ro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download, CreditCard } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useAuthStore } from '../stores/index.js'
@@ -1745,7 +1745,7 @@ function SubscriptionTab() {
                         </div>
                     ) : (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg border border-red-100 dark:border-red-500/20 w-fit uppercase">
-                             Pasif / Süresi Dolmuş
+                            Pasif / Süresi Dolmuş
                         </div>
                     )}
                 </div>
