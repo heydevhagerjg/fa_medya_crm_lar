@@ -11,11 +11,11 @@
         @vite(['resources/js/main.jsx'])
         <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
         <script type="text/javascript">
+            @if(config('cashier.sandbox'))
+            Paddle.Environment.set("sandbox");
+            @endif
             Paddle.Initialize({ 
-                token: "{{ config('cashier.client_side_token') }}",
-                @if(config('cashier.sandbox'))
-                environment: 'sandbox'
-                @endif
+                token: "{{ config('cashier.client_side_token') }}"
             });
         </script>
     </head>

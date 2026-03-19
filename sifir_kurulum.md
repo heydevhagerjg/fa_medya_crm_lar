@@ -63,7 +63,14 @@ php artisan storage:link
 ```
 
 ### 8. Ödeme Sistemi (Paddle) Ayarları
-Proje, abonelik ve plan limitleri için **Paddle** kullanır. `.env` dosyanıza Paddle anahtarlarınızı ekleyin:
+Proje, abonelik ve plan limitleri için **Paddle** kullanır. `.env` dosyanıza Paddle anahtarlarınızı ekleyin. 
+
+> [!TIP]
+> **En Güncel Paddle Sandbox Bilgisi:**
+> - Sandbox API Key'leri `_sdbx` içerir.
+> - Client-side Token'lar `test_` ile başlar.
+> - Sandbox Seller ID, canlı hesaptan farklıdır.
+
 ```env
 # Paddle Ayarları
 PADDLE_SELLER_ID=your_seller_id_here
