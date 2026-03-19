@@ -17,22 +17,22 @@ class TestS3Command extends Command
 
     public function handle()
     {
-        $tenant = \App\Models\Tenant::whereNotNull('aws_access_key_id')->first();
-        if (!$tenant) {
-            $this->error('No tenant with S3 configured.');
+        $admin = \App\Models\Admin::whereNotNull('aws_access_key_id')->first();
+        if (!$admin) {
+            $this->error('No admin with S3 configured.');
             return;
         }
 
-        $region = $tenant->aws_region ?? 'eu-central-1';
+        $region = $admin->aws_region ?? 'eu-central-1';
         $diskName = 'test_s3_command';
         
         \Illuminate\Support\Facades\Config::set("filesystems.disks.{$diskName}", [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
+            'key'    => $admin->aws_access_key_id,
+            'secret' => $admin->aws_secret_access_key,
             'region' => $region,
-            'bucket' => $tenant->aws_bucket_name,
-            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'bucket' => $admin->aws_bucket_name,
+            'url'    => "https://{$admin->aws_bucket_name}.s3.{$region}.amazonaws.com",
             'use_path_style_endpoint' => false,
             'throw'  => true,
         ]);

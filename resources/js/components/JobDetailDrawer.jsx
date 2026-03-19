@@ -146,15 +146,13 @@ export default function JobDetailDrawer({ jobId, isOpen, onClose }) {
                                         </div>
                                     </div>
                                     <div className="p-5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[24px]">
-                                        <div className="text-sm font-bold text-gray-400 mb-1">Bedel / Kalan</div>
+                                        <div className="text-sm font-bold text-gray-400 mb-1">Sorumlu Personel</div>
                                         <div className="flex items-center gap-2">
-                                            <div className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600">
-                                                <CreditCard size={14} />
+                                            <div className="p-1.5 bg-purple-50 dark:bg-purple-500/10 rounded-lg text-purple-600">
+                                                <User size={14} />
                                             </div>
-                                            <div className="text-gray-900 dark:text-white font-bold">
-                                                {formatCurrency(job.totalPrice)}
-                                                <span className="mx-1 text-gray-300">/</span>
-                                                <span className="text-red-500">{formatCurrency(parseFloat(job.totalPrice) - (job.payment?.reduce((s, p) => s + parseFloat(p.amount), 0) || 0))}</span>
+                                            <div className="text-gray-900 dark:text-white font-bold truncate">
+                                                {job.assignedTo?.name || 'Atanmamış'}
                                             </div>
                                         </div>
                                     </div>

@@ -13,10 +13,14 @@ class JobStepController extends Controller
 {
     public function update(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
 
-        $step = JobStep::whereHas('job', function ($q) use ($tenantId) {
+        $step = JobStep::whereHas('job', function ($q) use ($tenantId, $user) {
             $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                $q->where('user_id', $user->id);
+            }
         })->findOrFail($id);
 
         $validated = $request->validate([
@@ -38,7 +42,8 @@ class JobStepController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
 
         $validated = $request->validate([
             'jobId' => 'required|integer',
@@ -46,7 +51,11 @@ class JobStepController extends Controller
             'order' => 'nullable|integer',
         ]);
 
-        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($validated['jobId']);
+        $query = JobCrm::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+        $job = $query->findOrFail($validated['jobId']);
 
         $step = JobStep::create([
             'job_id' => $job->id,
@@ -62,10 +71,14 @@ class JobStepController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
 
-        $step = JobStep::whereHas('job', function ($q) use ($tenantId) {
+        $step = JobStep::whereHas('job', function ($q) use ($tenantId, $user) {
             $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                $q->where('user_id', $user->id);
+            }
         })->findOrFail($id);
 
         $job = $step->job;
@@ -80,12 +93,17 @@ class JobStepController extends Controller
 
     public function applyTemplate(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
         $validated = $request->validate([
             'templateId' => 'required|integer',
         ]);
 
-        $job = JobCrm::where('tenant_id', $tenantId)->findOrFail($id);
+        $query = JobCrm::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+        $job = $query->findOrFail($id);
         $template = \App\Models\StepTemplate::where('tenant_id', $tenantId)
             ->with(['defaultSteps' => function($q) {
                 $q->orderBy('order');

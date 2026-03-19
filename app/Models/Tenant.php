@@ -4,16 +4,77 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Paddle\Billable;
+use App\Traits\HasPlanLimits;
 
 class Tenant extends Model
 {
+    use HasPlanLimits, Billable;
+
     protected $fillable = [
-        'id', 'name', 'slug', 'storage_used',
-        'aws_access_key_id', 'aws_secret_access_key', 'aws_region', 'aws_bucket_name',
+        'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id',
+        'plan_personnel_limit', 'plan_customer_limit', 'plan_job_limit',
+        'plan_appointment_feature', 'plan_appointment_limit',
+        'plan_service_tracking_feature', 'plan_service_tracking_limit', 'plan_service_tracking_category_feature', 'plan_service_tracking_category_limit',
+        'plan_proposal_feature', 'plan_proposal_limit',
+        'plan_backup_feature', 'plan_backup_limit',
+        'plan_services_section_feature', 'plan_service_limit',
+        'plan_step_templates_feature', 'plan_step_template_limit',
+        'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit'
     ];
 
     public $incrementing = false;
     protected $keyType = 'string';
+
+    protected $casts = [
+        'plan_appointment_feature' => 'boolean',
+        'plan_service_tracking_feature' => 'boolean',
+        'plan_service_tracking_category_feature' => 'boolean',
+        'plan_proposal_feature' => 'boolean',
+        'plan_backup_feature' => 'boolean',
+        'plan_services_section_feature' => 'boolean',
+        'plan_step_templates_feature' => 'boolean',
+        'plan_api_key_feature' => 'boolean',
+        'plan_disk_usage_limit' => 'integer',
+        'storage_used' => 'integer',
+    ];
+
+    public function package()
+    {
+        return $this->belongsTo(Package::class);
+    }
+
+    public function applyPackage(Package $package)
+    {
+        $this->update([
+            'package_id' => $package->id,
+            'plan_personnel_limit' => $package->personnel_limit,
+            'plan_customer_limit' => $package->customer_limit,
+            'plan_job_limit' => $package->job_limit,
+            'plan_appointment_feature' => $package->appointment_feature,
+            'plan_appointment_limit' => $package->appointment_limit,
+            'plan_service_tracking_feature' => $package->service_tracking_feature,
+            'plan_service_tracking_limit' => $package->service_tracking_limit,
+            'plan_service_tracking_category_feature' => $package->service_tracking_category_feature,
+            'plan_service_tracking_category_limit' => $package->service_tracking_category_limit,
+            'plan_proposal_feature' => $package->proposal_feature,
+            'plan_proposal_limit' => $package->proposal_limit,
+            'plan_backup_feature' => $package->backup_feature,
+            'plan_backup_limit' => $package->backup_limit,
+            'plan_services_section_feature' => $package->services_section_feature,
+            'plan_service_limit' => $package->service_limit,
+            'plan_step_templates_feature' => $package->step_templates_feature,
+            'plan_step_template_limit' => $package->step_template_limit,
+            'plan_cash_register_limit' => $package->cash_register_limit,
+            'plan_api_key_feature' => $package->api_key_feature,
+            'plan_disk_usage_limit' => $package->disk_usage_limit,
+        ]);
+    }
+
+    public function s3Config()
+    {
+        return $this->belongsTo(S3Config::class, 's3_config_id');
+    }
 
     public function users(): HasMany
     {

@@ -9,16 +9,17 @@ use Illuminate\Support\Str;
 class ActivityLogService
 {
     public static function log(
-        User $user,
+        ?User $user,
         string $action,
         string $entityType,
         string|int|null $entityId,
         string|null $entityName,
-        string|null $details = null
+        string|null $details = null,
+        string|int|null $tenantId = null
     ): void {
         ActivityLog::create([
-            'tenant_id'   => $user->tenant_id,
-            'user_id'     => $user->id,
+            'tenant_id'   => $tenantId ?? ($user ? $user->tenant_id : null),
+            'user_id'     => $user ? $user->id : null,
             'action'      => $action,
             'entity_type' => $entityType,
             'entity_id'   => $entityId ? (string) $entityId : null,

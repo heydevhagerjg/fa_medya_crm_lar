@@ -10,20 +10,69 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Admin;
+
 class ExpenseController extends Controller
 {
     use HasTenantCache;
+
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
+    {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $tenant = request()->user()->tenant ?? null;
+        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
+            return false;
+        }
+        $config = $tenant->s3Config;
+
+        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
+            return false;
+        }
+
+        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
+
+        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
+
+        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
+            'driver' => 's3',
+            'key'    => trim($config->aws_access_key_id),
+            'secret' => trim($config->aws_secret_access_key),
+            'region' => $region,
+            'bucket' => trim($config->aws_bucket_name),
+            'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
+            'throw'  => true,
+            'version' => 'latest'
+        ]);
+
+        self::$globalS3Disk = 's3_global';
+        return true;
+    }
 
     public function index(Request $request): JsonResponse
     {
         $cacheKey = $this->getTenantCacheKey('expenses');
 
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $tenantId = $request->user()->tenant_id;
+            $user = $request->user();
+            $tenantId = $user->tenant_id;
 
             $query = Expense::where('tenant_id', $tenantId)
                 ->with(['job', 'category', 'cashRegister'])
                 ->orderByDesc('date');
+
+            if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+                $query->whereHas('job', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
 
             if ($request->has('jobId')) {
                 $query->where('job_id', $request->jobId);
@@ -45,9 +94,32 @@ class ExpenseController extends Controller
             'jobId'          => 'nullable|integer',
             'categoryId'     => 'nullable|integer',
             'cashRegisterId' => 'nullable|integer',
+            'receipt'        => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:5120',
         ]);
 
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        // Verify job ownership if specified
+        if (!empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            $jobQuery = \App\Models\JobCrm::where('tenant_id', $tenantId);
+            if (!$user->can('expenses.view_all')) {
+                $jobQuery->where('user_id', $user->id);
+            }
+            $jobQuery->findOrFail($validated['jobId']);
+        } elseif (empty($validated['jobId']) && $user->role !== 'ADMIN') {
+            if (!$user->can('expenses.view_all')) {
+                return response()->json(['message' => 'Genel gider girişi yetkiniz bulunmamaktadır.'], 403);
+            }
+        }
+
+        $receiptPath = null;
+        if ($request->hasFile('receipt')) {
+            if (!$this->setGlobalS3Config()) {
+                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
+            }
+            $receiptPath = $request->file('receipt')->store('tenants/' . $tenantId . '/expense_receipts', 's3_global');
+        }
 
         $expense = Expense::create([
             'tenant_id'        => $tenantId,
@@ -58,6 +130,7 @@ class ExpenseController extends Controller
             'date'             => $validated['date'],
             'description'      => $validated['description'] ?? null,
             'cash_register_id' => $validated['cashRegisterId'] ?? null,
+            'receipt_path'     => $receiptPath,
         ]);
 
         $this->clearTenantCache('expenses');
@@ -71,8 +144,19 @@ class ExpenseController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $expense = Expense::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.edit')) {
+            return response()->json(['message' => 'Gider/Masraf düzeltme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+        $tenantId = $user->tenant_id;
+
+        $query = Expense::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $expense = $query->findOrFail($id);
 
         $validated = $request->validate([
             'title'          => 'sometimes|string|max:255',
@@ -82,7 +166,20 @@ class ExpenseController extends Controller
             'jobId'          => 'nullable|integer',
             'categoryId'     => 'nullable|integer',
             'cashRegisterId' => 'nullable|integer',
+            'receipt'        => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:5120',
         ]);
+
+        if ($request->hasFile('receipt')) {
+            if (!$this->setGlobalS3Config()) {
+                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
+            }
+
+            if ($expense->receipt_path) {
+                Storage::disk('s3_global')->delete($expense->receipt_path);
+            }
+
+            $expense->receipt_path = $request->file('receipt')->store('tenants/' . $tenantId . '/expense_receipts', 's3_global');
+        }
 
         $expense->update([
             'title'            => $validated['title'] ?? $expense->title,
@@ -105,16 +202,62 @@ class ExpenseController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $expense = Expense::where('tenant_id', $tenantId)->findOrFail($id);
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.delete')) {
+            return response()->json(['message' => 'Gider/Masraf silme işlemi için yetkiniz bulunmamaktadır.'], 403);
+        }
+        $tenantId = $user->tenant_id;
+
+        $query = Expense::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $expense = $query->findOrFail($id);
 
         ActivityLogService::log($request->user(), 'DELETE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->amount} TL tutarındaki {$expense->title} masrafı silindi.");
+
+        if ($expense->receipt_path) {
+            if ($this->setGlobalS3Config()) {
+                Storage::disk('s3_global')->delete($expense->receipt_path);
+            }
+        }
 
         $expense->delete();
         $this->clearTenantCache('expenses');
         $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Masraf silindi.']);
+    }
+
+    public function receipt(Request $request, int $id)
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $query = Expense::where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN' && !$user->can('expenses.view_all')) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $expense = $query->findOrFail($id);
+
+        if (!$expense->receipt_path) {
+            abort(404);
+        }
+
+        if (!$this->setGlobalS3Config()) {
+            abort(400, 'S3 Configuration missing');
+        }
+
+        $s3 = Storage::disk('s3_global');
+        if (!$s3->exists($expense->receipt_path)) {
+            abort(404);
+        }
+
+        return $s3->response($expense->receipt_path);
     }
 }

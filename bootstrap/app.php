@@ -18,6 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // API grubunun en başına ekliyoruz ki auth:sanctum'dan önce çalışsın
         $middleware->prependToGroup('api', \App\Http\Middleware\VerifyApiKey::class);
+        $middleware->appendToGroup('api', \App\Http\Middleware\SetPermissionTeamId::class);
+        
+        $middleware->alias([
+            'role.admin' => \App\Http\Middleware\EnsureIsAdmin::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'check.plan' => \App\Http\Middleware\CheckPlanLimits::class,
+        ]);
 
         $middleware->redirectGuestsTo(fn () => null);
     })
@@ -35,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'İstenilen kayıt bulunamadı.'
+                    'message' => 'Sayfa veya kayıt bulunamadı.'
                 ], 404);
             }
         });

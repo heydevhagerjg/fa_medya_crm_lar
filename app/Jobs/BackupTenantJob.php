@@ -15,6 +15,7 @@ use App\Models\ApiKey;
 use App\Models\ActivityLog;
 use App\Models\ExpenseCategory;
 use App\Models\CashRegister;
+use App\Models\Admin;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Config;
@@ -40,7 +41,7 @@ class BackupTenantJob implements ShouldQueue
             return;
         }
 
-        if (!$this->setS3Config($tenant)) {
+        if (!$this->setGlobalS3Config()) {
             return;
         }
 
@@ -138,12 +139,7 @@ class BackupTenantJob implements ShouldQueue
                 'apikeys'           => $apiKeys,
                 'activitylogs'      => $activityLogs,
             ],
-            'tenant_settings' => [
-                'aws_access_key_id'     => $tenant->aws_access_key_id,
-                'aws_secret_access_key' => $tenant->aws_secret_access_key,
-                'aws_region'            => $tenant->aws_region,
-                'aws_bucket_name'       => $tenant->aws_bucket_name,
-            ],
+            'tenant_settings' => [],
             'exported_from' => 'famedya_crm',
         ];
 
@@ -159,29 +155,43 @@ class BackupTenantJob implements ShouldQueue
         $filename = Str::slug($tenant->name ?? 'yedek', '_') . '_auto_' . now()->timestamp . ".json";
 
         try {
-            Storage::disk('s3_tenant')->put("backups/{$filename}", $jsonContent);
+            Storage::disk('s3_global')->put("tenants/{$tenantId}/backups/{$filename}", $jsonContent);
             Log::info("S3 auto backup created successfully for tenant ID {$tenantId}: {$filename}");
         } catch (\Exception $e) {
             Log::error("S3 Auto Backup upload failed for tenant ID {$tenantId}: " . $e->getMessage());
         }
     }
 
-    private function setS3Config(Tenant $tenant): bool
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config(): bool
     {
-        if (empty($tenant->aws_access_key_id) || empty($tenant->aws_secret_access_key) || empty($tenant->aws_region) || empty($tenant->aws_bucket_name)) {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $admin = Admin::first();
+        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
             return false;
         }
 
-        Config::set('filesystems.disks.s3_tenant', [
+        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
+
+        Storage::forgetDisk('s3_global');
+
+        Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
-            'region' => $tenant->aws_region,
-            'bucket' => $tenant->aws_bucket_name,
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'key'    => trim($admin->aws_access_key_id),
+            'secret' => trim($admin->aws_secret_access_key),
+            'region' => $region,
+            'bucket' => trim($admin->aws_bucket_name),
+            'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
             'throw'  => true,
+            'version' => 'latest'
         ]);
 
+        self::$globalS3Disk = true;
         return true;
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 
 class JobStatusController extends Controller
 {
+    use \App\Traits\HasTenantCache;
     public function index(Request $request): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
@@ -65,13 +66,32 @@ class JobStatusController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $status = JobStatus::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+        $tenantId = $request->user()->tenant_id;
+        $status = JobStatus::where('tenant_id', $tenantId)->findOrFail($id);
         
         if ($status->name === 'Varsayılan') {
             return response()->json(['message' => 'Varsayılan durum silinemez.'], 403);
         }
 
+        $defaultStatus = JobStatus::where('tenant_id', $tenantId)->where('name', 'Varsayılan')->first();
+        if (!$defaultStatus) {
+            $defaultStatus = JobStatus::create([
+                'tenant_id' => $tenantId,
+                'name'      => 'Varsayılan',
+                'color'     => '#6366f1',
+                'order'     => 0,
+            ]);
+        }
+
+        // Reassign jobs to avoid them falling into "null" status
+        \App\Models\JobCrm::where('tenant_id', $tenantId)
+            ->where('job_status_id', $id)
+            ->update(['job_status_id' => $defaultStatus->id]);
+
         $status->delete();
-        return response()->json(['message' => 'Durum silindi.']);
+        
+        $this->clearTenantCache('jobs');
+
+        return response()->json(['message' => 'Durum silindi. Varsa içindeki işler Varsayılan kategoriye taşındı.']);
     }
 }

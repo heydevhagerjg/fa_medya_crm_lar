@@ -29,6 +29,29 @@ export const useAuthStore = create(
     )
 );
 
+export const useAdminStore = create(
+    persist(
+        (set, get) => ({
+            admin: null,
+            token: null,
+            isAdminAuthenticated: false,
+
+            setAdminAuth: (admin, token) => {
+                set({ admin, token, isAdminAuthenticated: true });
+                localStorage.setItem('admin_token', token);
+            },
+
+            clearAdminAuth: () => {
+                set({ admin: null, token: null, isAdminAuthenticated: false });
+                localStorage.removeItem('admin_token');
+            },
+        }),
+        {
+            name: 'crm-admin-auth',
+        }
+    )
+);
+
 export const useThemeStore = create(
     persist(
         (set, get) => ({

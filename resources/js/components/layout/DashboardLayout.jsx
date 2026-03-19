@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore, useThemeStore } from '../../stores/index.js'
 import api from '../../lib/api.js'
@@ -11,25 +11,42 @@ import {
 
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa' },
-    { to: '/customers', icon: Users, label: 'Müşteriler' },
-    { to: '/jobs', icon: Briefcase, label: 'İşler' },
-    { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)' },
-    { to: '/appointments', icon: Calendar, label: 'Randevular' },
-    { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi' },
-    { to: '/payments', icon: CreditCard, label: 'Tahsilatlar' },
-    { to: '/expenses', icon: TrendingDown, label: 'Masraflar' },
-    { to: '/files', icon: FolderOpen, label: 'Dosyalar' },
-    { to: '/logs', icon: FileText, label: 'Aktivite Logları' },
-    { to: '/backup', icon: Database, label: 'Yedek' },
-    { to: '/api-docs', icon: FileCode, label: 'API Dokümanı' },
-    { to: '/settings', icon: Settings, label: 'Ayarlar' },
+    { to: '/customers', icon: Users, label: 'Müşteriler', permission: 'customers.view' },
+    { to: '/jobs', icon: Briefcase, label: 'İşler', permission: 'jobs.view' },
+    { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)', permission: 'jobs.view' },
+    { to: '/appointments', icon: Calendar, label: 'Randevular', permission: 'appointments.view' },
+    { to: '/proposals', icon: FileText, label: 'Teklifler' },
+    { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi' }, // Base permission if needed
+    { to: '/payments', icon: CreditCard, label: 'Tahsilatlar', permission: 'payments.view' },
+    { to: '/expenses', icon: TrendingDown, label: 'Masraflar', permission: 'expenses.view' },
+    { to: '/files', icon: FolderOpen, label: 'Dosyalar', permission: 'files.view' },
+    { to: '/logs', icon: FileText, label: 'Aktivite Logları', permission: 'logs.view' },
+    { to: '/backup', icon: Database, label: 'Yedek', permission: 'settings.manage' },
+    { to: '/api-docs', icon: FileCode, label: 'API Dokümanı', permission: 'admin_only' },
+    { to: '/settings', icon: Settings, label: 'Ayarlar', permission: 'settings.view' },
 ]
 
 export default function DashboardLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const { user, clearAuth } = useAuthStore()
+    const { user, setAuth, clearAuth } = useAuthStore()
     const { theme, toggleTheme } = useThemeStore()
     const navigate = useNavigate()
+
+    useEffect(() => {
+        // Refresh user data to get updated permissions
+        api.get('/auth/me').then(res => {
+            setAuth(res.data, localStorage.getItem('crm_token'))
+        }).catch(() => {
+            // If fails, maybe token is invalid
+        })
+    }, [])
+
+    const hasPermission = (p) => {
+        if (!p) return true;
+        if (p === 'admin_only') return user?.role === 'ADMIN';
+        if (user?.role === 'ADMIN') return true;
+        return user?.permissions?.includes(p) || false;
+    }
 
     const handleLogout = async () => {
         try {
@@ -42,7 +59,7 @@ export default function DashboardLayout() {
 
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
-            {/* Mobile overlay */}
+            {/* ... overlay code ... */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
@@ -64,8 +81,8 @@ export default function DashboardLayout() {
                             <img src="/favicon.ico" alt="Logo" className="w-8 h-8" />
                         </div>
                         <div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white">FA Medya</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">CRM Panel</div>
+                            <div className="text-sm font-bold text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Yönetim Paneli</div>
                         </div>
                     </div>
                     <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -81,7 +98,9 @@ export default function DashboardLayout() {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-                    {navItems.map(({ to, icon: Icon, label }) => (
+                    {navItems
+                        .filter(item => hasPermission(item.permission))
+                        .map(({ to, icon: Icon, label }) => (
                         <NavLink
                             key={to}
                             to={to}

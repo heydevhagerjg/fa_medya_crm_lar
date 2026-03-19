@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     protected $fillable = [
-        'tenant_id', 'job_id', 'category_id', 'title', 'amount', 'date', 'description', 'cash_register_id',
+        'tenant_id', 'job_id', 'category_id', 'title', 'amount', 'date', 'description', 'cash_register_id', 'receipt_path'
     ];
 
     protected $casts = [
