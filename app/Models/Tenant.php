@@ -72,6 +72,11 @@ class Tenant extends Model
         ]);
     }
 
+    public function trialEndsAt($params = [])
+    {
+        return $this->trial_ends_at;
+    }
+
     public function s3Config()
     {
         return $this->belongsTo(S3Config::class, 's3_config_id');
