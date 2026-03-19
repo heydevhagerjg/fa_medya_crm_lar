@@ -115,4 +115,24 @@ class BillingController extends Controller
             'checkout' => $checkoutData
         ]);
     }
+
+    public function receipt(Request $request, $id)
+    {
+        $tenant = $request->user()->tenant;
+        
+        // Find the transaction by ID and ensure it belongs to the tenant
+        $transaction = $tenant->transactions()->where('id', $id)->firstOrFail();
+        
+        try {
+            $paddleTransaction = $transaction->asPaddleTransaction();
+            
+            if ($paddleTransaction && $paddleTransaction->receipt_url) {
+                return response()->json(['url' => $paddleTransaction->receipt_url]);
+            }
+            
+            return response()->json(['message' => 'Fatura bağlantısı bulunamadı.'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Paddle hatası: ' . $e->getMessage()], 500);
+        }
+    }
 }

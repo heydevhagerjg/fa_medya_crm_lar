@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-ro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import { useAuthStore } from '../stores/index.js'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -1862,9 +1862,18 @@ function SubscriptionTab() {
                                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{r.description || 'Abonelik Ödemesi'}</td>
                                     <td className="px-6 py-4 text-right font-mono font-bold text-gray-900 dark:text-white">{r.total ? (r.total / 100).toFixed(2) : '0.00'} {r.currency}</td>
                                     <td className="px-6 py-4 text-right">
-                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
-                                            Başarılı
-                                        </span>
+                                        <div className="flex items-center justify-end gap-3">
+                                            <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
+                                                Başarılı
+                                            </span>
+                                            <button 
+                                                onClick={() => api.get(`/billing/receipt/${r.id}`).then(res => res.data.url && window.open(res.data.url, '_blank')).catch(() => toast.error('Fatura alınamadı'))}
+                                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-indigo-500 transition-colors"
+                                                title="Faturayı İndir"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

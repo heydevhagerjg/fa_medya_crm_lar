@@ -65,6 +65,7 @@ Route::middleware(['auth:sanctum', 'check.plan'])->group(function () {
     Route::get('/billing/checkout', [\App\Http\Controllers\Api\BillingController::class, 'checkout']);
     Route::post('/billing/cancel', [\App\Http\Controllers\Api\BillingController::class, 'cancel']);
     Route::post('/billing/swap', [\App\Http\Controllers\Api\BillingController::class, 'swap']);
+    Route::get('/billing/receipt/{id}', [\App\Http\Controllers\Api\BillingController::class, 'receipt']);
 
     // Customers
     Route::apiResource('customers', CustomerController::class)->middleware('check.plan:customer');
