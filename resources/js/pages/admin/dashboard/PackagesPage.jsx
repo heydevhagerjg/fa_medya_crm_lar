@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save } from 'lucide-react'
+import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save, CreditCard } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -209,259 +209,176 @@ export default function PackagesPage() {
             </div>
 
             <Modal open={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'Yeni Paket Oluştur' : 'Paketi Düzenle'} size="xl">
-                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-6 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
-                    {/* Temel Bilgiler */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Paket Adı *</label>
-                            <input
-                                type="text"
-                                value={form.name}
-                                onChange={e => setForm({ ...form, name: e.target.value })}
-                                required
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                                placeholder="Örn: Gold Paket"
-                            />
-                        </div>
-
-                        <div className="md:col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 text-indigo-500">Aylık Fiyat (TL) *</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={form.price}
-                                onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
-                                required
-                                className="w-full px-4 py-2.5 bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-indigo-700 dark:text-indigo-400"
-                                placeholder="0.00"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                Deneme Süresi (Gün)
-                            </label>
-                            <input
-                                type="number"
-                                value={form.trial_days}
-                                onChange={e => setForm({ ...form, trial_days: parseInt(e.target.value) || 0 })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                Paddle Product ID
-                            </label>
-                            <input
-                                type="text"
-                                value={form.paddle_product_id}
-                                onChange={e => setForm({ ...form, paddle_product_id: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                                placeholder="pro_..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                                Paddle Price ID
-                            </label>
-                            <input
-                                type="text"
-                                value={form.paddle_price_id}
-                                onChange={e => setForm({ ...form, paddle_price_id: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                                placeholder="pri_..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Users size={14} /> Personel Limiti</span>
-                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
-                            </label>
-                            <input
-                                type="number"
-                                value={form.personnel_limit}
-                                onChange={e => setForm({ ...form, personnel_limit: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Users size={14} className="text-green-500" /> Müşteri Limiti</span>
-                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
-                            </label>
-                            <input
-                                type="number"
-                                value={form.customer_limit}
-                                onChange={e => setForm({ ...form, customer_limit: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Briefcase size={14} className="text-orange-500" /> İş Limiti</span>
-                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
-                            </label>
-                            <input
-                                type="number"
-                                value={form.job_limit}
-                                onChange={e => setForm({ ...form, job_limit: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><HardDrive size={14} className="text-red-500" /> Disk Kotası (MB)</span>
-                                <span className="text-[10px] text-blue-500">(0 = Sınırsız)</span>
-                            </label>
-                            <input
-                                type="number"
-                                value={form.disk_usage_limit}
-                                onChange={e => setForm({ ...form, disk_usage_limit: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Layers size={18} className="text-purple-500" /> Modül Özellikleri & Limitleri
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                            {/* Randevu */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Calendar size={16} className="text-blue-500" /> Randevu Modülü
-                                    </span>
-                                    <Switch checked={form.appointment_feature} onChange={v => setForm({ ...form, appointment_feature: v })} />
+                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="max-h-[80vh] overflow-y-auto px-1 custom-scrollbar pb-4">
+                    <div className="space-y-6">
+                        {/* 1. Temel Bilgiler & Fiyatlandırma */}
+                        <div className="bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-5">
+                            <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Box size={16} /> 1. Temel Bilgiler & Fiyatlandırma
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paket Adı *</label>
+                                    <input
+                                        type="text"
+                                        value={form.name}
+                                        onChange={e => setForm({ ...form, name: e.target.value })}
+                                        required
+                                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Örn: Gold Paket"
+                                    />
                                 </div>
-                                {form.appointment_feature && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Randevu Limiti</label>
-                                        <input type="number" value={form.appointment_limit} onChange={e => setForm({ ...form, appointment_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Hizmet Takip */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Activity size={16} className="text-green-500" /> Hizmet Takibi
-                                    </span>
-                                    <Switch checked={form.service_tracking_feature} onChange={v => setForm({ ...form, service_tracking_feature: v })} />
-                                </div>
-                                {form.service_tracking_feature && (
-                                    <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Takip Limiti</label>
-                                            <input type="number" value={form.service_tracking_limit} onChange={e => setForm({ ...form, service_tracking_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Takip Kategori Limiti</label>
-                                            <input type="number" value={form.service_tracking_category_limit || 0} onChange={e => setForm({ ...form, service_tracking_category_limit: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Teklif */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <FileText size={16} className="text-red-500" /> Teklif Modülü
-                                    </span>
-                                    <Switch checked={form.proposal_feature} onChange={v => setForm({ ...form, proposal_feature: v })} />
-                                </div>
-                                {form.proposal_feature && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Teklif Limiti</label>
-                                        <input type="number" value={form.proposal_limit} onChange={e => setForm({ ...form, proposal_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Yedekleme */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Database size={16} className="text-yellow-500" /> Yedekleme
-                                    </span>
-                                    <Switch checked={form.backup_feature} onChange={v => setForm({ ...form, backup_feature: v })} />
-                                </div>
-                                {form.backup_feature && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Yedek Limiti</label>
-                                        <input type="number" value={form.backup_limit} onChange={e => setForm({ ...form, backup_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Hizmetler Bölümü */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Layers size={16} className="text-indigo-500" /> Hizmetler Bölümü
-                                    </span>
-                                    <Switch checked={form.services_section_feature} onChange={v => setForm({ ...form, services_section_feature: v })} />
-                                </div>
-                                {form.services_section_feature && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hizmet Tanım Limiti</label>
-                                        <input type="number" value={form.service_limit} onChange={e => setForm({ ...form, service_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Adım Şablonları */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold flex items-center gap-2">
-                                        <Layers size={16} className="text-pink-500" /> Adım Şablonları
-                                    </span>
-                                    <Switch checked={form.step_templates_feature} onChange={v => setForm({ ...form, step_templates_feature: v })} />
-                                </div>
-                                {form.step_templates_feature && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Şablon Limiti</label>
-                                        <input type="number" value={form.step_template_limit} onChange={e => setForm({ ...form, step_template_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Diğerleri */}
-                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl">
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2 flex items-center justify-between">Kasa Limiti <span className="text-[10px] text-blue-500 lowercase normal-case">(0 = sınırsız)</span></label>
-                                    <input type="number" value={form.cash_register_limit} onChange={e => setForm({ ...form, cash_register_limit: parseInt(e.target.value) })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm mb-3" />
-                                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-                                        <span className="text-sm font-semibold flex items-center gap-2">
-                                            <Shield size={16} className="text-cyan-500" /> API Anahtarı Özelliği
-                                        </span>
-                                        <Switch checked={form.api_key_feature} onChange={v => setForm({ ...form, api_key_feature: v })} />
+                                <div className="md:col-span-1">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Fiyat (TL) *</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₺</span>
+                                        <input
+                                            type="number"
+                                            value={form.price}
+                                            onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                                            required
+                                            className="w-full pl-8 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-black text-blue-600"
+                                        />
                                     </div>
                                 </div>
-                                <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-between">
-                                    <span className="text-sm font-semibold">Paket Aktiflik Durumu</span>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Deneme (Gün)</label>
+                                    <input
+                                        type="number"
+                                        value={form.trial_days}
+                                        onChange={e => setForm({ ...form, trial_days: parseInt(e.target.value) || 0 })}
+                                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm"
+                                    />
+                                </div>
+                                <div className="md:col-span-2 flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-white dark:border-gray-700">
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satışa çıkar (Aktif)</span>
                                     <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
                                 </div>
                             </div>
+                        </div>
 
+                        {/* 2. Paddle Entegrasyonu */}
+                        <div className="bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-5">
+                            <h3 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <CreditCard size={16} /> 2. Paddle Ödeme Entegrasyonu
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paddle Product ID</label>
+                                    <input
+                                        type="text"
+                                        value={form.paddle_product_id}
+                                        onChange={e => setForm({ ...form, paddle_product_id: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm"
+                                        placeholder="pro_..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paddle Price ID</label>
+                                    <input
+                                        type="text"
+                                        value={form.paddle_price_id}
+                                        onChange={e => setForm({ ...form, paddle_price_id: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm"
+                                        placeholder="pri_..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. Genel Limitler */}
+                        <div className="bg-emerald-50/30 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl p-5">
+                            <h3 className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Shield size={16} /> 3. Genel Firma Limitleri (0 = Sınırsız)
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> Personel</label>
+                                    <input type="number" value={form.personnel_limit} onChange={e => setForm({ ...form, personnel_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> Müşteri</label>
+                                    <input type="number" value={form.customer_limit} onChange={e => setForm({ ...form, customer_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Briefcase size={12} /> İş Kaydı</label>
+                                    <input type="number" value={form.job_limit} onChange={e => setForm({ ...form, job_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><HardDrive size={12} /> Kota (MB)</label>
+                                    <input type="number" value={form.disk_usage_limit} onChange={e => setForm({ ...form, disk_usage_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 4. Modüller ve Alt Limitler */}
+                        <div className="bg-purple-50/30 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/20 rounded-2xl p-5">
+                            <h3 className="text-xs font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Layers size={16} /> 4. Modül Erişimi & Özel Limitler
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {[
+                                    { key: 'appointment', label: 'Randevu Modülü', icon: Calendar, color: 'blue' },
+                                    { key: 'service_tracking', label: 'Hizmet Takibi', icon: Activity, color: 'green', extra: { key: 'service_tracking_category_limit', label: 'Kategori Limiti' } },
+                                    { key: 'proposal', label: 'Teklif Modülü', icon: FileText, color: 'orange' },
+                                    { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
+                                    { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
+                                    { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' }
+                                ].map(mod => {
+                                    const featureKey = `${mod.key}_feature`;
+                                    const limitKey = `${mod.key === 'services_section' ? 'service' : mod.key}_limit`;
+                                    const active = form[featureKey];
+
+                                    return (
+                                        <div key={mod.key} className={`p-4 rounded-2xl border transition-all ${active ? 'bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-500/30 shadow-sm' : 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800'}`}>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <mod.icon size={18} className={active ? `text-${mod.color}-500` : 'text-gray-400'} />
+                                                    <span className={`text-sm font-bold ${active ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>{mod.label}</span>
+                                                </div>
+                                                <Switch checked={active} onChange={v => setForm({ ...form, [featureKey]: v })} />
+                                            </div>
+                                            {active && (
+                                                <div className="flex gap-4">
+                                                    <div className="flex-1">
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Limit (0=Sınırsız)</label>
+                                                        <input type="number" value={form[limitKey]} onChange={e => setForm({ ...form, [limitKey]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
+                                                    </div>
+                                                    {mod.extra && (
+                                                        <div className="flex-1">
+                                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{mod.extra.label}</label>
+                                                            <input type="number" value={form[mod.extra.key]} onChange={e => setForm({ ...form, [mod.extra.key]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                                {/* Diğer basit özellikler */}
+                                <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Shield size={18} className="text-cyan-500" />
+                                            <span className="text-sm font-bold">API Erişimi</span>
+                                        </div>
+                                        <Switch checked={form.api_key_feature} onChange={v => setForm({ ...form, api_key_feature: v })} />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Kasa Limiti</label>
+                                            <input type="number" value={form.cash_register_limit} onChange={e => setForm({ ...form, cash_register_limit: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-4 pb-2 flex gap-3 border-t border-gray-100 dark:border-gray-800">
-                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300">İptal</button>
-                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet</>}
+                    <div className="mt-8 flex gap-3 sticky bottom-0 bg-white dark:bg-gray-900 pt-4 border-t border-gray-100 dark:border-gray-800 z-10">
+                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-[2] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
+                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet ve Yayınla</>}
                         </button>
                     </div>
                 </form>
