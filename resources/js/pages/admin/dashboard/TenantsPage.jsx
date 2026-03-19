@@ -367,12 +367,8 @@ export default function TenantsPage() {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => pkgMutation.mutate(p.id)}
-                                        disabled={pkgMutation.isPending || giftMutation.isPending || pkgModal.tenant?.package_id === p.id}
-                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                                            pkgModal.tenant?.package_id === p.id
-                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                        }`}
+                                        disabled={pkgMutation.isPending || giftMutation.isPending}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white`}
                                     >
                                         Normal Ata
                                     </button>
