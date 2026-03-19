@@ -220,6 +220,8 @@ class AuthController extends Controller
                 'id'   => $user->tenant->id,
                 'name' => $user->tenant->name,
                 'slug' => $user->tenant->slug,
+                'is_subscribed' => $user->tenant->subscribed(),
+                'on_trial' => $user->tenant->onTrial(),
             ];
         }
 

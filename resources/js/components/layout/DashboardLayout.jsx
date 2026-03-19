@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Users, Briefcase, CreditCard, TrendingDown,
     Settings, FileText, Database, LogOut, Menu, X, Sun, Moon,
-    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar, Clock
+    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar, Clock, AlertCircle
 } from 'lucide-react'
 
 const navItems = [
@@ -184,6 +184,20 @@ export default function DashboardLayout() {
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
+                    {user?.tenant && user.tenant.id && !user.tenant.is_subscribed && !user.tenant.on_trial && (
+                        <div className="bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 px-6 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-10 backdrop-blur-md">
+                            <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400">
+                                <AlertCircle size={20} className="shrink-0" />
+                                <span className="text-sm font-medium">Abonelik süreniz dolmuştur. Verilerinizi görmeye devam edebilirsiniz ancak yeni işlem yapabilmek için abone olmanız gerekmektedir.</span>
+                            </div>
+                            <button 
+                                onClick={() => navigate('/settings/subscription')}
+                                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap"
+                            >
+                                Şimdi Abone Ol
+                            </button>
+                        </div>
+                    )}
                     <div className="p-4 lg:p-6">
                         <Outlet />
                     </div>
