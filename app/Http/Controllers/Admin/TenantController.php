@@ -244,16 +244,11 @@ class TenantController extends Controller
         // 1. Apply features and limits
         $tenant->applyPackage($package);
         
-        // 2. Set "Unlimited" trial (100 years) to bypass billing checks
-        if (!$tenant->paddleCustomer) {
-            $tenant->createAsCustomer([
-                'trial_ends_at' => now()->addYears(100),
-            ]);
-        } else {
-            $tenant->paddleCustomer->update([
-                'trial_ends_at' => now()->addYears(100),
-            ]);
-        }
+        // 2. Set "Unlimited" trial (100 years) on the tenant record itself
+        // This bypasses the need for a real Paddle customer record for gifted packages
+        $tenant->update([
+            'trial_ends_at' => now()->addYears(100),
+        ]);
 
         return response()->json([
             'message' => 'Paket sınırsız (100 yıl) süreyle tenant\'a başarıyla tanımlandı.',
