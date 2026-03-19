@@ -68,6 +68,16 @@ export default function TenantsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
+    const giftMutation = useMutation({
+        mutationFn: (package_id) => api.post(`/admin/tenants/${pkgModal.tenant.id}/gift-package`, { package_id }),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('Paket sınırsız (100 yıl) süreyle tanımlandı.')
+            setPkgModal({ open: false, tenant: null })
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
+    })
+
     const addUserMutation = useMutation({
         mutationFn: ({ tenantId, data }) => api.post(`/admin/tenants/${tenantId}/users`, data),
         onSuccess: () => {
@@ -338,24 +348,43 @@ export default function TenantsPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         Yeni bir paket seçtiğinizde, firmanın tüm mevcut limitleri seçilen paketin varsayılan değerleri ile <span className="text-red-500 font-bold underline">güncellenecektir</span>.
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {packages.map(p => (
-                            <button
+                            <div
                                 key={p.id}
-                                onClick={() => pkgMutation.mutate(p.id)}
-                                disabled={pkgMutation.isPending || pkgModal.tenant?.package_id === p.id}
-                                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
+                                className={`p-4 rounded-2xl border-2 transition-all ${
                                     pkgModal.tenant?.package_id === p.id 
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' 
-                                    : 'border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
+                                    : 'border-gray-100 dark:border-gray-800'
                                 }`}
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="font-bold text-gray-900 dark:text-white">{p.name} {pkgModal.tenant?.package_id === p.id && '(Mevcut)'}</span>
-                                    {pkgModal.tenant?.package_id === p.id && <Check size={18} className="text-blue-500" />}
+                                    <span className="font-bold text-gray-900 dark:text-white uppercase text-xs tracking-wider">{p.name}</span>
+                                    {pkgModal.tenant?.package_id === p.id && <ShieldCheck size={16} className="text-blue-500" />}
                                 </div>
-                                <div className="text-[10px] text-gray-400 mt-1">U: {p.personnel_limit} | C: {p.customer_limit} | J: {p.job_limit}</div>
-                            </button>
+                                <div className="text-[10px] text-gray-400 mt-1 mb-3">U: {p.personnel_limit} | C: {p.customer_limit} | J: {p.job_limit}</div>
+                                
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => pkgMutation.mutate(p.id)}
+                                        disabled={pkgMutation.isPending || giftMutation.isPending || pkgModal.tenant?.package_id === p.id}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                                            pkgModal.tenant?.package_id === p.id
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        }`}
+                                    >
+                                        Normal Ata
+                                    </button>
+                                    <button
+                                        onClick={() => giftMutation.mutate(p.id)}
+                                        disabled={pkgMutation.isPending || giftMutation.isPending}
+                                        className="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-md shadow-purple-500/10"
+                                    >
+                                        {giftMutation.isPending ? '...' : 'Sınırsız Yap (100 Yıl)'}
+                                    </button>
+                                </div>
+                            </div>
                         ))}
                     </div>
                     <button onClick={() => setPkgModal({ open: false, tenant: null })} className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium">İptal</button>

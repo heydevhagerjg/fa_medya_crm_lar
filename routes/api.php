@@ -199,6 +199,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/users', [\App\Http\Controllers\Admin\TenantController::class, 'addUser']);
             Route::put('/{id}/limits', [\App\Http\Controllers\Admin\TenantController::class, 'updateLimits']);
             Route::put('/{id}/change-package', [\App\Http\Controllers\Admin\TenantController::class, 'changePackage']);
+            Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 

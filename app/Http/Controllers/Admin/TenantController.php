@@ -232,4 +232,32 @@ class TenantController extends Controller
 
         return response()->json(['message' => 'Tenant deleted successfully']);
     }
+    public function giftPackage(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $validated = $request->validate([
+            'package_id' => 'required|exists:packages,id',
+        ]);
+
+        $package = \App\Models\Package::findOrFail($validated['package_id']);
+        
+        // 1. Apply features and limits
+        $tenant->applyPackage($package);
+        
+        // 2. Set "Unlimited" trial (100 years) to bypass billing checks
+        if (!$tenant->paddleCustomer) {
+            $tenant->createAsCustomer([
+                'trial_ends_at' => now()->addYears(100),
+            ]);
+        } else {
+            $tenant->paddleCustomer->update([
+                'trial_ends_at' => now()->addYears(100),
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Paket sınırsız (100 yıl) süreyle tenant\'a başarıyla tanımlandı.',
+            'tenant' => $tenant->load('package')
+        ]);
+    }
 }
