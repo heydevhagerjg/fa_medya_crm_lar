@@ -37,8 +37,12 @@ class BillingController extends Controller
         $checkout = $tenant->checkout($package->paddle_price_id)
             ->returnTo(env('FRONTEND_URL', config('app.url')) . '/settings?tab=subscription');
 
+        // Force overlay display mode
+        $checkoutData = $checkout->toArray();
+        $checkoutData['settings']['displayMode'] = 'overlay';
+
         return response()->json([
-            'checkout' => $checkout->toArray()
+            'checkout' => $checkoutData
         ]);
     }
 }
