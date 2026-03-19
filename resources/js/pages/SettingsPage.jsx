@@ -1760,20 +1760,7 @@ function SubscriptionTab() {
                 </div>
 
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-center items-center text-center">
-                    {!sub.is_subscribed && (
-                        <>
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Tam özellikler için abone olun</p>
-                            <button 
-                                onClick={() => checkoutMutation.mutate()} 
-                                disabled={checkoutMutation.isPending}
-                                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-                            >
-                                {checkoutMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
-                                Şimdi Abone Ol
-                            </button>
-                        </>
-                    )}
-                    {sub.is_subscribed && (
+                    {sub.is_subscribed ? (
                         <div className="space-y-4 w-full">
                              <div className="text-center">
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">Abonelik Aktif</p>
@@ -1801,6 +1788,28 @@ function SubscriptionTab() {
                                 </div>
                              )}
                         </div>
+                    ) : (sub.is_on_trial && sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date(new Date().setFullYear(new Date().getFullYear() + 50))) ? (
+                        <div className="text-center space-y-2">
+                             <div className="mx-auto w-10 h-10 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center">
+                                 <ShieldCheck size={20} />
+                             </div>
+                             <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">Sınırsız Erişim</p>
+                                <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Yönetici Paketi</p>
+                             </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Tam özellikler için abone olun</p>
+                            <button 
+                                onClick={() => checkoutMutation.mutate()} 
+                                disabled={checkoutMutation.isPending}
+                                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                            >
+                                {checkoutMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                                Şimdi Abone Ol
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
