@@ -1679,11 +1679,10 @@ function SubscriptionTab() {
                         ...res.checkout,
                         eventCallback: (event) => {
                             if (event.name === "checkout.completed") {
-                                // Wait for webhook processing and refresh data
+                                toast.success('Ödemeniz başarıyla alındı, bilgileriniz güncelleniyor...');
+                                // Bilgilerin sunucu ile tam senkronize olması için sayfayı 3 saniye sonra yenile
                                 setTimeout(() => {
-                                    qc.invalidateQueries(['subscription'])
-                                    qc.invalidateQueries(['user'])
-                                    toast.success('Ödemeniz başarıyla alındı, hesabınız güncelleniyor...')
+                                    window.location.reload();
                                 }, 3000)
                             }
                         }
