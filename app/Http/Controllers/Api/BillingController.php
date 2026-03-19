@@ -18,15 +18,21 @@ class BillingController extends Controller
             try {
                 $paddleSub = $subscription->asPaddleSubscription();
                 $nextBilledAt = $paddleSub->nextBilledAt ? $paddleSub->nextBilledAt->format('Y-m-d H:i:s') : null;
-                $subscription->next_billed_at = $nextBilledAt;
-            } catch (\Exception $e) {}
+                
+                // If nextBilledAt is null, it might be in scheduled_change
+                if (!$nextBilledAt && !empty($paddleSub->scheduledChange)) {
+                    $nextBilledAt = $paddleSub->scheduledChange['effective_at'] ?? null;
+                }
+            } catch (\Exception $e) {
+                // If API fails, log it or ignore
+            }
         }
         
         return response()->json([
             'is_on_trial' => $tenant->onTrial(),
             'trial_ends_at' => $tenant->trialEndsAt() ? $tenant->trialEndsAt()->toIso8601String() : null,
             'is_subscribed' => $tenant->subscribed(),
-            'subscription' => $subscription,
+            'subscription' => $subscription ? array_merge($subscription->toArray(), ['next_billed_at' => $nextBilledAt]) : null,
             'package' => $tenant->package,
             'receipts' => $tenant->transactions()->latest()->get(),
             'all_packages' => \App\Models\Package::where('is_active', true)->get(),
