@@ -1675,7 +1675,19 @@ function SubscriptionTab() {
         onSuccess: (res) => {
             if (res.checkout && window.Paddle) {
                 try {
-                    window.Paddle.Checkout.open(res.checkout);
+                    window.Paddle.Checkout.open({
+                        ...res.checkout,
+                        eventCallback: (event) => {
+                            if (event.name === "checkout.completed") {
+                                // Wait for webhook processing and refresh data
+                                setTimeout(() => {
+                                    qc.invalidateQueries(['subscription'])
+                                    qc.invalidateQueries(['user'])
+                                    toast.success('Ödemeniz başarıyla alındı, hesabınız güncelleniyor...')
+                                }, 3000)
+                            }
+                        }
+                    });
                 } catch (error) {
                     console.error('Paddle Checkout Error:', error);
                     toast.error('Ödeme ekranı açılırken bir hata oluştu.');
