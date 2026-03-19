@@ -13,11 +13,21 @@ const api = axios.create({
 
 // Add auth token to every request
 api.interceptors.request.use((config) => {
-    // Rely on zustand store token as primary, fallback to generic storage if needed
-    const token = useAuthStore.getState().token || localStorage.getItem('crm_token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    // Check if the request is for admin or standard user
+    const isAdminRequest = config.url.startsWith('/admin') || config.url.startsWith('admin');
+    
+    if (isAdminRequest) {
+        const adminToken = localStorage.getItem('admin_token');
+        if (adminToken) {
+            config.headers.Authorization = `Bearer ${adminToken}`;
+        }
+    } else {
+        const token = useAuthStore.getState().token || localStorage.getItem('crm_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
+    
     return config;
 });
 
@@ -26,16 +36,19 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Clear both standard localStorage and Zustand persist storage
-            localStorage.removeItem('crm_token');
-            localStorage.removeItem('crm_user');
-            localStorage.removeItem('crm-auth');
+            const isAdminRequest = error.config.url.startsWith('/admin') || error.config.url.startsWith('admin');
 
-            // Clear Zustand store state
-            useAuthStore.getState().clearAuth();
-
-            // Always redirect to login on 401
-            window.location.href = '/login';
+            if (isAdminRequest) {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('crm-admin-auth');
+                window.location.href = '/admin/login';
+            } else {
+                localStorage.removeItem('crm_token');
+                localStorage.removeItem('crm_user');
+                localStorage.removeItem('crm-auth');
+                useAuthStore.getState().clearAuth();
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

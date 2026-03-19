@@ -1,7 +1,14 @@
 import { FileCode, Shield, Users, Briefcase, CreditCard, Settings, Calendar, ListChecks, FileText, Database, Activity, Code, Terminal, Key, Info, LayoutDashboard, Share2, AlertTriangle, ExternalLink } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useAuthStore } from '../stores/index.js'
 
 export default function ApiDocsPage() {
+    const { user } = useAuthStore()
+
+    if (user?.role !== 'ADMIN') {
+        return <Navigate to="/" replace />
+    }
+
     return (
         <div className="space-y-8 pb-12 max-w-7xl mx-auto p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">

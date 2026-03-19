@@ -11,12 +11,17 @@ class LogController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
         $page = max(1, (int) $request->get('page', 1));
-        $limit = min(100, max(1, (int) $request->get('limit', 50)));
+        $limit = max(1, (int) $request->get('limit', 50));
 
-        $logs = ActivityLog::where('tenant_id', $tenantId)
-            ->orderByDesc('created_at')
+        $query = ActivityLog::with('user')->where('tenant_id', $tenantId);
+        if ($user->role !== 'ADMIN') {
+            $query->where('user_id', $user->id);
+        }
+
+        $logs = $query->orderByDesc('created_at')
             ->paginate($limit, ['*'], 'page', $page);
 
         return response()->json([

@@ -11,7 +11,8 @@ import {
     BarChart3,
     Files,
     Database,
-    Zap
+    Zap,
+    Activity
 } from 'lucide-react'
 
 export default function LandingPage() {
@@ -22,17 +23,15 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
                         <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                <LayoutDashboard className="text-white" size={24} />
-                            </div>
+                            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
-                                FA MEDYA CRM
+                                {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
                         </div>
                         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-400">
                             <a href="#features" className="hover:text-indigo-600 transition-colors">Özellikler</a>
+                            <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
                             <a href="#stats" className="hover:text-indigo-600 transition-colors">İstatistikler</a>
-                            <a href="#about" className="hover:text-indigo-600 transition-colors">Hakkımızda</a>
                         </div>
                         <div className="flex items-center gap-3">
                             <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
@@ -61,7 +60,7 @@ export default function LandingPage() {
                         İşlerinizi Akıllıca <br /> <span className="text-indigo-600 dark:text-indigo-400">Yönetin ve Büyütün</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
-                        Müşteri ilişkileri, proje takibi, finansal veriler ve ekip yönetimi tek bir platformda. FA Medya CRM ile verimliliğinizi ikiye katlayın.
+                        Müşteri ilişkileri, proje takibi, finansal veriler ve ekip yönetimi tek bir platformda. {import.meta.env.VITE_APP_NAME} ile verimliliğinizi ikiye katlayın.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link to="/register" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg transition-all shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 group">
@@ -97,14 +96,17 @@ export default function LandingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[
-                            { title: 'Kanban Board', desc: 'İşlerinizi sürükleyerek yönetin, aşamaları görselleştirin.', icon: LayoutDashboard, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                            { title: 'Müşteri Yönetimi', desc: 'Sınırsız müşteri ekleyin, tüm geçmişlerini tek ekranda görün.', icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                            { title: 'Finansal Takip', desc: 'Gelir, gider ve ödemeleri kolayca takip edin, raporlayın.', icon: CreditCard, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                            { title: 'Dosya Yönetimi', desc: 'Bulut tabanlı dosya depolama ile her şeye her yerden erişin.', icon: Files, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                            { title: 'Akıllı Yedekleme', desc: 'S3 entegrasyonu ile tüm verileriniz her an güvende kalsın.', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                            { title: 'Gelişmiş İstatistikler', desc: 'İşletmenizin performansını gerçek zamanlı grafiklerle izleyin.', icon: BarChart3, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+                            { title: 'Hizmet Takibi (Kanban)', desc: 'İş süreçlerinizi görselleştirin. Sürükle-bırak özelliğiyle servis aşamalarını anlık olarak yönetin ve güncelleyin.', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                            { title: 'Kapsamlı Müşteri Yönetimi', desc: 'Müşterilerinizin tüm geçmişini, aldığı hizmetleri ve ödeme detaylarını tek bir panelden kontrol edin.', icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                            { title: 'Finansal Kontrol Merkezi', desc: 'Gelir-gider dengenizi koruyun. Kasa yönetimi ve detaylı finansal raporlarla işletmenizin nabzını tutun.', icon: CreditCard, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                            { title: 'Profesyonel Teklif Sistemi', desc: 'Saniyeler içinde etkileyici teklifler hazırlayın. Müşteri onay sürecini dijital olarak takip edin.', icon: Files, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                            { title: 'Randevu & Takvim Planlama', desc: 'Çakışan randevulara son verin. Ekipleriniz için organize edilmiş, akıllı bir takvim deneyimi yaşayın.', icon: LayoutDashboard, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+                            { title: 'Ekip & Rol Yönetimi', desc: 'Personellerinize yetkiler atayın. Kimin hangi verilere erişebileceğini hassas bir şekilde belirleyin.', icon: ShieldCheck, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+                            { title: 'Güvenli Bulut Yedekleme', desc: 'Verileriniz bizimle güvende. S3 altyapısı ile tüm bilgileriniz yedeklenmekte.', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                            { title: 'Dosya & Medya Depolama', desc: 'İşlerinizle ilgili fotoğraf ve belgeleri her zaman elinizin altında tutun. Hızlı erişim ve güvenli saklama.', icon: Files, color: 'text-teal-500', bg: 'bg-teal-500/10' },
+                            { title: 'Gelişmiş API Desteği', desc: 'Dış sistemlerle entegrasyon kurun. İşletmenizin verilerini kendi uygulamalarınızla senkronize edin.', icon: Zap, color: 'text-rose-500', bg: 'bg-rose-500/10' },
                         ].map((feature, i) => (
-                            <div key={i} className="p-8 bg-white dark:bg-gray-900 rounded-[32px] border border-gray-100 dark:border-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all group">
+                            <div key={i} className="p-8 bg-white dark:bg-gray-900 rounded-[32px] border border-gray-100 dark:border-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all group shadow-sm hover:shadow-xl hover:shadow-indigo-500/5">
                                 <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center mb-6 transition-transform group-hover:scale-110`}>
                                     <feature.icon className={feature.color} size={28} />
                                 </div>
@@ -162,17 +164,17 @@ export default function LandingPage() {
             <footer className="py-12 border-t border-gray-100 dark:border-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            <LayoutDashboard className="text-white" size={18} />
-                        </div>
-                        <span className="text-lg font-black text-gray-900 dark:text-white">FA MEDYA CRM</span>
+                        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
                     </div>
                     <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">
-                        © 2026 FA Medya CRM. Tüm hakları saklıdır.
+                        © {new Date().getFullYear()} {import.meta.env.VITE_APP_NAME}. Tüm hakları saklıdır.
                     </div>
                     <div className="flex items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400">
-                        <a href="#" className="hover:text-indigo-600 transition-colors">Gizlilik Politikası</a>
-                        <a href="#" className="hover:text-indigo-600 transition-colors">Kullanım Koşulları</a>
+                        <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
+                        <Link to="/tos" className="hover:text-indigo-600 transition-colors">Kullanım Koşulları</Link>
+                        <Link to="/refund" className="hover:text-indigo-600 transition-colors">İade Politikası</Link>
+                        <Link to="/privacy" className="hover:text-indigo-600 transition-colors">Gizlilik Politikası</Link>
                     </div>
                 </div>
             </footer>

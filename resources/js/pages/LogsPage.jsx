@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '../lib/api.js'
 import { FileText, Activity } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Pagination from '../components/ui/Pagination.jsx'
 
 const actionColors = {
@@ -47,18 +48,34 @@ export default function LogsPage() {
                         <div className="divide-y divide-gray-100 dark:divide-gray-800">
                             {paginatedData.map(log => (
                                 <div key={log.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${actionColors[log.action] || 'text-gray-500 bg-gray-500/10'}`}>
-                                        {log.action}
-                                    </span>
+                                    <div className='min-w-24'>
+                                        <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${actionColors[log.action] || 'text-gray-500 bg-gray-500/10'}`}>
+                                            {
+                                                log.action === "CREATE" ? "Oluşturuldu" : log.action === "UPDATE" ? "Güncellendi" : log.action === "DELETE" ? "Silindi" : ""
+                                            }
+                                        </span>
+                                    </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300">
-                                            <span className="font-medium">{log.entityType}</span>
-                                            {log.entityName && <span className="text-gray-500"> — {log.entityName}</span>}
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
+                                            {log.user && (
+                                                <Link to={`/settings/users?highlight=${log.user_id}`} className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                                                    {log.user.name}
+                                                </Link>
+                                            )}
+                                            <span className="text-gray-500">tarafından</span>
+                                            {(log.entity_name || log.entityName) && (
+                                                <>
+                                                    <span className="text-gray-800 dark:text-gray-200 font-medium">"{log.entity_name || log.entityName}"</span>
+                                                    <span className="text-gray-500">üzerinde</span>
+                                                </>
+                                            )}
+                                            <span className="font-medium bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">{log.entity_type || log.entityType}</span>
+                                            <span className="text-gray-500">işlemi yapıldı.</span>
                                         </div>
-                                        {log.details && <div className="text-xs text-gray-500 mt-0.5 truncate">{log.details}</div>}
+                                        {log.details && <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{log.details}</div>}
                                     </div>
                                     <div className="text-xs text-gray-400 flex-shrink-0">
-                                        {log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '-'}
+                                        {(log.created_at || log.createdAt) ? new Date(log.created_at || log.createdAt).toLocaleString('tr-TR') : '-'}
                                     </div>
                                 </div>
                             ))}
@@ -67,7 +84,7 @@ export default function LogsPage() {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
-                            totalItems={filtered.length}
+                            totalItems={logs.length}
                         />
                     </div>
                 )}

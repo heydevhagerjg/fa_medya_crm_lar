@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
+import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X } from 'lucide-react'
+import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar, Eye } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -11,15 +12,16 @@ const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-
 
 export default function JobDetailPage() {
     const { id } = useParams()
+    const { user } = useAuthStore()
     const qc = useQueryClient()
     const [addStepTitle, setAddStepTitle] = useState('')
     const [paymentModal, setPaymentModal] = useState(false)
     const [editingPayment, setEditingPayment] = useState(null)
-    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+    const [paymentForm, setPaymentForm] = useState({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '', receipt: null })
 
     const [expenseModal, setExpenseModal] = useState(false)
     const [editingExpense, setEditingExpense] = useState(null)
-    const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+    const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '', receipt: null })
 
     const [selectedTemplate, setSelectedTemplate] = useState('')
 
@@ -35,6 +37,7 @@ export default function JobDetailPage() {
     const [isDragging, setIsDragging] = useState(false)
     const [dragCounter, setDragCounter] = useState(0)
     const [uploadingFiles, setUploadingFiles] = useState([])
+    const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -80,6 +83,7 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Aşama silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Aşama silinemedi.'),
     })
 
     const applyTemplate = useMutation({
@@ -94,14 +98,29 @@ export default function JobDetailPage() {
 
     const savePayment = useMutation({
         mutationFn: () => {
-            if (editingPayment) return api.put(`/payments/${editingPayment}`, { ...paymentForm, jobId: parseInt(id) })
-            return api.post('/payments', { ...paymentForm, jobId: parseInt(id) })
+            const formData = new FormData();
+            Object.keys(paymentForm).forEach(key => {
+                if (paymentForm[key] !== null && paymentForm[key] !== undefined) {
+                    formData.append(key, paymentForm[key]);
+                }
+            });
+            formData.append('jobId', parseInt(id));
+
+            if (editingPayment) {
+                formData.append('_method', 'PUT');
+                return api.post(`/payments/${editingPayment}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+            }
+            return api.post('/payments', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
         },
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success(editingPayment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
             setPaymentModal(false)
-            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '', receipt: null })
             setEditingPayment(null)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -113,18 +132,34 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Ödeme silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme silinemedi.'),
     })
 
     const saveExpense = useMutation({
         mutationFn: () => {
-            if (editingExpense) return api.put(`/expenses/${editingExpense}`, { ...expenseForm, jobId: parseInt(id) })
-            return api.post('/expenses', { ...expenseForm, jobId: parseInt(id) })
+            const formData = new FormData();
+            Object.keys(expenseForm).forEach(key => {
+                if (expenseForm[key] !== null && expenseForm[key] !== undefined) {
+                    formData.append(key, expenseForm[key]);
+                }
+            });
+            formData.append('jobId', parseInt(id));
+
+            if (editingExpense) {
+                formData.append('_method', 'PUT');
+                return api.post(`/expenses/${editingExpense}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            return api.post('/expenses', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
         },
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success(editingExpense ? 'Masraf güncellendi.' : 'Masraf eklendi.')
             setExpenseModal(false)
-            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '', receipt: null })
             setEditingExpense(null)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -136,6 +171,16 @@ export default function JobDetailPage() {
             qc.invalidateQueries(['job', id])
             toast.success('Masraf silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Masraf silinemedi.'),
+    })
+
+    const toggleInstallmentPaidMutation = useMutation({
+        mutationFn: (insId) => api.patch(`/proposals/installments/${insId}/toggle-paid`),
+        onSuccess: () => {
+            qc.invalidateQueries(['job', id])
+            toast.success('Ödeme takvimi güncellendi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Güncellenemedi.'),
     })
 
     const openPaymentModal = (p = null) => {
@@ -145,11 +190,20 @@ export default function JobDetailPage() {
                 paymentDate: (p.paymentDate || p.payment_date).toString().substring(0, 10),
                 paymentType: p.paymentType || p.payment_type || 'FINAL',
                 description: p.description || '',
-                cashRegisterId: p.cashRegisterId || p.cash_register_id || ''
+                cashRegisterId: p.cashRegisterId || p.cash_register_id || '',
+                receipt: null
             })
             setEditingPayment(p.id)
         } else {
-            setPaymentForm({ amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', cashRegisterId: '' })
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setPaymentForm({
+                amount: '',
+                paymentDate: new Date().toISOString().substring(0, 10),
+                paymentType: 'FINAL',
+                description: '',
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+                receipt: null
+            })
             setEditingPayment(null)
         }
         setPaymentModal(true)
@@ -163,11 +217,21 @@ export default function JobDetailPage() {
                 date: (e.date || '').toString().substring(0, 10),
                 description: e.description || '',
                 categoryId: e.categoryId || e.category_id || '',
-                cashRegisterId: e.cashRegisterId || e.cash_register_id || ''
+                cashRegisterId: e.cashRegisterId || e.cash_register_id || '',
+                receipt: null
             })
             setEditingExpense(e.id)
         } else {
-            setExpenseForm({ title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', categoryId: '', cashRegisterId: '' })
+            const defaultCash = cashRegisters.find(c => c.is_default);
+            setExpenseForm({
+                title: '',
+                amount: '',
+                date: new Date().toISOString().substring(0, 10),
+                description: '',
+                categoryId: '',
+                cashRegisterId: defaultCash ? defaultCash.id : '',
+                receipt: null
+            })
             setEditingExpense(null)
         }
         setExpenseModal(true)
@@ -240,12 +304,40 @@ export default function JobDetailPage() {
         if (files && files.length > 0) uploadFiles(files)
     }
 
+    const handleDownload = async (file) => {
+        const toastId = toast.loading('İndiriliyor...')
+        try {
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            let fileName = file.file_name || file.fileName || 'dosya'
+            const contentDisposition = response.headers['content-disposition']
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (match && match[1]) {
+                    fileName = match[1]
+                }
+            }
+            a.download = fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dosya indirilemedi.', { id: toastId })
+        }
+    }
+
     const deleteFile = useMutation({
         mutationFn: (fid) => api.delete(`/files/${fid}`),
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             toast.success('Dosya silindi.')
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Dosya silinemedi.'),
     })
 
     const updateJob = useMutation({
@@ -257,6 +349,76 @@ export default function JobDetailPage() {
         },
         onError: (err) => toast.error(err.response?.data?.message || 'İş güncellenemedi.'),
     })
+
+    const handlePreviewReceipt = async (transaction) => {
+        const toastId = toast.loading('Dekont yükleniyor...')
+        try {
+            const endpoint = transaction._type === 'PAYMENT' ? 'payments' : 'expenses';
+            const response = await api.get(`/${endpoint}/${transaction.id}/receipt`, { responseType: 'blob' })
+            const contentType = response.headers['content-type']
+            const blob = new Blob([response.data], { type: contentType })
+            const url = window.URL.createObjectURL(blob)
+            
+            let ext = 'jpg'
+            if (contentType === 'application/pdf') ext = 'pdf'
+            else if (contentType === 'image/png') ext = 'png'
+            
+            setPreview({
+                open: true,
+                url,
+                type: contentType,
+                fileName: `dekont-${transaction.id}.${ext}`,
+                transactionData: transaction
+            })
+            toast.dismiss(toastId)
+        } catch (error) {
+            console.error('Preview error:', error)
+            toast.error('Dekont yüklenemedi.', { id: toastId })
+        }
+    }
+
+    const handleDownloadReceipt = async (transaction = null) => {
+        // If we have a preview open, download that URL
+        if (preview.open && preview.url) {
+            const a = document.createElement('a')
+            a.href = preview.url
+            a.download = preview.fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            return;
+        }
+
+        if (!transaction) {
+            if (preview.open && preview.transactionData) {
+                transaction = preview.transactionData;
+            } else {
+                return;
+            }
+        }
+
+        const toastId = toast.loading('Dekont indiriliyor...')
+        try {
+            const endpoint = transaction._type === 'PAYMENT' ? 'payments' : 'expenses';
+            const response = await api.get(`/${endpoint}/${transaction.id}/receipt`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            const contentType = response.headers['content-type']
+            let ext = 'jpg'
+            if (contentType === 'application/pdf') ext = 'pdf'
+            else if (contentType === 'image/png') ext = 'png'
+            a.download = `dekont-${transaction.id}.${ext}`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dekont indirilemedi.', { id: toastId })
+        }
+    }
 
     const openEditModal = () => {
         setEditForm({
@@ -300,6 +462,12 @@ export default function JobDetailPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
 
+    const hasPermission = (p) => {
+        if (!p) return true;
+        if (user?.role === 'ADMIN') return true;
+        return user?.permissions?.includes(p) || false;
+    }
+
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
 
@@ -309,9 +477,21 @@ export default function JobDetailPage() {
     const files = job.jobfile || []
 
     const financialTransactions = [
-        ...payments.map(p => ({ ...p, _type: 'PAYMENT', _date: new Date(p.paymentDate || p.payment_date).getTime() })),
-        ...expenses.map(e => ({ ...e, _type: 'EXPENSE', _date: new Date(e.date).getTime() }))
+        ...payments.map(p => ({ 
+            ...p, 
+            _type: 'PAYMENT', 
+            _date: new Date(p.paymentDate || p.payment_date).getTime(),
+            receiptUrl: (p.receipt_path || p.receiptUrl) ? `/api/payments/${p.id}/receipt` : null
+        })),
+        ...expenses.map(e => ({ 
+            ...e, 
+            _type: 'EXPENSE', 
+            _date: new Date(e.date).getTime(),
+            receiptUrl: (e.receipt_path || e.receiptUrl) ? `/api/expenses/${e.id}/receipt` : null
+        }))
     ].sort((a, b) => b._date - a._date)
+
+    const installments = job.installments || []
 
     const completedSteps = steps.filter(s => s.is_completed).length
     const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
@@ -345,6 +525,11 @@ export default function JobDetailPage() {
                         </div>
                     </div>
                 </div>
+                {job.proposalId && (
+                    <Link to={`/proposals?id=${job.proposalId}`} className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 transition-colors" title="Teklifi Görüntüle">
+                        <FileText size={18} />
+                    </Link>
+                )}
                 <button onClick={openEditModal} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors" title="İşi Düzenle">
                     <Edit2 size={18} />
                 </button>
@@ -367,13 +552,13 @@ export default function JobDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
                     { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
-                    { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500' },
-                    { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500' },
+                    { label: `Toplam KDV Tutarı ${job.vatRate ? `(%${job.vatRate})` : ''}`, value: formatCurrency(job.vatAmount), color: 'text-purple-500' },
+                    { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500', permission: 'payments.view' },
+                    { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500', permission: 'payments.view' },
                     { label: 'İş Aşamaları', value: steps.length ? `${completedSteps}/${steps.length}` : '-', color: 'text-indigo-500' },
-                    { label: 'İş Tamamlama', value: steps.length ? `%${completionProgress}` : '-', color: 'text-purple-500' },
-                    { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500' },
-                ].map(({ label, value, color }) => (
-                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center">
+                    { label: 'Ödeme Performansı', value: `%${paymentPerformance}`, color: 'text-blue-500', permission: 'payments.view' },
+                ].filter(card => hasPermission(card.permission)).map(({ label, value, color }) => (
+                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-center transition-all hover:border-gray-300 dark:hover:border-gray-700">
                         <div className={`text-lg font-bold ${color}`}>{value}</div>
                         <div className="text-xs text-gray-500">{label}</div>
                     </div>
@@ -488,50 +673,70 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Payments & Expenses Section */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <CreditCard size={18} className="text-emerald-500" />
-                            Ödemeler ({financialTransactions.length})
-                        </h2>
-                        <div className="flex gap-2">
-                            <button onClick={() => openPaymentModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
-                                <Plus size={14} /> Tahsilat Ekle
-                            </button>
-                            <button onClick={() => openExpenseModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
-                                <Plus size={14} /> Masraf Ekle
-                            </button>
+                {(hasPermission('payments.view') || hasPermission('expenses.view')) && (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <CreditCard size={18} className="text-emerald-500" />
+                                Ödemeler ({financialTransactions.length})
+                            </h2>
+                            <div className="flex gap-2">
+                                {hasPermission('payments.create') && (
+                                    <button onClick={() => openPaymentModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <Plus size={14} /> Tahsilat Ekle
+                                    </button>
+                                )}
+                                {hasPermission('expenses.create') && (
+                                    <button onClick={() => openExpenseModal()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <Plus size={14} /> Masraf Ekle
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                            {financialTransactions.map(t => (
+                                <div key={`${t._type}-${t.id}`} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
+                                    <div>
+                                        <div className={`font-semibold ${t._type === 'PAYMENT' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {t._type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
+                                        </div>
+                                        <div className="text-[11px] text-gray-500 mt-0.5">
+                                            {formatDate(t._type === 'PAYMENT' ? (t.paymentDate || t.payment_date) : t.date)} •
+                                            {t._type === 'PAYMENT' ?
+                                                ((t.paymentType || t.payment_type) === 'ADVANCE' ? 'Avans' : (t.paymentType || t.payment_type) === 'PARTIAL' ? 'Taksit' : 'Final')
+                                                : t.title
+                                            }
+                                        </div>
+                                        {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {t.receiptUrl && (
+                                            <>
+                                                <button onClick={() => handlePreviewReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors relative z-20" title="Dekontu Önizle">
+                                                    <Eye size={14} />
+                                                </button>
+                                                <button onClick={() => handleDownloadReceipt(t)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors relative z-20" title="Dekontu İndir">
+                                                    <FileText size={14} />
+                                                </button>
+                                            </>
+                                        )}
+                                        {(t._type === 'PAYMENT' ? hasPermission('payments.edit') : hasPermission('expenses.edit')) && (
+                                            <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
+                                                <Edit2 size={14} />
+                                            </button>
+                                        )}
+                                        {(t._type === 'PAYMENT' ? hasPermission('payments.delete') : hasPermission('expenses.delete')) && (
+                                            <button onClick={() => t._type === 'PAYMENT' ? deletePayment.mutate(t.id) : deleteExpense.mutate(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                            {financialTransactions.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz işlem yok.</p>}
                         </div>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
-                        {financialTransactions.map(t => (
-                            <div key={`${t._type}-${t.id}`} className="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
-                                <div>
-                                    <div className={`font-semibold ${t._type === 'PAYMENT' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {t._type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
-                                    </div>
-                                    <div className="text-[11px] text-gray-500 mt-0.5">
-                                        {formatDate(t._type === 'PAYMENT' ? (t.paymentDate || t.payment_date) : t.date)} •
-                                        {t._type === 'PAYMENT' ?
-                                            ((t.paymentType || t.payment_type) === 'ADVANCE' ? 'Avans' : (t.paymentType || t.payment_type) === 'PARTIAL' ? 'Taksit' : 'Final')
-                                            : t.title
-                                        }
-                                    </div>
-                                    {t.description && <div className="text-xs text-gray-400 mt-1">{t.description}</div>}
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => t._type === 'PAYMENT' ? openPaymentModal(t) : openExpenseModal(t)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
-                                        <Edit2 size={14} />
-                                    </button>
-                                    <button onClick={() => t._type === 'PAYMENT' ? deletePayment.mutate(t.id) : deleteExpense.mutate(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {financialTransactions.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">Henüz işlem yok.</p>}
-                    </div>
-                </div>
+                )}
 
                 {/* Files Section */}
                 <div
@@ -551,10 +756,10 @@ export default function JobDetailPage() {
                         </div>
                     )}
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Link to={`/files/folder/${job.id}`} className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <File size={18} className="text-blue-500" />
                             Dosyalar ({files.length})
-                        </h2>
+                        </Link>
                         <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors relative z-20" onClick={e => e.stopPropagation()}>
                             <Upload size={14} /> Yükle
                             <input type="file" multiple className="hidden" onChange={e => {
@@ -587,9 +792,9 @@ export default function JobDetailPage() {
                                     <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href={f.file_path || f.filePath} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20">
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownload(f); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20" title="İndir">
                                         <Download size={14} />
-                                    </a>
+                                    </button>
                                     <button onClick={() => deleteFile.mutate(f.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors relative z-20">
                                         <Trash2 size={14} />
                                     </button>
@@ -605,6 +810,47 @@ export default function JobDetailPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Payment Schedule Section */}
+                {installments.length > 0 && (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <Calendar size={18} className="text-blue-500" />
+                            Ödeme Takvimi ({installments.length})
+                        </h2>
+                        <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                            {installments.map(ins => (
+                                <div key={ins.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${ins.is_paid ? 'bg-green-50/50 dark:bg-green-500/5 border-green-100 dark:border-green-500/20' : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800'}`}>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                            <div className={`font-bold text-sm ${ins.is_paid ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
+                                                {formatCurrency(ins.amount)}
+                                            </div>
+                                            <div className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                                                %{ins.percentage}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                                            <Calendar size={12} />
+                                            {formatDate(ins.payment_date)}
+                                        </div>
+                                        {ins.description && (
+                                            <div className="text-[11px] text-gray-400 mt-1 truncate">{ins.description}</div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => toggleInstallmentPaidMutation.mutate(ins.id)}
+                                        disabled={toggleInstallmentPaidMutation.isPending}
+                                        className={`flex-shrink-0 p-2 rounded-lg border transition-all ${ins.is_paid ? 'bg-green-500 border-green-600 text-white' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 hover:border-indigo-500 hover:text-indigo-500'}`}
+                                        title={ins.is_paid ? 'Ödendi Olarak İşaretli' : 'Ödeme Bekliyor'}
+                                    >
+                                        <Check size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Payment Modal */}
@@ -638,6 +884,10 @@ export default function JobDetailPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                         <input type="text" value={paymentForm.description} onChange={e => setPaymentForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dekont (Opsiyonel)</label>
+                        <input type="file" accept="image/*,application/pdf" onChange={e => setPaymentForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
@@ -686,6 +936,10 @@ export default function JobDetailPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
                         <input type="text" value={expenseForm.description} onChange={e => setExpenseForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dekont (Opsiyonel)</label>
+                        <input type="file" accept="image/*,application/pdf" onChange={e => setExpenseForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setExpenseModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
@@ -808,6 +1062,37 @@ export default function JobDetailPage() {
                     </div>
                 </>
             )}
+            {/* Receipt Preview Modal */}
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dekont Önizleme" size="xl">
+                <div className="flex flex-col h-[70vh]">
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
+                        {preview.type?.includes('pdf') ? (
+                            <iframe src={preview.url} className="w-full h-full border-none" title="PDF Preview" />
+                        ) : preview.type?.includes('image') ? (
+                            <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Receipt Preview" />
+                        ) : (
+                            <div className="text-center p-12">
+                                <FileText size={48} className="mx-auto text-gray-400 mb-4" />
+                                <p className="text-gray-500">Bu dosya önizlenemiyor.</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-between items-center mt-6">
+                        <button 
+                            onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} 
+                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Kapat
+                        </button>
+                        <button 
+                            onClick={() => handleDownloadReceipt()} 
+                            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                        >
+                            <Download size={18} /> İndir
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }

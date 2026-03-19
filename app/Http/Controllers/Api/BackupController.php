@@ -23,6 +23,14 @@ use App\Models\CashRegister;
 use App\Models\Appointment;
 use App\Models\AppointmentTitle;
 use App\Models\Tenant;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\BackupKey;
+use App\Models\Admin;
+use App\Models\Proposal;
+use App\Models\ProposalItem;
+use App\Models\ProposalInstallment;
+use App\Models\ProposalRevisionRequest;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
@@ -39,25 +47,41 @@ class BackupController extends Controller
 {
     use HasTenantCache;
 
-    private function setS3Config($tenant)
+    private static $globalS3Disk = null;
+
+    private function setGlobalS3Config()
     {
-        if (!$tenant || !$tenant->aws_access_key_id || !$tenant->aws_secret_access_key || !$tenant->aws_bucket_name) {
+        if (self::$globalS3Disk !== null) {
+            return true;
+        }
+
+        $tenant = request()->user()->tenant ?? null;
+        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
+            return false;
+        }
+        $config = $tenant->s3Config;
+
+        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
             return false;
         }
 
-        $region = $tenant->aws_region ?? 'eu-central-1';
+        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
 
-        Config::set('filesystems.disks.s3_tenant', [
+        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
+
+        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
             'driver' => 's3',
-            'key'    => $tenant->aws_access_key_id,
-            'secret' => $tenant->aws_secret_access_key,
+            'key'    => trim($config->aws_access_key_id),
+            'secret' => trim($config->aws_secret_access_key),
             'region' => $region,
-            'bucket' => $tenant->aws_bucket_name,
-            'url'    => "https://{$tenant->aws_bucket_name}.s3.{$region}.amazonaws.com",
+            'bucket' => trim($config->aws_bucket_name),
             'use_path_style_endpoint' => false,
+            'url_encode_filenames' => true,
             'throw'  => true,
+            'version' => 'latest'
         ]);
 
+        self::$globalS3Disk = 's3_global';
         return true;
     }
 
@@ -122,6 +146,11 @@ class BackupController extends Controller
                 'startDate'        => $j->start_date,
                 'endDate'          => $j->end_date,
                 'totalPrice'       => $j->total_price,
+                'subtotal'         => $j->subtotal,
+                'vat'              => $j->is_vat_included,
+                'vatAmount'        => $j->vat_amount,
+                'proposalId'       => $j->proposal_id,
+                'order'            => $j->order,
                 'createdAt'        => $j->created_at,
                 'updatedAt'        => $j->updated_at,
                 'jobdetail'        => $j->jobDetail ? [
@@ -130,13 +159,41 @@ class BackupController extends Controller
                 ] : null,
                 'jobfile'          => $j->jobFiles->map(fn($f) => ['id' => $f->id, 'jobId' => $f->job_id, 'fileName' => $f->file_name, 'filePath' => $f->file_path, 'fileType' => $f->file_type, 'fileSize' => $f->file_size, 'uploadedAt' => $f->uploaded_at]),
                 'jobstep'          => $j->jobSteps->map(fn($s) => ['id' => $s->id, 'jobId' => $s->job_id, 'title' => $s->title, 'isCompleted' => $s->is_completed, 'order' => $s->order, 'createdAt' => $s->created_at, 'updatedAt' => $s->updated_at]),
-                'payment'          => $j->payments->map(fn($p) => ['id' => $p->id, 'tenantId' => $p->tenant_id, 'jobId' => $p->job_id, 'amount' => $p->amount, 'paymentDate' => $p->payment_date, 'paymentType' => $p->payment_type, 'description' => $p->description, 'cashRegisterId' => $p->cash_register_id, 'createdAt' => $p->created_at, 'updatedAt' => $p->updated_at]),
+                'payment'          => $j->payments->map(fn($p) => ['id' => $p->id, 'tenantId' => $p->tenant_id, 'jobId' => $p->job_id, 'amount' => $p->amount, 'paymentDate' => $p->payment_date, 'paymentType' => $p->payment_type, 'description' => $p->description, 'cashRegisterId' => $p->cash_register_id, 'receiptPath' => $p->receipt_path, 'createdAt' => $p->created_at, 'updatedAt' => $p->updated_at]),
                 'customfieldvalue' => $j->customFieldValues->map(fn($v) => ['id' => $v->id, 'jobId' => $v->job_id, 'customFieldId' => $v->custom_field_id, 'value' => $v->value, 'createdAt' => $v->created_at, 'updatedAt' => $v->updated_at]),
             ]);
 
         $expenses = Expense::where('tenant_id', $tenantId)
             ->get()
-            ->map(fn($e) => ['id' => $e->id, 'tenantId' => $e->tenant_id, 'jobId' => $e->job_id, 'categoryId' => $e->category_id, 'title' => $e->title, 'amount' => $e->amount, 'date' => $e->date, 'description' => $e->description, 'createdAt' => $e->created_at, 'updatedAt' => $e->updated_at, 'cashRegisterId' => $e->cash_register_id]);
+            ->map(fn($e) => ['id' => $e->id, 'tenantId' => $e->tenant_id, 'jobId' => $e->job_id, 'categoryId' => $e->category_id, 'title' => $e->title, 'amount' => $e->amount, 'date' => $e->date, 'description' => $e->description, 'receiptPath' => $e->receipt_path, 'createdAt' => $e->created_at, 'updatedAt' => $e->updated_at, 'cashRegisterId' => $e->cash_register_id]);
+
+        $proposals = Proposal::where('tenant_id', $tenantId)
+            ->with(['items', 'installments', 'revisionRequests'])
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'tenantId' => $p->tenant_id,
+                'customerId' => $p->customer_id,
+                'serviceId' => $p->service_id,
+                'title' => $p->title,
+                'description' => $p->description,
+                'totalPrice' => $p->total_price,
+                'subtotal' => $p->subtotal,
+                'vatAmount' => $p->vat_amount,
+                'isVatIncluded' => $p->is_vat_included,
+                'vatRate' => $p->vat_rate,
+                'status' => $p->status,
+                'notes' => $p->notes,
+                'customerNotes' => $p->customer_notes,
+                'sentAt' => $p->sent_at,
+                'validUntil' => $p->valid_until,
+                'createdAt' => $p->created_at,
+                'updatedAt' => $p->updated_at,
+                'items' => $p->items->map(fn($i) => ['id' => $i->id, 'description' => $i->description, 'quantity' => $i->quantity, 'unitPrice' => $i->unit_price, 'totalPrice' => $i->total_price, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+                'installments' => $p->installments->map(fn($i) => ['id' => $i->id, 'jobId' => $i->job_id, 'amount' => $i->amount, 'percentage' => $i->percentage, 'paymentDate' => $i->payment_date, 'description' => $i->description, 'isPaid' => $i->is_paid, 'paidAt' => $i->paid_at, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+                'revisionRequests' => $p->revisionRequests->map(fn($i) => ['id' => $i->id, 'notes' => $i->notes, 'status' => $i->status, 'createdAt' => $i->created_at, 'updatedAt' => $i->updated_at]),
+            ]);
 
         $apiKeys = ApiKey::where('tenant_id', $tenantId)->get()->map(fn($k) => ['id' => $k->id, 'key' => $k->key, 'name' => $k->name, 'tenantId' => $k->tenant_id, 'createdAt' => $k->created_at, 'lastUsed' => $k->last_used]);
 
@@ -219,6 +276,15 @@ class BackupController extends Controller
         ]);
 
 
+        $roles = Role::where('tenant_id', $tenantId)
+            ->with('permissions')
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'permissions' => $r->permissions->pluck('name')->toArray()
+            ]);
+
         $tenant = Tenant::find($tenantId);
 
         $backup = [
@@ -229,7 +295,8 @@ class BackupController extends Controller
                 'services'       => $services,
                 'jobstatuses'    => $jobStatuses,
                 'steptemplates'  => $stepTemplates,
-                'customers'      => $customers,
+                'customers'         => $customers,
+                'proposals'         => $proposals,
                 'jobs'              => $jobs,
                 'expenses'          => $expenses,
                 'expensecategories' => $expenseCategories,
@@ -241,13 +308,9 @@ class BackupController extends Controller
                 'service_tracking_categories' => $serviceTrackingCategories,
                 'service_trackings' => $serviceTrackings,
                 'service_tracking_logs' => $serviceTrackingLogs,
+                'roles'             => $roles,
             ],
-            'tenant_settings' => [
-                'aws_access_key_id'     => $tenant->aws_access_key_id,
-                'aws_secret_access_key' => $tenant->aws_secret_access_key,
-                'aws_region'            => $tenant->aws_region,
-                'aws_bucket_name'       => $tenant->aws_bucket_name,
-            ],
+            'tenant_settings' => [],
             'exported_from' => 'famedya_crm',
         ];
 
@@ -262,9 +325,9 @@ class BackupController extends Controller
         $jsonContent = json_encode($backup, JSON_UNESCAPED_UNICODE);
         $filename = Str::slug($tenant->name ?? 'yedek', '_') . '_' . now()->timestamp . ".json";
 
-        if ($this->setS3Config($tenant)) {
+        if ($this->setGlobalS3Config()) {
             try {
-                Storage::disk('s3_tenant')->put("backups/{$filename}", $jsonContent);
+                Storage::disk('s3_global')->put("tenants/{$tenantId}/backups/{$filename}", $jsonContent);
                 ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem yedeği AWS S3 üzerine aktarıldı: ' . $filename);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("S3 Backup upload failed: " . $e->getMessage());
@@ -282,22 +345,22 @@ class BackupController extends Controller
     public function listS3Backups(Request $request): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
-        $tenant = Tenant::find($tenantId);
 
-        if (!$this->setS3Config($tenant)) {
-            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        if (!$this->setGlobalS3Config()) {
+            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
 
         try {
-            $files = Storage::disk('s3_tenant')->files('backups');
+            $backupDir = "tenants/{$tenantId}/backups";
+            $files = Storage::disk('s3_global')->files($backupDir);
             $backups = [];
             foreach ($files as $file) {
                 if (Str::endsWith($file, '.json')) {
                     $basename = basename($file);
                     $backups[] = [
                         'name' => $basename,
-                        'size' => Storage::disk('s3_tenant')->size($file),
-                        'last_modified' => Storage::disk('s3_tenant')->lastModified($file),
+                        'size' => Storage::disk('s3_global')->size($file),
+                        'last_modified' => Storage::disk('s3_global')->lastModified($file),
                         'type' => Str::contains($basename, '_auto_') ? 'Otomatik' : 'Manuel',
                     ];
                 }
@@ -323,20 +386,19 @@ class BackupController extends Controller
         }
 
         $tenantId = $request->user()->tenant_id;
-        $tenant = Tenant::find($tenantId);
 
-        if (!$this->setS3Config($tenant)) {
-            return response()->json(['message' => 'S3 ayarları yapılmamış.'], 400);
+        if (!$this->setGlobalS3Config()) {
+            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
 
         try {
-            $path = "backups/" . basename($filename);
+            $path = "tenants/{$tenantId}/backups/" . basename($filename);
             
-            if (!Storage::disk('s3_tenant')->exists($path)) {
+            if (!Storage::disk('s3_global')->exists($path)) {
                 return response()->json(['message' => 'Yedek dosyası S3 üzerinde bulunamadı.'], 404);
             }
 
-            return Storage::disk('s3_tenant')->download($path);
+            return Storage::disk('s3_global')->download($path);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("S3 Backup Download error: " . $e->getMessage());
             return response()->json(['message' => 'Yedek dosyası indirilirken hata oluştu.'], 500);
@@ -383,48 +445,54 @@ class BackupController extends Controller
         $data = $backup['data'];
         $settings = $backup['tenant_settings'] ?? [];
 
-        \Illuminate\Database\Eloquent\Model::unguarded(function () use ($data, $tenantId, $settings) {
-            DB::transaction(function () use ($data, $tenantId, $settings) {
-                // Restore Tenant Settings (S3, etc.)
-                if (!empty($settings)) {
-                Tenant::where('id', $tenantId)->update([
-                    'aws_access_key_id'     => $settings['aws_access_key_id'] ?? null,
-                    'aws_secret_access_key' => $settings['aws_secret_access_key'] ?? null,
-                    'aws_region'            => $settings['aws_region'] ?? null,
-                    'aws_bucket_name'       => $settings['aws_bucket_name'] ?? null,
-                ]);
-            }
+        \Illuminate\Database\Eloquent\Model::unguard();
+        try {
+            DB::transaction(function () use ($data, $tenantId, $settings, $user) {
+                // Restore Tenant Settings (S3 no longer restored here)
 
-            // Import services & custom fields
-            $serviceIdMap = [];
-            $customFieldIdMap = [];
-            foreach (($data['services'] ?? []) as $s) {
-                $service = Service::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                );
-                $serviceIdMap[$s['id']] = $service->id;
 
-                foreach (($s['customfield'] ?? []) as $cf) {
-                    $newCf = $service->customFields()->updateOrCreate(
-                        ['label' => $cf['label'], 'service_id' => $service->id],
-                        ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
+                // Import services & custom fields
+                $serviceIdMap = [];
+                $customFieldIdMap = [];
+                foreach (($data['services'] ?? []) as $s) {
+                    $service = Service::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $s['name']],
+                        ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
                     );
-                    if (isset($cf['id'])) {
-                        $customFieldIdMap[$cf['id']] = $newCf->id;
+                    $serviceIdMap[$s['id']] = $service->id;
+
+                    foreach (($s['customfield'] ?? []) as $cf) {
+                        $newCf = $service->customFields()->updateOrCreate(
+                            ['label' => $cf['label'], 'service_id' => $service->id],
+                            ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
+                        );
+                        if (isset($cf['id'])) {
+                            $customFieldIdMap[$cf['id']] = $newCf->id;
+                        }
                     }
                 }
-            }
 
-            // Import job statuses
-            $statusIdMap = [];
-            foreach (($data['jobstatuses'] ?? []) as $s) {
-                $status = JobStatus::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $s['name']],
-                    ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                );
-                $statusIdMap[$s['id']] = $status->id;
-            }
+                // Import roles
+                foreach (($data['roles'] ?? []) as $r) {
+                    $role = Role::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $r['name']],
+                        ['guard_name' => 'web']
+                    );
+                    if (!empty($r['permissions'])) {
+                        $role->syncPermissions($r['permissions']);
+                    }
+                }
+
+
+                // Import job statuses
+                $statusIdMap = [];
+                foreach (($data['jobstatuses'] ?? []) as $s) {
+                    $status = JobStatus::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $s['name']],
+                        ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
+                    );
+                    $statusIdMap[$s['id']] = $status->id;
+                }
 
             // Import step templates
             foreach (($data['steptemplates'] ?? []) as $t) {
@@ -448,6 +516,74 @@ class BackupController extends Controller
                     ['email' => $c['email'], 'notes' => $c['notes'], 'created_at' => $c['createdAt'] ?? now(), 'updated_at' => $c['updatedAt'] ?? now()]
                 );
                 $customerIdMap[$c['id']] = $customer->id;
+            }
+
+            // Import proposals
+            $proposalIdMap = [];
+            foreach (($data['proposals'] ?? []) as $p) {
+                $customerId = $customerIdMap[$p['customerId']] ?? null;
+                if (!$customerId) continue;
+
+                $proposal = Proposal::create([
+                    'tenant_id' => $tenantId,
+                    'customer_id' => $customerId,
+                    'service_id' => isset($p['serviceId']) && isset($serviceIdMap[$p['serviceId']]) ? $serviceIdMap[$p['serviceId']] : null,
+                    'title' => $p['title'],
+                    'description' => $p['description'] ?? null,
+                    'total_price' => $p['totalPrice'] ?? 0,
+                    'subtotal' => $p['subtotal'] ?? 0,
+                    'vat_amount' => $p['vatAmount'] ?? 0,
+                    'is_vat_included' => $p['isVatIncluded'] ?? false,
+                    'vat_rate' => $p['vatRate'] ?? 20,
+                    'status' => $p['status'] ?? 'DRAFT',
+                    'notes' => $p['notes'] ?? null,
+                    'customer_notes' => $p['customerNotes'] ?? null,
+                    'sent_at' => $p['sentAt'] ?? null,
+                    'valid_until' => $p['validUntil'] ?? null,
+                    'created_at' => $p['createdAt'] ?? now(),
+                    'updated_at' => $p['updatedAt'] ?? now(),
+                ]);
+                $proposalIdMap[$p['id']] = $proposal->id;
+
+                if (!empty($p['items'])) {
+                    foreach ($p['items'] as $item) {
+                        $proposal->items()->create([
+                            'description' => $item['description'],
+                            'quantity' => $item['quantity'] ?? 1,
+                            'unit_price' => $item['unitPrice'] ?? 0,
+                            'total_price' => $item['totalPrice'] ?? 0,
+                            'created_at' => $item['createdAt'] ?? now(),
+                            'updated_at' => $item['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
+
+                if (!empty($p['installments'])) {
+                    foreach ($p['installments'] as $inst) {
+                        $proposal->installments()->create([
+                            'job_id' => null, // Will map later if we can
+                            'amount' => $inst['amount'] ?? 0,
+                            'percentage' => $inst['percentage'] ?? 0,
+                            'payment_date' => isset($inst['paymentDate']) ? substr($inst['paymentDate'], 0, 10) : null,
+                            'description' => $inst['description'] ?? null,
+                            'is_paid' => $inst['isPaid'] ?? false,
+                            'paid_at' => $inst['paidAt'] ?? null,
+                            'created_at' => $inst['createdAt'] ?? now(),
+                            'updated_at' => $inst['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
+
+                if (!empty($p['revisionRequests'])) {
+                    foreach ($p['revisionRequests'] as $rev) {
+                        $proposal->revisionRequests()->create([
+                            'notes' => $rev['notes'],
+                            'status' => $rev['status'] ?? 'PENDING',
+                            'created_at' => $rev['createdAt'] ?? now(),
+                            'updated_at' => $rev['updatedAt'] ?? now(),
+                        ]);
+                    }
+                }
             }
 
             // Import jobs
@@ -482,6 +618,12 @@ class BackupController extends Controller
                         'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),
                         'end_date'      => isset($j['endDate']) ? substr($j['endDate'], 0, 10) : null,
                         'total_price'   => $j['totalPrice'] ?? 0,
+                        'subtotal'      => $j['subtotal'] ?? 0,
+                        'is_vat_included' => $j['vat'] ?? $j['is_vat_included'] ?? false,
+                        'vat_amount'    => $j['vatAmount'] ?? $j['vat_amount'] ?? 0,
+                        'proposal_id'   => isset($j['proposalId']) && isset($proposalIdMap[$j['proposalId']]) ? $proposalIdMap[$j['proposalId']] : null,
+                        'order'         => $j['order'] ?? 0,
+                        'user_id'       => $j['userId'] ?? $j['user_id'] ?? null,
                         'created_at'    => $j['createdAt'] ?? now(),
                         'updated_at'    => $j['updatedAt'] ?? now(),
                     ]
@@ -613,6 +755,7 @@ class BackupController extends Controller
                             'payment_type'     => $p['paymentType'] ?? $p['payment_type'] ?? 'CASH',
                             'description'      => $p['description'] ?? null,
                             'cash_register_id' => $cashRegisterId,
+                            'receipt_path'     => $p['receiptPath'] ?? $p['receipt_path'] ?? null,
                             'created_at'       => $p['createdAt'] ?? now(),
                             'updated_at'       => $p['updatedAt'] ?? now(),
                         ]
@@ -719,6 +862,7 @@ class BackupController extends Controller
                         'description'      => $e['description'] ?? null,
                         'category_id'      => $categoryId,
                         'cash_register_id' => $cashRegisterId,
+                        'receipt_path'     => $e['receiptPath'] ?? $e['receipt_path'] ?? null,
                         'created_at'       => $e['createdAt'] ?? now(),
                         'updated_at'       => $e['updatedAt'] ?? now(),
                     ]
@@ -739,7 +883,9 @@ class BackupController extends Controller
                 ]);
             }
         });
-        });
+    } finally {
+        \Illuminate\Database\Eloquent\Model::reguard();
+    }
 
         // Clear all tenant caches after restore
         $this->clearTenantCache('jobs');
@@ -762,7 +908,7 @@ class BackupController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
 
-        DB::transaction(function () use ($tenantId) {
+        DB::transaction(function () use ($tenantId, $request) {
             // Delete jobs and their related data
             $jobIds = JobCrm::where('tenant_id', $tenantId)->pluck('id');
             
@@ -774,8 +920,14 @@ class BackupController extends Controller
             Expense::whereIn('job_id', $jobIds)->delete();
             JobCrm::where('tenant_id', $tenantId)->delete();
 
-            // Delete customers
+            // Delete customers and proposals
             Customer::where('tenant_id', $tenantId)->delete();
+            
+            $proposalIds = Proposal::where('tenant_id', $tenantId)->pluck('id');
+            ProposalItem::whereIn('proposal_id', $proposalIds)->delete();
+            ProposalInstallment::whereIn('proposal_id', $proposalIds)->delete();
+            ProposalRevisionRequest::whereIn('proposal_id', $proposalIds)->delete();
+            Proposal::where('tenant_id', $tenantId)->delete();
 
             // Delete specific settings
             Payment::where('tenant_id', $tenantId)->delete(); // Catch-all for tenant payments
@@ -804,6 +956,10 @@ class BackupController extends Controller
             ServiceTrackingLog::where('tenant_id', $tenantId)->delete();
             ServiceTracking::where('tenant_id', $tenantId)->delete();
             ServiceTrackingCategory::where('tenant_id', $tenantId)->delete();
+
+            // Delete roles and personnel (except the one doing the reset)
+            Role::where('tenant_id', $tenantId)->delete();
+            User::where('tenant_id', $tenantId)->where('id', '!=', $request->user()->id)->delete();
         });
 
         // Clear all tenant caches after reset

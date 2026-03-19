@@ -55,6 +55,33 @@ export default function FilesPage() {
         onError: () => toast.error('Dosya silinirken bir hata oluştu.')
     })
 
+    const handleDownloadSingle = async (file) => {
+        const toastId = toast.loading('İndiriliyor...')
+        try {
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const a = document.createElement('a')
+            a.href = url
+            let fileName = file.fileName || file.file_name || 'dosya'
+            const contentDisposition = response.headers['content-disposition']
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (match && match[1]) {
+                    fileName = match[1]
+                }
+            }
+            a.download = fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success('İndirme başarılı.', { id: toastId })
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Dosya indirilemedi.', { id: toastId })
+        }
+    }
+
     const handleDownloadAll = async (job, filesToDownload) => {
         if (!filesToDownload || filesToDownload.length === 0) {
             toast.error('İndirilecek dosya bulunamadı.')
@@ -69,7 +96,7 @@ export default function FilesPage() {
 
             const promises = filesToDownload.map(async (file) => {
                 try {
-                    const response = await api.get(`/files/proxy?id=${file.id}`, { responseType: 'blob' })
+                const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
                     if (!response.data) throw new Error('Ağ hatası')
                     zip.file(file.fileName, response.data)
                 } catch (err) {
@@ -375,15 +402,13 @@ export default function FilesPage() {
                                                     )}
 
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                        <a
-                                                            href={file.filePath}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }}
                                                             className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md transition-colors"
-                                                            title="Dosyayı Aç"
+                                                            title="İndir"
                                                         >
-                                                            <ExternalLink size={16} />
-                                                        </a>
+                                                            <Download size={16} />
+                                                        </button>
                                                         <button
                                                             onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })}
                                                             className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-lg backdrop-blur-md transition-colors"
@@ -428,9 +453,9 @@ export default function FilesPage() {
                                                         <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
-                                                                <a href={file.filePath} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors">
-                                                                    <ExternalLink size={16} />
-                                                                </a>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
+                                                                    <Download size={16} />
+                                                                </button>
                                                                 <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
                                                                     <Trash2 size={16} />
                                                                 </button>

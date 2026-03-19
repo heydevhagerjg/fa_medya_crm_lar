@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
+import { formatPhoneNumber } from '../lib/utils'
+
 import { ArrowLeft, Briefcase, Phone, Mail, FileText, CalendarIcon, Clock, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -66,7 +68,8 @@ export default function CustomerDetailPage() {
                         {customer.phone && (
                             <div className="flex items-center gap-3 text-sm">
                                 <Phone size={14} className="text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300">{customer.phone}</span>
+                                <span className="text-gray-700 dark:text-gray-300">{formatPhoneNumber(customer.phone)}</span>
+
                             </div>
                         )}
                         {customer.email && (
@@ -128,6 +131,43 @@ export default function CustomerDetailPage() {
                                     </Link>
                                 )
                             })}
+                        </div>
+                    </div>
+
+
+
+                    {/* Proposals List */}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                            <FileText size={18} className="text-indigo-500" />
+                            Teklifler ({(customer.proposals || []).length})
+                        </h2>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            {(customer.proposals || []).length === 0 ? (
+                                <p className="text-center text-gray-400 py-8 text-sm">Henüz teklif yok.</p>
+                            ) : customer.proposals.map(proposal => (
+                                <Link key={proposal.id} to={`/proposals`} className="block p-4 border border-gray-100 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-gray-900 dark:text-white truncate text-sm">{proposal.title}</div>
+                                            <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{formatDate(proposal.created_at)} • {formatCurrency(proposal.total_price)}</div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border ${
+                                                proposal.status === 'ACCEPTED' ? 'bg-green-50 text-green-600 border-green-100' :
+                                                proposal.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' :
+                                                proposal.status === 'REVISION_REQUESTED' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                                'bg-blue-50 text-blue-600 border-blue-100'
+                                            }`}>
+                                                {proposal.status === 'DRAFT' ? 'Taslak' : 
+                                                 proposal.status === 'SENT' ? 'Gönderildi' : 
+                                                 proposal.status === 'ACCEPTED' ? 'Onaylandı' :
+                                                 proposal.status === 'REJECTED' ? 'Reddedildi' : 'Revize İstendi'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
                         </div>
                     </div>
 
