@@ -1802,10 +1802,12 @@ function SubscriptionTab() {
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                             {(sub.receipts || []).map((r, i) => (
-                                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
+                                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors text-xs">
+                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                        {new Date(r.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </td>
                                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{r.description || 'Abonelik Ödemesi'}</td>
-                                    <td className="px-6 py-4 text-right font-mono font-bold text-gray-900 dark:text-white">{r.amount} {r.currency}</td>
+                                    <td className="px-6 py-4 text-right font-mono font-bold text-gray-900 dark:text-white">{r.total ? (r.total / 100).toFixed(2) : '0.00'} {r.currency}</td>
                                     <td className="px-6 py-4 text-right">
                                         <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
                                             Başarılı
