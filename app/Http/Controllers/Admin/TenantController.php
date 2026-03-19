@@ -198,7 +198,14 @@ class TenantController extends Controller
         $package = \App\Models\Package::findOrFail($validated['package_id']);
         $tenant->applyPackage($package);
 
-        return response()->json(['message' => 'Tenant paketi güncellendi ve limitleri senkronize edildi.', 'tenant' => $tenant]);
+        // Reset "Gifted/Unlimited" status and clear the long trial fallback
+        // This will force the system to check Paddle for real subscriptions again.
+        $tenant->update([
+            'is_gifted' => false,
+            'trial_ends_at' => null, // Reset trial
+        ]);
+
+        return response()->json(['message' => 'Tenant paketi güncellendi, hediye durumu sıfırlandı ve standart ödeme kontrolüne dönüldü.', 'tenant' => $tenant->load('package')]);
     }
 
     public function addUser(Request $request, $id)
