@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 
 use Laravel\Paddle\Cashier;
-use App\Models\PaddleCustomer;
+use App\Models\BillingCustomer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Cashier::useCustomerModel(PaddleCustomer::class);
+        Cashier::useCustomerModel(BillingCustomer::class);
     }
 }

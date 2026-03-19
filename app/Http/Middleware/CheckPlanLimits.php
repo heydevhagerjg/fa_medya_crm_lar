@@ -23,8 +23,11 @@ class CheckPlanLimits
 
         $tenant = $user->tenant;
 
-        // Check subscription/trial status
-        if (!$tenant->onTrial() && !$tenant->subscribed()) {
+        // Check subscription/trial status (Skip check if package is free)
+        $package = $tenant->package;
+        $isFree = $package && $package->price <= 0;
+
+        if (!$isFree && !$tenant->onTrial() && !$tenant->subscribed()) {
             // Allow access to billing routes even if not subscribed
             if (!$request->is('api/billing/*') && !$request->is('api/auth/me')) {
                 return response()->json([
