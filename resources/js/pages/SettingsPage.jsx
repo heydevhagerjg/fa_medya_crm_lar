@@ -1665,6 +1665,8 @@ function UsersTab() {
 }
 
 function SubscriptionTab() {
+    const [successModal, setSuccessModal] = useState(false)
+    const qc = useQueryClient()
     const { data: sub, isLoading } = useQuery({
         queryKey: ['subscription'],
         queryFn: () => api.get('/billing/subscription').then(r => r.data)
@@ -1679,11 +1681,7 @@ function SubscriptionTab() {
                         ...res.checkout,
                         eventCallback: (event) => {
                             if (event.name === "checkout.completed") {
-                                toast.success('Ödemeniz başarıyla alındı, bilgileriniz güncelleniyor...');
-                                // Bilgilerin sunucu ile tam senkronize olması için sayfayı 3 saniye sonra yenile
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 3000)
+                                setSuccessModal(true);
                             }
                         }
                     });
@@ -1879,6 +1877,26 @@ function SubscriptionTab() {
                     </table>
                 </div>
             </div>
+            {/* Success Modal */}
+            <Modal open={successModal} onClose={() => window.location.reload()} title="Ödeme Başarılı" size="sm">
+                <div className="text-center py-4 space-y-4">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-green-500" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Aboneliğiniz Aktif Edildi</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            Ödemeniz başarıyla alındı. Yeni limitleriniz ve özellikleriniz tanımlandı.
+                        </p>
+                    </div>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
+                    >
+                        Paneli Yenile ve Başla
+                    </button>
+                </div>
+            </Modal>
         </div>
     )
 }
