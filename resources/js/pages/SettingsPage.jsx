@@ -1799,7 +1799,7 @@ function SubscriptionTab() {
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">Sınırsız Erişim</p>
-                                <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Yönetici Paketi</p>
+                                <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Yönetici Tarafından Hediye Edildi</p>
                             </div>
                         </div>
                     ) : (
