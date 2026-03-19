@@ -1725,6 +1725,8 @@ function SubscriptionTab() {
 
     const nextBilledAt = sub.subscription?.next_billed_at || sub.subscription?.scheduled_change?.effective_at || sub.subscription?.billing_period?.ends_at || sub.trial_ends_at;
 
+    const isUnlimited = sub.is_gifted || (sub.is_on_trial && sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date(new Date().setFullYear(new Date().getFullYear() + 50)));
+
     return (
         <div className="max-w-4xl space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1788,7 +1790,7 @@ function SubscriptionTab() {
                                 </div>
                              )}
                         </div>
-                    ) : (sub.is_on_trial && sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date(new Date().setFullYear(new Date().getFullYear() + 50))) ? (
+                    ) : isUnlimited ? (
                         <div className="text-center space-y-2">
                              <div className="mx-auto w-10 h-10 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center">
                                  <ShieldCheck size={20} />

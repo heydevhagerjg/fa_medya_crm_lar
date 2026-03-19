@@ -36,6 +36,7 @@ class BillingController extends Controller
         
         return response()->json([
             'is_on_trial' => $tenant->onTrial(),
+            'is_gifted' => $tenant->is_gifted,
             'trial_ends_at' => $tenant->trialEndsAt() ? $tenant->trialEndsAt()->toIso8601String() : null,
             'is_subscribed' => $tenant->subscribed(),
             'subscription' => $subscription ? array_merge($subscription->toArray(), ['next_billed_at' => $nextBilledAt]) : null,

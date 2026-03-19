@@ -244,10 +244,10 @@ class TenantController extends Controller
         // 1. Apply features and limits
         $tenant->applyPackage($package);
         
-        // 2. Set "Unlimited" trial (100 years) on the tenant record itself
-        // This bypasses the need for a real Paddle customer record for gifted packages
+        // 2. Set as GIFTED and set long trial fallback
         $tenant->update([
             'trial_ends_at' => now()->addYears(100),
+            'is_gifted' => true,
         ]);
 
         return response()->json([

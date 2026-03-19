@@ -12,7 +12,7 @@ class Tenant extends Model
     use HasPlanLimits, Billable;
 
     protected $fillable = [
-        'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at',
+        'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at', 'is_gifted',
         'plan_personnel_limit', 'plan_customer_limit', 'plan_job_limit',
         'plan_appointment_feature', 'plan_appointment_limit',
         'plan_service_tracking_feature', 'plan_service_tracking_limit', 'plan_service_tracking_category_feature', 'plan_service_tracking_category_limit',
@@ -38,6 +38,7 @@ class Tenant extends Model
         'plan_disk_usage_limit' => 'integer',
         'storage_used' => 'integer',
         'trial_ends_at' => 'datetime',
+        'is_gifted' => 'boolean',
     ];
 
     public function package()
@@ -70,6 +71,14 @@ class Tenant extends Model
             'plan_api_key_feature' => $package->api_key_feature,
             'plan_disk_usage_limit' => $package->disk_usage_limit,
         ]);
+    }
+
+    public function onTrial($params = [])
+    {
+        if ($this->is_gifted) return true;
+        
+        $trialEndsAt = $this->trialEndsAt($params);
+        return $trialEndsAt && $trialEndsAt->isFuture();
     }
 
     public function trialEndsAt($params = [])
