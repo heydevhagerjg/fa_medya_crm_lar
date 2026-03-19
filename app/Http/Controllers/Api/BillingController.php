@@ -16,15 +16,10 @@ class BillingController extends Controller
         $nextBilledAt = null;
         if ($subscription && $subscription->active()) {
             try {
-                // Fetch live data from Paddle API v2
                 $paddleSub = $subscription->asPaddleSubscription();
                 $nextBilledAt = $paddleSub->nextBilledAt ? $paddleSub->nextBilledAt->format('Y-m-d H:i:s') : null;
-                
-                // Add to the model instance for the JSON response
                 $subscription->next_billed_at = $nextBilledAt;
-            } catch (\Exception $e) {
-                // Fallback or ignore
-            }
+            } catch (\Exception $e) {}
         }
         
         return response()->json([
@@ -34,7 +29,40 @@ class BillingController extends Controller
             'subscription' => $subscription,
             'package' => $tenant->package,
             'receipts' => $tenant->transactions()->latest()->get(),
+            'all_packages' => \App\Models\Package::where('is_active', true)->get(),
         ]);
+    }
+
+    public function swap(Request $request)
+    {
+        $request->validate([
+            'package_id' => 'required|exists:packages,id'
+        ]);
+
+        $tenant = $request->user()->tenant;
+        $package = \App\Models\Package::findOrFail($request->package_id);
+
+        if (!$package->paddle_price_id) {
+             return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
+        }
+
+        if (!$tenant->subscribed()) {
+            return response()->json(['message' => 'Aktif bir aboneliğiniz bulunmuyor.'], 400);
+        }
+
+        try {
+            $tenant->subscription()->swap($package->paddle_price_id);
+            
+            // Limitleri anında güncellemek için
+            $tenant->applyPackage($package);
+            
+            return response()->json(['message' => 'Paketiniz başarıyla değiştirildi. Yeni limitleriniz anında tanımlandı.']);
+        } catch (\Exception $e) {
+            if (str_contains(strtolower($e->getMessage()), 'pending scheduled changes')) {
+                return response()->json(['message' => 'Abonelik üzerinde bekleyen bir işlem olduğu için şu an değiştirilemiyor.'], 422);
+            }
+            return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
+        }
     }
 
     public function cancel(Request $request)
