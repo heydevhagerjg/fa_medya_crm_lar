@@ -5,6 +5,7 @@ import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+import Pagination from '../components/ui/Pagination.jsx'
 import { useAuthStore } from '../stores/index.js'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -1666,6 +1667,8 @@ function UsersTab() {
 
 function SubscriptionTab() {
     const [successModal, setSuccessModal] = useState(false)
+    const [page, setPage] = useState(1);
+    const perPage = 10;
     const qc = useQueryClient()
     const { data: sub, isLoading } = useQuery({
         queryKey: ['subscription'],
@@ -1715,6 +1718,10 @@ function SubscriptionTab() {
     })
 
     if (isLoading) return <div className="text-center py-8 text-gray-400">Yükleniyor...</div>
+
+    const receipts = sub.receipts || [];
+    const totalPages = Math.ceil(receipts.length / perPage);
+    const paginatedReceipts = receipts.slice((page - 1) * perPage, page * perPage);
 
     const nextBilledAt = sub.subscription?.next_billed_at || sub.subscription?.scheduled_change?.effective_at || sub.subscription?.billing_period?.ends_at;
 
@@ -1854,7 +1861,7 @@ function SubscriptionTab() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {(sub.receipts || []).map((r, i) => (
+                            {paginatedReceipts.map((r, i) => (
                                 <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors text-xs">
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
                                         {new Date(r.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1885,6 +1892,12 @@ function SubscriptionTab() {
                         </tbody>
                     </table>
                 </div>
+                <Pagination 
+                    currentPage={page} 
+                    totalPages={totalPages} 
+                    onPageChange={setPage} 
+                    totalItems={receipts.length}
+                />
             </div>
             {/* Success Modal */}
             <Modal open={successModal} onClose={() => window.location.reload()} title="Ödeme Başarılı" size="sm">
