@@ -62,22 +62,41 @@ Resim ve dökümanların görüntülenebilmesi için link oluşturun:
 php artisan storage:link
 ```
 
-### 8. Ödeme Sistemi (Paddle) Ayarları
-Proje, abonelik ve plan limitleri için **Paddle** kullanır. `.env` dosyanıza Paddle anahtarlarınızı ekleyin. 
+### 8. Ödeme Sistemi (Paddle v2) Ayarları
 
-> [!TIP]
-> **En Güncel Paddle Sandbox Bilgisi:**
-> - Sandbox API Key'leri `_sdbx` içerir.
-> - Client-side Token'lar `test_` ile başlar.
-> - Sandbox Seller ID, canlı hesaptan farklıdır.
+Proje, abonelik ve plan limitleri için **Paddle Billing (v2)** kullanır. Aşağıdaki adımları sırasıyla uygulayarak sistemi aktif hale getirin:
+
+#### A. Dashboard Ayarları (Sandbox/Live)
+1. **Developer Tools > Authentication** kısmından API Key ve Client-side Token oluşturun.
+2. **Developer Tools > Notifications** kısmına gidin ve yeni bir **Webhook** (Notification Destination) ekleyin.
+   - **URL:** `https://alanadiniz.com/paddle/webhook` (Lokal test için **Ngrok** adresi kullanmalısınız).
+   - **Events:** En az şu olayları seçin:
+     - `transaction.completed` (Ödemeler için kritik)
+     - `subscription.created`
+     - `subscription.updated`
+     - `subscription.cancelled`
+3. Eklediğiniz Webhook'un içine girerek en alttaki **Notification Secret** (pdl_ntf_...) değerini kopyalayın.
+
+#### B. .env Yapılandırması
+`.env` dosyanıza kopyaladığınız anahtarları ekleyin:
 
 ```env
-# Paddle Ayarları
-PADDLE_SELLER_ID=your_seller_id_here
-PADDLE_CLIENT_SIDE_TOKEN=your_client_side_token_here
-PADDLE_API_KEY=your_api_key_here
-PADDLE_SANDBOX=true # Test için true yapın
+# Paddle Temel Bilgiler (Sandbox için _sdbx ve test_ ile başlar)
+PADDLE_SANDBOX=true # Canlıda false yapın
+PADDLE_SELLER_ID=your_seller_id
+PADDLE_CLIENT_SIDE_TOKEN=test_your_client_token
+PADDLE_API_KEY=your_api_key_sdbx
+
+# Webhook Doğrulaması (Kritik: Boş kalırsa abonelik aktifleşmez)
+PADDLE_WEBHOOK_SECRET=pdl_ntf_your_secret_from_dashboard
+
+# Uygulama Linki (Ödeme sonrası dönüş için)
+FRONTEND_URL=https://alanadiniz.com
 ```
+
+> [!IMPORTANT]
+> **Önemli Not:** Paddle v2'de `Price ID`'ler `pri_` ile başlar. Veritabanındaki `packages` tablosundaki `paddle_price_id` alanlarının kullandığınız ortama (Sandbox veya Live) ait doğru Price ID'ler olduğundan emin olun.
+
 
 ---
 
