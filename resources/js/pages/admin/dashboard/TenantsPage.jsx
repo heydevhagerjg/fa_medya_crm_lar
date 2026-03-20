@@ -362,7 +362,7 @@ export default function TenantsPage() {
                                     <span className="font-bold text-gray-900 dark:text-white uppercase text-xs tracking-wider">{p.name}</span>
                                     {pkgModal.tenant?.package_id === p.id && <ShieldCheck size={16} className="text-blue-500" />}
                                 </div>
-                                <div className="text-[10px] text-gray-400 mt-1 mb-3">U: {p.personnel_limit} | C: {p.customer_limit} | J: {p.job_limit}</div>
+                                <div className="text-[10px] text-gray-400 mt-1 mb-3">U: {p.personnel_limit === 0 ? '∞' : p.personnel_limit} | C: {p.customer_limit === 0 ? '∞' : p.customer_limit} | J: {p.job_limit === 0 ? '∞' : p.job_limit}</div>
                                 
                                 <div className="flex gap-2">
                                     <button

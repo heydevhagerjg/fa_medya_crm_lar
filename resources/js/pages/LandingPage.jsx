@@ -22,12 +22,12 @@ export default function LandingPage() {
             <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
-                        <div className="flex items-center gap-2">
+                        <Link to="/" className="flex items-center gap-2">
                             <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
                                 {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
-                        </div>
+                        </Link>
                         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-400">
                             <a href="#features" className="hover:text-indigo-600 transition-colors">Özellikler</a>
                             <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
@@ -163,10 +163,10 @@ export default function LandingPage() {
             {/* Footer */}
             <footer className="py-12 border-t border-gray-100 dark:border-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex items-center gap-2">
+                    <Link to="/" className="flex items-center gap-2">
                         <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                         <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
-                    </div>
+                    </Link>
                     <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">
                         © {new Date().getFullYear()} {import.meta.env.VITE_APP_NAME}. Tüm hakları saklıdır.
                     </div>

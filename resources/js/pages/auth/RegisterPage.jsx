@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../stores/index.js'
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import { Briefcase, Mail, Lock, User, Building, Eye, EyeOff, UserPlus, Check, Info } from 'lucide-react'
 
 export default function RegisterPage() {
-    const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '', tenant_name: '', package_id: '' })
+    const [searchParams] = useSearchParams()
+    const [form, setForm] = useState({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        password_confirmation: '', 
+        tenant_name: '', 
+        package_id: (searchParams.get('package') && !isNaN(searchParams.get('package'))) ? parseInt(searchParams.get('package')) : '' 
+    })
     const [packages, setPackages] = useState([])
     const [showPass, setShowPass] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -145,10 +153,10 @@ export default function RegisterPage() {
                                             {pkg.name}
                                         </div>
                                         <div className={`text-[10px] space-y-1 ${form.package_id === pkg.id ? 'text-indigo-100' : 'text-gray-400'}`}>
-                                            <div className="flex justify-between"><span>Personel:</span> <span>{pkg.personnel_limit}</span></div>
-                                            <div className="flex justify-between"><span>Müşteri:</span> <span>{pkg.customer_limit}</span></div>
-                                            <div className="flex justify-between"><span>İş:</span> <span>{pkg.job_limit}</span></div>
-                                            <div className="flex justify-between"><span>Kasa:</span> <span>{pkg.cash_register_limit}</span></div>
+                                            <div className="flex justify-between"><span>Personel:</span> <span>{pkg.personnel_limit === 0 ? 'Sınırsız' : pkg.personnel_limit}</span></div>
+                                            <div className="flex justify-between"><span>Müşteri:</span> <span>{pkg.customer_limit === 0 ? 'Sınırsız' : pkg.customer_limit}</span></div>
+                                            <div className="flex justify-between"><span>İş:</span> <span>{pkg.job_limit === 0 ? 'Sınırsız' : pkg.job_limit}</span></div>
+                                            <div className="flex justify-between"><span>Kasa:</span> <span>{pkg.cash_register_limit === 0 ? 'Sınırsız' : pkg.cash_register_limit}</span></div>
                                         </div>
                                     </div>
                                 ))}

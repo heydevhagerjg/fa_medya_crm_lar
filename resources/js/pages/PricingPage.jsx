@@ -18,7 +18,7 @@ export default function PricingPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-20">
-            {/* Nav */}
+            {/* Navigation */}
             <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
@@ -28,11 +28,16 @@ export default function PricingPage() {
                                 {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
                         </Link>
+                        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                            <a href="/#features" className="hover:text-indigo-600 transition-colors">Özellikler</a>
+                            <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
+                            <a href="/#stats" className="hover:text-indigo-600 transition-colors">İstatistikler</a>
+                        </div>
                         <div className="flex items-center gap-3">
                             <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
                                 Giriş Yap
                             </Link>
-                            <Link to="/register" className="px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                            <Link to="/register" className="px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95">
                                 Ücretsiz Dene
                             </Link>
                         </div>
@@ -126,14 +131,21 @@ export default function PricingPage() {
                 </div>
             </div>
 
-            {/* Simple Footer */}
-            <footer className="mt-20 py-10 border-t border-gray-100 dark:border-gray-900">
-                <div className="max-w-7xl mx-auto px-4 text-center">
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">© 2026 {import.meta.env.VITE_APP_NAME.toUpperCase()} - TÜM HAKLARI SAKLIDIR.</p>
-                    <div className="mt-4 flex justify-center gap-6 text-[10px] font-black uppercase tracking-wider text-gray-500">
-                        <Link to="/tos" className="hover:text-indigo-600">Kullanım Koşulları</Link>
-                        <Link to="/refund" className="hover:text-indigo-600">İade Politikası</Link>
-                        <Link to="/privacy" className="hover:text-indigo-600">Gizlilik Politikası</Link>
+            {/* Footer */}
+            <footer className="py-12 border-t border-gray-100 dark:border-gray-900">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div className="flex items-center gap-2">
+                        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
+                    </div>
+                    <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">
+                        © {new Date().getFullYear()} {import.meta.env.VITE_APP_NAME}. Tüm hakları saklıdır.
+                    </div>
+                    <div className="flex items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400">
+                        <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
+                        <Link to="/tos" className="hover:text-indigo-600 transition-colors">Kullanım Koşulları</Link>
+                        <Link to="/refund" className="hover:text-indigo-600 transition-colors">İade Politikası</Link>
+                        <Link to="/privacy" className="hover:text-indigo-600 transition-colors">Gizlilik Politikası</Link>
                     </div>
                 </div>
             </footer>
