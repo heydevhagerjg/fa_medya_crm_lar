@@ -30,25 +30,74 @@ export default function RefundPolicyPage() {
                 </div>
 
                 <div className="prose dark:prose-invert max-w-none space-y-8 text-gray-600 dark:text-gray-400">
+
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">1. İade ve Cayma Hakkı</h2>
-                        <p>{import.meta.env.VITE_APP_NAME} bir dijital servis (SaaS) sunmaktadır. Mesafeli Sözleşmeler Yönetmeliği uyarınca; "elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmeler" cayma hakkının istisnası kapsamındadır. Bu sebeple, abonelik başlatıldıktan sonra yapılan ödemeler kural olarak iade edilmez.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            1. Hizmetin Niteliği
+                        </h2>
+
+                        <p>
+                            {import.meta.env.VITE_APP_NAME} internet üzerinden sunulan bir yazılım hizmetidir
+                            (Software as a Service – SaaS). Platforma erişim abonelik modeli ile sağlanmaktadır.
+                            {import.meta.env.VITE_APP_NAME} üzerinden yapılan tüm ödemeler, ödeme altyapı sağlayıcımız
+                            olan Paddle tarafından tahsil edilmektedir. Paddle bu işlemlerde Merchant of Record
+                            olarak görev yapar ve ödeme, faturalandırma, vergi ve iade süreçlerini yönetir.
+                        </p>
+
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">2. Ücretsiz Deneme (Trial) Süresi</h2>
-                        <p>Kullanıcılarımıza platformu test etmeleri için her pakette ücretsiz deneme süresi sunulur. Bu süre zarfında herhangi bir ücret tahsil edilmez ve abonelik istenildiği zaman herhangi bir yükümlülük olmaksızın iptal edilebilir. Bu sürenin sona ermesinin ardından yapılacak olan ilk ödeme, kullanıcının onayı ile gerçekleşmiş sayılır.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            2. Ücretsiz Deneme Süresi
+                        </h2>
+
+                        <p>
+                            Yeni kullanıcılar platformu test edebilmek için <strong>14 gün ücretsiz deneme</strong> süresinden
+                            yararlanabilir. Deneme süresi boyunca herhangi bir ücret tahsil edilmez.
+                        </p>
+
+                        <p>
+                            Kullanıcılar deneme süresi sona ermeden önce aboneliklerini iptal edebilirler.
+                            Bu durumda herhangi bir ücretlendirme yapılmaz.
+                        </p>
+
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">3. Abonelik İptali</h2>
-                        <p>Kullanıcılar, "Ayarlar &gt; Abonelik" sayfası üzerinden istedikleri zaman aboneliklerini iptal edebilirler. İptal işlemi, o anki fatura döneminin sonuna kadar kullanım hakkını devam ettirir, ancak bir sonraki dönem için yeni bir tahsilat yapılmaz.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            3. İade Politikası
+                        </h2>
+
+                        <p>
+                            Deneme süresi sona erdikten sonra abonelik ücretli döneme geçer ve ödeme Paddle
+                            üzerinden tahsil edilir.
+                        </p>
+
+                        <p>
+                            İlk ödeme gerçekleştikten sonra kullanıcılar <strong>3 gün</strong> içerisinde iade talebinde
+                            bulunabilirler. Bu süre içerisinde yapılan iade talepleri Paddle üzerinden işleme alınır
+                            ve ödeme kullanılan ödeme yöntemine geri gönderilir.
+                        </p>
+
+                        <p>
+                            3 günlük iade süresi sona erdikten sonra yapılan ödemeler iade edilmez.
+                        </p>
+
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">4. Teknik Hatalar ve Kesintiler</h2>
-                        <p>Sistem kaynaklı ağır bir teknik hata veya hizmetin sunulmasını engelleyen süreklilik arz eden kesintiler durumunda, iade talepleriniz ekibimiz tarafından titizlikle değerlendirilir. Haklı bulunan talepler, Paddle üzerinden 7 iş günü içinde işleme alınacaktır.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            4. Abonelik İptali
+                        </h2>
+
+                        <p>
+                            Kullanıcılar istedikleri zaman aboneliklerini hesap ayarları üzerinden iptal edebilirler.
+                            Abonelik iptal edildiğinde mevcut fatura döneminin sonuna kadar hizmet kullanılmaya
+                            devam edebilir, ancak bir sonraki dönem için yeni bir tahsilat yapılmaz.
+                        </p>
+
                     </section>
+
                 </div>
             </div>
 

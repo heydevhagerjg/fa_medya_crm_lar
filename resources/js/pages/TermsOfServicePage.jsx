@@ -30,30 +30,111 @@ export default function TermsOfServicePage() {
                 </div>
 
                 <div className="prose dark:prose-invert max-w-none space-y-8 text-gray-600 dark:text-gray-400">
-                    <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">1. Hizmet Tanımı</h2>
-                        <p>{import.meta.env.VITE_APP_NAME}, işletmeler için müşteri ilişkileri, proje takibi ve finansal veri yönetimi sunan bir SaaS platformudur. Hizmetlerimiz dijital ortamda sunulmakta olup, herhangi bir fiziksel ürün teslimatı içermez.</p>
-                    </section>
 
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">2. Hesap ve Güvenlik</h2>
-                        <p>Kullanıcılar, kayıt sırasında verdikleri bilgilerin doğruluğundan sorumludur. Hesap güvenliğinin sağlanması (şifre gizliliği vb.) tamamen kullanıcının sorumluluğundadır. İzinsiz kullanım durumunda derhal tarafımıza bilgi verilmelidir.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            1. Hizmet Sağlayıcı
+                        </h2>
+
+                        <p>
+                            {import.meta.env.VITE_APP_NAME}, işletmeler için müşteri ilişkileri yönetimi (CRM), proje takibi ve finansal veri yönetimi sunan bir
+                            SaaS (Software as a Service) platformudur. Hizmetler tamamen dijital ortamda sunulur ve herhangi bir fiziksel ürün teslimatı içermez.
+                        </p>
+
+                        <p>
+                            {import.meta.env.VITE_APP_NAME} hizmeti <strong>Fatih Ateş</strong> tarafından işletilmektedir.
+                        </p>
+
                     </section>
 
-                    <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">3. Abonelik ve Ödemeler</h2>
-                        <p>Hizmetlerimiz abonelik modeliyle sunulur. Ödemeler Paddle.com üzerinden tahsil edilir. Belirlenen paket fiyatlarına vergiler (KDV vb.) dahil olabilir. Aboneliğinizi istediğiniz zaman iptal edebilirsiniz; ancak aktif dönemin ücreti iade edilmez.</p>
-                    </section>
 
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">4. Veri Güvenliği</h2>
-                        <p>Verileriniz endüstri standartlarında şifrelenerek saklanır. Bulut yedekleme hizmetimiz (S3) verilerinizin güvenliğini sağlar. Kullanıcı verilerinin yedeklenmesi ve korunması için en iyi teknik imkanlar kullanılır.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            2. Hesap ve Güvenlik
+                        </h2>
+
+                        <p>
+                            Kullanıcılar, kayıt sırasında sağladıkları bilgilerin doğru ve güncel olmasından sorumludur.
+                            Hesap güvenliğinin sağlanması (şifre gizliliği ve hesap erişimi dahil) kullanıcının sorumluluğundadır.
+                        </p>
+
+                        <p>
+                            Hesabınızın izinsiz kullanıldığını fark etmeniz durumunda derhal bizimle iletişime geçmeniz gerekmektedir.
+                        </p>
+
                     </section>
 
+
                     <section>
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">5. Koşul Değişiklikleri</h2>
-                        <p>{import.meta.env.VITE_APP_NAME}, bu kullanım koşullarını dilediği zaman güncelleme hakkını saklı tutar. Güncellemeler bu sayfa üzerinden yayınlandığı andan itibaren geçerli sayılacaktır.</p>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            3. Abonelik ve Ödemeler
+                        </h2>
+
+                        <p>
+                            {import.meta.env.VITE_APP_NAME} hizmetleri abonelik modeli ile sunulmaktadır.
+                        </p>
+
+                        <p>
+                            Tüm ödemeler ödeme sağlayıcımız olan <strong>Paddle</strong> üzerinden tahsil edilir. Paddle bu işlemlerde
+                            <strong>Merchant of Record</strong> olarak görev yapar ve ödeme işlemleri, faturalandırma, vergi tahsilatı
+                            ve iade süreçlerini yönetir.
+                        </p>
+
+                        <p>
+                            Aboneliğinizi istediğiniz zaman hesap ayarlarınız üzerinden iptal edebilirsiniz. Abonelik iptal edildiğinde
+                            mevcut fatura dönemi sonuna kadar hizmeti kullanmaya devam edebilirsiniz.
+                        </p>
+
                     </section>
+
+
+                    <section>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            4. İade Politikası
+                        </h2>
+
+                        <p>
+                            Yeni kullanıcılar platformu test etmek için <strong>14 gün ücretsiz deneme</strong> süresinden yararlanabilir.
+                            Deneme süresi boyunca herhangi bir ücret tahsil edilmez.
+                        </p>
+
+                        <p>
+                            İlk ödeme gerçekleştikten sonra kullanıcılar <strong>3 gün</strong> içerisinde iade talebinde bulunabilir.
+                            İade talepleri Paddle üzerinden işleme alınır ve ödeme kullanılan ödeme yöntemine geri gönderilir.
+                        </p>
+
+                        <p>
+                            3 günlük iade süresi sona erdikten sonra yapılan ödemeler iade edilmez.
+                        </p>
+
+                    </section>
+
+
+                    <section>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            5. Veri Güvenliği
+                        </h2>
+
+                        <p>
+                            Kullanıcı verileri endüstri standartlarına uygun güvenlik önlemleri ile korunmaktadır.
+                            Veriler güvenli sunucularda saklanmakta ve düzenli yedekleme sistemleri ile korunmaktadır.
+                        </p>
+
+                    </section>
+
+
+                    <section>
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase mb-4">
+                            6. Koşul Değişiklikleri
+                        </h2>
+
+                        <p>
+                            {import.meta.env.VITE_APP_NAME}, bu kullanım koşullarını zaman zaman güncelleme hakkını saklı tutar.
+                            Güncellenmiş koşullar bu sayfada yayınlandığı tarihten itibaren geçerli sayılır.
+                        </p>
+
+                    </section>
+
                 </div>
             </div>
 
