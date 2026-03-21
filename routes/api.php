@@ -101,6 +101,7 @@ Route::middleware(['auth:sanctum', 'check.tenant', 'check.restoring', 'check.pla
     Route::get('/files/{id}/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
+    Route::post('/files/bulk-delete', [JobFileController::class, 'bulkDestroy']);
     Route::get('/files/trash', [JobFileController::class, 'trash']);
     Route::post('/files/trash/clear', [JobFileController::class, 'clearTrash']);
     Route::post('/files/{id}/restore', [JobFileController::class, 'restore']);

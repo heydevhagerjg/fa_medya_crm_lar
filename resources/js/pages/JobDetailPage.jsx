@@ -38,6 +38,8 @@ export default function JobDetailPage() {
     const [dragCounter, setDragCounter] = useState(0)
     const [uploadingFiles, setUploadingFiles] = useState([])
     const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
+    const [selectedFileIds, setSelectedFileIds] = useState([])
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
     const { data: job, isLoading } = useQuery({
         queryKey: ['job', id],
@@ -372,6 +374,17 @@ export default function JobDetailPage() {
             toast.success('Dosya çöp kutusuna taşındı.')
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Dosya silinemedi.'),
+    })
+
+    const bulkDeleteFiles = useMutation({
+        mutationFn: (ids) => api.post('/files/bulk-delete', { ids }),
+        onSuccess: (res) => {
+            qc.invalidateQueries(['job', id])
+            qc.invalidateQueries(['files'])
+            setSelectedFileIds([])
+            toast.success(res.data.message)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Silinemedi.'),
     })
 
     const updateJob = useMutation({
@@ -802,6 +815,40 @@ export default function JobDetailPage() {
                             }} />
                         </label>
                     </div>
+
+                    {files.length > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/20 border-b border-gray-100 dark:border-gray-800 mb-2 rounded-t-xl transition-all">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                    checked={files.length > 0 && selectedFileIds.length === files.length}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            setSelectedFileIds(files.map(f => f.id))
+                                        } else {
+                                            setSelectedFileIds([])
+                                        }
+                                    }}
+                                />
+                                <span className="text-xs font-medium text-gray-500">Hepsini Seç</span>
+                            </div>
+                            
+                            {selectedFileIds.length > 0 && (
+                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                                    <span className="text-xs font-bold text-indigo-500">{selectedFileIds.length} Seçili</span>
+                                    <button
+                                        onClick={() => setShowBulkDeleteConfirm(true)}
+                                        disabled={bulkDeleteFiles.isPending}
+                                        className="flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg text-[10px] font-bold transition-all border border-red-200 dark:border-red-500/30"
+                                    >
+                                        <Trash2 size={12} /> Seçilenleri Sil
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="space-y-3 flex-1 overflow-y-auto pr-2 max-h-[650px] custom-scrollbar">
                         {uploadingFiles.map(uf => (
                             <div key={uf.id} className="flex flex-col gap-2 p-3 border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl">
@@ -821,10 +868,22 @@ export default function JobDetailPage() {
                             </div>
                         ))}
                         {files.map(f => (
-                            <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-800 rounded-xl group relative">
-                                <File size={20} className="text-gray-400 flex-shrink-0" />
+                            <div key={f.id} className={`flex items-center gap-3 p-3 border ${selectedFileIds.includes(f.id) ? 'border-indigo-200 dark:border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-gray-100 dark:border-gray-800'} rounded-xl group relative transition-all`}>
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer relative z-20"
+                                    checked={selectedFileIds.includes(f.id)}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            setSelectedFileIds(prev => [...prev, f.id])
+                                        } else {
+                                            setSelectedFileIds(prev => prev.filter(id => id !== f.id))
+                                        }
+                                    }}
+                                />
+                                <File size={18} className={`${selectedFileIds.includes(f.id) ? 'text-indigo-500' : 'text-gray-400'} flex-shrink-0`} />
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{f.file_name || f.fileName}</div>
+                                    <div className={`text-sm ${selectedFileIds.includes(f.id) ? 'text-indigo-700 dark:text-indigo-300 font-medium' : 'text-gray-700 dark:text-gray-300'} truncate`}>{f.file_name || f.fileName}</div>
                                     <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1125,6 +1184,41 @@ export default function JobDetailPage() {
                             className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                         >
                             <Download size={18} /> İndir
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Bulk Delete File Confirmation Modal */}
+            <Modal open={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} title="Seçilenleri Sil" size="sm">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full mx-auto text-red-600 dark:text-red-400">
+                        <Trash2 size={24} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-gray-900 dark:text-white font-medium mb-1">
+                            Seçilen dosyaları çöp kutusuna taşımak istediğinize emin misiniz?
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
+                            Toplam <span className="font-bold text-red-500">{selectedFileIds.length} adet</span> dosya çöp kutusuna aktarılacak. Daha sonra isterseniz geri yükleyebilirsiniz.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => setShowBulkDeleteConfirm(false)}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        >
+                            İptal
+                        </button>
+                        <button
+                            onClick={() => {
+                                bulkDeleteFiles.mutate(selectedFileIds);
+                                setShowBulkDeleteConfirm(false);
+                            }}
+                            disabled={bulkDeleteFiles.isPending}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                        >
+                            {bulkDeleteFiles.isPending ? 'Siliniyor...' : 'Onayla'}
                         </button>
                     </div>
                 </div>

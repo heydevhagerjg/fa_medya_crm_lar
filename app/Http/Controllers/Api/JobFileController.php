@@ -163,6 +163,47 @@ class JobFileController extends Controller
     }
 
     /**
+     * Batch soft delete multiple files
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('files.delete')) {
+            return response()->json(['message' => 'Yetkisiz işlem.'], 403);
+        }
+
+        $ids = $request->input('ids');
+        if (!is_array($ids) || count($ids) === 0) {
+            return response()->json(['message' => 'Silinecek dosya seçilmedi.'], 400);
+        }
+
+        $tenantId = $user->tenant_id;
+        $files = JobFile::whereIn('id', $ids)->whereHas('job', function ($q) use ($tenantId, $user) {
+            $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN' && !$user->can('files.view_all')) {
+                $q->where('user_id', $user->id);
+            }
+        })->get();
+
+        $deletedCount = 0;
+        foreach ($files as $file) {
+            $job = $file->job;
+            ActivityLogService::log($user, 'DELETE', 'FILE', $file->id, $job->title,
+                "{$job->title} işinden \"{$file->file_name}\" isimli dosya toplu silme ile çöp kutusuna taşındı.");
+            $file->delete();
+            $deletedCount++;
+        }
+
+        $this->clearTenantCache('files');
+        $this->clearTenantCache('jobs');
+
+        return response()->json([
+            'message' => "{$deletedCount} dosya çöp kutusuna taşındı.",
+            'count' => $deletedCount
+        ]);
+    }
+
+    /**
      * List trashed files
      */
     public function trash(Request $request)

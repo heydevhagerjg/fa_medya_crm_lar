@@ -43,6 +43,7 @@ export default function FilesPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [fileSortMode, setFileSortMode] = useState('name')
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [showClearTrashConfirm, setShowClearTrashConfirm] = useState(false)
     const [downloadingZip, setDownloadingZip] = useState(false)
 
     const [showTrash, setShowTrash] = useState(false)
@@ -147,9 +148,9 @@ export default function FilesPage() {
                 try {
                     const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
                     if (!response.data) throw new Error('Ağ hatası')
-                    zip.file(file.fileName, response.data)
+                    zip.file(file.file_name || file.fileName, response.data)
                 } catch (err) {
-                    console.error('Dosya indirilemedi:', file.fileName, err)
+                    console.error('Dosya indirilemedi:', file.file_name || file.fileName, err)
                 }
             })
 
@@ -178,9 +179,9 @@ export default function FilesPage() {
         if (!search) return jobsWithActualFiles
 
         return jobsWithActualFiles.map(job => {
-            const matchesJob = job.title.toLowerCase().includes(search.toLowerCase())
+            const matchesJob = job.title?.toLowerCase().includes(search.toLowerCase())
             const matchedFiles = job.jobfile.filter(f =>
-                f.fileName.toLowerCase().includes(search.toLowerCase())
+                (f.file_name || f.fileName || '').toLowerCase().includes(search.toLowerCase())
             )
 
             if (matchesJob || matchedFiles.length > 0) {
@@ -196,7 +197,7 @@ export default function FilesPage() {
 
     const totalSize = useMemo(() => {
         const bytes = jobsWithFiles.reduce((acc, job) => {
-            return acc + (job.jobfile?.reduce((fAcc, f) => fAcc + (parseInt(f.fileSize) || 0), 0) || 0)
+            return acc + (job.jobfile?.reduce((fAcc, f) => fAcc + (parseInt(f.file_size || f.fileSize) || 0), 0) || 0)
         }, 0)
 
         if (bytes === 0) return '0 Bytes'
@@ -318,11 +319,7 @@ export default function FilesPage() {
                             </div>
                             {trashedFiles.length > 0 && (
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm('Çöp kutusundaki TÜM dosyalar kalıcı olarak silinecek. Bu işlem geri alınamaz. Onaylıyor musunuz?')) {
-                                            clearTrashMutation.mutate()
-                                        }
-                                    }}
+                                    onClick={() => setShowClearTrashConfirm(true)}
                                     disabled={clearTrashMutation.isLoading}
                                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
                                 >
@@ -459,11 +456,16 @@ export default function FilesPage() {
 
                         // Sort files based on selected mode
                         files.sort((a, b) => {
+                            const nameA = a.file_name || a.fileName || ''
+                            const nameB = b.file_name || b.fileName || ''
+                            const sizeA = parseInt(a.file_size || a.fileSize) || 0
+                            const sizeB = parseInt(b.file_size || b.fileSize) || 0
+
                             if (fileSortMode === 'name') {
-                                return a.fileName.localeCompare(b.fileName, 'tr')
+                                return nameA.localeCompare(nameB, 'tr')
                             }
                             if (fileSortMode === 'size') {
-                                return (parseInt(b.fileSize) || 0) - (parseInt(a.fileSize) || 0)
+                                return sizeB - sizeA
                             }
                             if (fileSortMode === 'date') {
                                 const dateA = new Date(a.uploaded_at || a.uploadedAt || 0).getTime()
@@ -534,10 +536,10 @@ export default function FilesPage() {
                                                 className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-500/30 transition-all cursor-default"
                                             >
                                                 <div className="aspect-square bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
-                                                    {file.fileType?.includes('image') ? (
+                                                    {(file.file_type || file.fileType || '').includes('image') ? (
                                                         <img
-                                                            src={file.filePath}
-                                                            alt={file.fileName}
+                                                            src={file.file_path || file.filePath}
+                                                            alt={file.file_name || file.fileName}
                                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                         />
                                                     ) : (
@@ -553,7 +555,7 @@ export default function FilesPage() {
                                                             <Download size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })}
+                                                            onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })}
                                                             className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-lg backdrop-blur-md transition-colors"
                                                             title="Sil"
                                                         >
@@ -562,9 +564,9 @@ export default function FilesPage() {
                                                     </div>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate" title={file.fileName}>{file.fileName}</p>
+                                                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate" title={file.file_name || file.fileName}>{file.file_name || file.fileName}</p>
                                                     <p className="text-[10px] text-gray-400 mt-0.5 uppercase">
-                                                        {(parseInt(file.fileSize) / 1024).toFixed(1)} KB • {file.fileType.split('/')[1]?.toUpperCase()}
+                                                        {(parseInt(file.file_size || file.file_size) / 1024).toFixed(1)} KB • {(file.file_type || file.fileType || '').split('/')[1]?.toUpperCase()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -587,19 +589,19 @@ export default function FilesPage() {
                                                     <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-3">
-                                                                {getFileIcon(file.fileType)}
-                                                                <span className="font-medium text-gray-900 dark:text-white">{file.fileName}</span>
+                                                                {getFileIcon(file.file_type || file.fileType)}
+                                                                <span className="font-medium text-gray-900 dark:text-white">{file.file_name || file.fileName}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-gray-500 uppercase text-xs">{file.fileType.split('/')[1]}</td>
-                                                        <td className="px-4 py-3 text-gray-500">{(parseInt(file.fileSize) / 1024).toFixed(1)} KB</td>
+                                                        <td className="px-4 py-3 text-gray-500 uppercase text-xs">{(file.file_type || file.fileType || '').split('/')[1]}</td>
+                                                        <td className="px-4 py-3 text-gray-500">{(parseInt(file.file_size || file.fileSize) / 1024).toFixed(1)} KB</td>
                                                         <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
                                                                     <Download size={16} />
                                                                 </button>
-                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             </div>
@@ -668,6 +670,41 @@ export default function FilesPage() {
                             className={`flex-1 px-4 py-2 text-sm font-medium text-white ${deleteConfirm?.isPermanent ? 'bg-black hover:bg-gray-900' : 'bg-red-600 hover:bg-red-700'} rounded-xl shadow-lg transition-all disabled:opacity-50`}
                         >
                             {deleteMutation.isLoading || forceDeleteMutation.isLoading ? 'Bekleyin...' : 'Onayla'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Clear Trash Confirmation Modal */}
+            <Modal open={showClearTrashConfirm} onClose={() => setShowClearTrashConfirm(false)} title="Çöp Kutusunu Boşalt" size="sm">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full mx-auto text-red-600 dark:text-red-400">
+                        <Trash2 size={24} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-gray-900 dark:text-white font-medium mb-1">
+                            Kalıcı olarak silmek istediğinize emin misiniz?
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
+                            Çöp kutusundaki <span className="font-bold text-red-500">{trashedFiles.length} adet</span> dosya <span className="font-semibold text-gray-700 dark:text-gray-200">KALICI</span> olarak silinecek ve kota iade edilecek. Bu işlem geri alınamaz.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => setShowClearTrashConfirm(false)}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        >
+                            İptal
+                        </button>
+                        <button
+                            onClick={() => {
+                                clearTrashMutation.mutate();
+                                setShowClearTrashConfirm(false);
+                            }}
+                            disabled={clearTrashMutation.isLoading}
+                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                        >
+                            {clearTrashMutation.isLoading ? 'Temizleniyor...' : 'Çöpü Boşalt'}
                         </button>
                     </div>
                 </div>
