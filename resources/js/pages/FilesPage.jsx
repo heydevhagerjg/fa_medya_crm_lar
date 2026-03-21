@@ -536,6 +536,24 @@ export default function FilesPage() {
                                             <span className="hidden sm:inline">{downloadingZip ? 'Hazırlanıyor...' : 'Toplu İndir'}</span>
                                         </button>
 
+                                        {viewMode === 'grid' && files.length > 0 && (
+                                            <div className="flex items-center gap-2 pl-3 border-l border-gray-200 dark:border-gray-700">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                    checked={selectedFileIds.length === files.length}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedFileIds(files.map(f => f.id))
+                                                        } else {
+                                                            setSelectedFileIds([])
+                                                        }
+                                                    }}
+                                                />
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Tümünü Seç</span>
+                                            </div>
+                                        )}
+
                                         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
 
                                         <div className="flex items-center gap-2">
@@ -553,21 +571,6 @@ export default function FilesPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800 rounded-xl">
-                                    <input
-                                        type="checkbox"
-                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                        checked={files.length > 0 && selectedFileIds.length === files.length}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedFileIds(files.map(f => f.id))
-                                            } else {
-                                                setSelectedFileIds([])
-                                            }
-                                        }}
-                                    />
-                                    <span className="text-xs font-semibold text-gray-500">Tümünü Seç ({files.length} Dosya)</span>
-                                </div>
 
                                 {viewMode === 'grid' ? (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -633,7 +636,20 @@ export default function FilesPage() {
                                         <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                                                    <th className="px-4 py-3 w-10"></th>
+                                                    <th className="px-4 py-3 w-10">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                            checked={files.length > 0 && selectedFileIds.length === files.length}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedFileIds(files.map(f => f.id))
+                                                                } else {
+                                                                    setSelectedFileIds([])
+                                                                }
+                                                            }}
+                                                        />
+                                                    </th>
                                                     <th className="px-4 py-3 text-left font-semibold">Dosya Adı</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Tür</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Boyut</th>
