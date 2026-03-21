@@ -269,7 +269,7 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
         $validated = $request->validate([
-            's3_config_id' => 'required|exists:s3_configs,id'
+            's3_config_id' => 'nullable|exists:s3_configs,id'
         ]);
 
         $tenant->update([
@@ -277,7 +277,7 @@ class TenantController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'S3 Yapılandırması güncellendi.',
+            'message' => $validated['s3_config_id'] ? 'S3 Yapılandırması güncellendi.' : 'S3 Yetkisi kaldırıldı.',
             'tenant' => $tenant->load('s3Config')
         ]);
     }

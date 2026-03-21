@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -503,7 +503,17 @@ export default function TenantsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Yeni Bağlantı Seçin</label>
+                        <div className="flex items-center justify-between mb-2">
+                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Bağlantı Ayarları</label>
+                             {s3Modal.tenant?.s3_config_id && (
+                                 <button
+                                     onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: null })}
+                                     className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                                 >
+                                     <XCircle size={12} /> S3 Yetkisini Al
+                                 </button>
+                             )}
+                        </div>
                         <div className="space-y-2 max-h-[40vh] overflow-y-auto px-1 custom-scrollbar">
                             {s3Configs.map(s3 => (
                                 <button
