@@ -296,4 +296,14 @@ class TenantController extends Controller
             'tenant' => $tenant->load('s3Config')
         ]);
     }
+
+    public function backup($id, \App\Services\TenantBackupService $service)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $zipPath = $service->createBackupZip($id);
+        
+        $fileName = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup.zip';
+        
+        return response()->download($zipPath, $fileName)->deleteFileAfterSend();
+    }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -126,6 +126,28 @@ export default function TenantsPage() {
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
+
+    const handleExport = async (tenant) => {
+        const loadingToast = toast.loading(`${tenant.name} için yedek hazırlanıyor...`)
+        try {
+            const response = await api.get(`/admin/tenants/${tenant.id}/backup`, {
+                responseType: 'blob'
+            })
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `${tenant.name.replace(/\s+/g, '_')}_full_backup.zip`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            
+            toast.success('Yedek başarıyla indirildi.', { id: loadingToast })
+        } catch (err) {
+            toast.error('Yedek oluşturulurken bir hata oluştu.', { id: loadingToast })
+        }
+    }
 
     const openModal = () => {
         setForm(emptyForm)
@@ -276,6 +298,13 @@ export default function TenantsPage() {
                                                     title="Kullanıcı Ekle"
                                                 >
                                                     <UserPlus size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleExport(tenant)}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                                                    title="Tam Yedek Al (JSON + Dosyalar)"
+                                                >
+                                                    <Download size={16} />
                                                 </button>
                                                 <button onClick={() => openStatusModal(tenant)} className="p-2 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all" title="Durum & Engelleme">
                                                     <Shield size={18} />

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\JobStepController;
 use App\Http\Controllers\Api\JobFileController;
+use App\Http\Controllers\Admin\SystemBackupController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Api\AppointmentController;
@@ -32,7 +33,7 @@ use App\Http\Controllers\Api\Settings\PermissionController;
 */
 
 // Auth routes (public)
-Route::prefix('auth')->group(function () {
+Route::group(['prefix' => 'auth'], function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/packages', [\App\Http\Controllers\Admin\PackageController::class, 'index']);
@@ -205,6 +206,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
             Route::put('/{id}/s3-config', [\App\Http\Controllers\Admin\TenantController::class, 'updateS3Config']);
             Route::put('/{id}/status', [\App\Http\Controllers\Admin\TenantController::class, 'updateStatus']);
+            Route::get('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'backup']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 
@@ -224,6 +226,13 @@ Route::prefix('admin')->group(function () {
              Route::put('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'update']);
              Route::delete('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'destroy']);
              Route::post('/test', [\App\Http\Controllers\Admin\S3ConfigController::class, 'testConnection']);
+        });
+
+        Route::prefix('backups')->group(function () {
+             Route::get('/', [SystemBackupController::class, 'index']);
+             Route::post('/', [SystemBackupController::class, 'create']);
+             Route::get('/download', [SystemBackupController::class, 'download']);
+             Route::post('/destroy', [SystemBackupController::class, 'destroy']);
         });
     });
 });

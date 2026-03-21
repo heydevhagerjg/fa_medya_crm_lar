@@ -62,7 +62,7 @@ export default function PricingPage() {
                         PAKETLERİ <span className="text-indigo-600">KARŞILAŞTIRIN</span>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-lg">
-                        İhtiyaçlarınıza en uygun paketi seçin. Tüm paketlerde {packages.length > 0 ? packages[0].trial_days : 14} gün ücretsiz deneme imkanı.
+                        İhtiyaçlarınıza en uygun paketi seçin. Tüm paketlerde 14 gün ücretsiz deneme imkanı.
                     </p>
                 </div>
 
@@ -81,7 +81,7 @@ export default function PricingPage() {
                                         <th className="sticky left-0 z-20 w-64 p-8 bg-gray-50 dark:bg-gray-900 border-r border-b border-gray-100 dark:border-gray-800 text-left">
                                             <div className="text-sm font-black text-gray-400 uppercase tracking-widest">ÖZELLİKLER</div>
                                         </th>
-                                        
+
                                         {packages.map((pkg, idx) => (
                                             <th key={pkg.id} className={`min-w-[260px] p-8 border-b border-gray-100 dark:border-gray-800 text-center relative ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
                                                 {idx === 1 && (
