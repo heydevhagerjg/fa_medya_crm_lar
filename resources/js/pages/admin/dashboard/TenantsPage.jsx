@@ -25,6 +25,8 @@ export default function TenantsPage() {
     const [importModal, setImportModal] = useState(false)
     const [importForm, setImportForm] = useState({ name: '', package_id: '', file: null })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [selectedIds, setSelectedIds] = useState([])
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
     const qc = useQueryClient()
@@ -42,7 +44,7 @@ export default function TenantsPage() {
         queryKey: ['admin-packages'],
         queryFn: () => api.get('/admin/packages').then(r => r.data),
     })
-    
+
     const { data: s3Configs = [] } = useQuery({
         queryKey: ['admin-s3-configs'],
         queryFn: () => api.get('/admin/settings').then(r => r.data),
@@ -129,6 +131,17 @@ export default function TenantsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
+    const bulkDeleteMutation = useMutation({
+        mutationFn: (ids) => api.post('/admin/tenants/bulk-delete', { ids }),
+        onSuccess: (res) => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success(res.data.message)
+            setSelectedIds([])
+            setShowBulkDeleteConfirm(false)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Silinemedi.'),
+    })
+
     const importMutation = useMutation({
         mutationFn: (data) => {
             const formData = new FormData()
@@ -154,7 +167,7 @@ export default function TenantsPage() {
             const response = await api.get(`/admin/tenants/${tenant.id}/backup`, {
                 responseType: 'blob'
             })
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const link = document.createElement('a')
             link.href = url
@@ -163,7 +176,7 @@ export default function TenantsPage() {
             link.click()
             link.remove()
             window.URL.revokeObjectURL(url)
-            
+
             toast.success('Yedek başarıyla indirildi.', { id: loadingToast })
         } catch (err) {
             toast.error('Yedek oluşturulurken bir hata oluştu.', { id: loadingToast })
@@ -230,15 +243,36 @@ export default function TenantsPage() {
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Firma ara..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 dark:text-white placeholder-gray-400"
-                />
+            {/* Search and Bulk Actions */}
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Firma ara..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 dark:text-white placeholder-gray-400"
+                    />
+                </div>
+                {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-2 px-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-xl animate-in fade-in slide-in-from-top-1">
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400 pl-1">{selectedIds.length} Firma Seçildi</span>
+                        <div className="h-4 w-px bg-red-200 dark:bg-red-500/30 mx-2"></div>
+                        <button
+                            onClick={() => setShowBulkDeleteConfirm(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-red-500/20"
+                        >
+                            <Trash2 size={14} /> Seçilenleri Sil
+                        </button>
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
+                            title="Seçimi Kaldır"
+                        >
+                            <XCircle size={14} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Table */}
@@ -255,6 +289,20 @@ export default function TenantsPage() {
                         <table className="w-full text-left border-collapse border-spacing-0">
                             <thead>
                                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th className="px-5 py-4 w-10">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                            checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedIds(paginatedData.map(t => t.id))
+                                                } else {
+                                                    setSelectedIds([])
+                                                }
+                                            }}
+                                        />
+                                    </th>
                                     <th className="px-5 py-4">Firma Adı / S3</th>
                                     <th className="px-5 py-4">Mevcut Paket</th>
                                     <th className="px-5 py-4 text-center">Limitler/Kullanıcılar</th>
@@ -263,7 +311,21 @@ export default function TenantsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {paginatedData.map(tenant => (
-                                    <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
+                                    <tr key={tenant.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group ${selectedIds.includes(tenant.id) ? 'bg-red-50/30 dark:bg-red-500/5' : ''}`}>
+                                        <td className="px-5 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                                checked={selectedIds.includes(tenant.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedIds(prev => [...prev, tenant.id])
+                                                    } else {
+                                                        setSelectedIds(prev => prev.filter(id => id !== tenant.id))
+                                                    }
+                                                }}
+                                            />
+                                        </td>
                                         <td className="px-5 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <div className="text-sm text-gray-900 dark:text-white font-bold">{tenant.name}</div>
@@ -278,15 +340,6 @@ export default function TenantsPage() {
                                                 )}
                                             </div>
                                             <div className="text-[10px] text-gray-500 font-mono mt-0.5">{tenant.slug}</div>
-                                            {tenant.s3_config ? (
-                                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                                    S3: {tenant.s3_config.name}
-                                                </div>
-                                            ) : (
-                                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-[10px] font-bold text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20">
-                                                    S3: Atanmamış
-                                                </div>
-                                            )}
                                         </td>
                                         <td className="px-5 py-4">
                                             <div
@@ -305,17 +358,17 @@ export default function TenantsPage() {
                                                 >
                                                     <Shield size={14} /> Limitler
                                                 </button>
-                                                <button 
-                                                    onClick={() => setS3Modal({ open: true, tenant })}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
-                                                >
-                                                    <FolderOpen size={14} /> S3
-                                                </button>
                                                 <button
                                                     onClick={() => openUserModal(tenant)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 transition-colors"
                                                 >
                                                     <Users size={14} /> {tenant.users_count || 0}
+                                                </button>
+                                                <button
+                                                    onClick={() => setS3Modal({ open: true, tenant })}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                >
+                                                    <FolderOpen size={14} /> S3 {tenant.s3_config?.name ? tenant.s3_config.name : "Atanmamış"}
                                                 </button>
                                             </div>
                                         </td>
@@ -479,8 +532,8 @@ export default function TenantsPage() {
                             <div
                                 key={p.id}
                                 className={`p-4 rounded-2xl border-2 transition-all ${pkgModal.tenant?.package_id === p.id
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
-                                        : 'border-gray-100 dark:border-gray-800'
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                    : 'border-gray-100 dark:border-gray-800'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
@@ -579,24 +632,24 @@ export default function TenantsPage() {
             <Modal open={s3Modal.open} onClose={() => setS3Modal({ open: false, tenant: null })} title={`${s3Modal.tenant?.name} - S3 Yapılandırması`}>
                 <div className="space-y-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl">
-                         <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Mevcut Bağlantı</div>
-                         <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                             <Database size={16} className="text-blue-500" />
-                             {s3Modal.tenant?.s3_config?.name || 'Atanmamış'}
-                         </div>
+                        <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Mevcut Bağlantı</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                            <Database size={16} className="text-blue-500" />
+                            {s3Modal.tenant?.s3_config?.name || 'Atanmamış'}
+                        </div>
                     </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Bağlantı Ayarları</label>
-                             {s3Modal.tenant?.s3_config_id && (
-                                 <button
-                                     onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: null })}
-                                     className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors"
-                                 >
-                                     <XCircle size={12} /> S3 Yetkisini Al
-                                 </button>
-                             )}
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Bağlantı Ayarları</label>
+                            {s3Modal.tenant?.s3_config_id && (
+                                <button
+                                    onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: null })}
+                                    className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                                >
+                                    <XCircle size={12} /> S3 Yetkisini Al
+                                </button>
+                            )}
                         </div>
                         <div className="space-y-2 max-h-[40vh] overflow-y-auto px-1 custom-scrollbar">
                             {s3Configs.map(s3 => (
@@ -604,11 +657,10 @@ export default function TenantsPage() {
                                     key={s3.id}
                                     onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: s3.id })}
                                     disabled={s3UpdateMutation.isPending}
-                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between group ${
-                                        s3Modal.tenant?.s3_config_id === s3.id
+                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between group ${s3Modal.tenant?.s3_config_id === s3.id
                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
                                         : 'border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-500/20'
-                                    }`}
+                                        }`}
                                 >
                                     <div>
                                         <div className="text-sm font-bold text-gray-900 dark:text-white">{s3.name}</div>
@@ -697,9 +749,9 @@ export default function TenantsPage() {
             <Modal open={importModal} onClose={() => setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)">
                 <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4">
                     <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
-                         <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
                             Bu işlem, yüklediğiniz <b>ZIP</b> yedeğindeki tüm verileri ve dosyaları sisteme aktararak <b>yeni bir firma</b> oluşturur.
-                         </p>
+                        </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma Adı *</label>
@@ -744,6 +796,37 @@ export default function TenantsPage() {
                     </div>
                 </form>
             </Modal>
+            {/* Bulk Delete Confirm Modal */}
+            <Modal open={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} title="Toplu Firma Silme" size="sm">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-full mx-auto text-red-600 dark:text-red-400">
+                        <Trash2 size={24} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-gray-900 dark:text-white font-bold mb-1">
+                            Seçilen firmaları silmek istediğinize emin misiniz?
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 px-4 mt-2 leading-relaxed">
+                            <span className="font-bold text-red-600">{selectedIds.length} adet</span> firma KALICI olarak silinecek. Bu işlem firmaya ait tüm verileri, kullanıcıları ve ayarları ortadan kaldırır.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => setShowBulkDeleteConfirm(false)}
+                            className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            İptal
+                        </button>
+                        <button
+                            onClick={() => bulkDeleteMutation.mutate(selectedIds)}
+                            disabled={bulkDeleteMutation.isPending}
+                            className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            {bulkDeleteMutation.isPending ? 'Siliniyor...' : 'Evet, Hepsini Sil'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }
@@ -782,8 +865,8 @@ function UserListModal({ open, tenant, onClose }) {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${user.role === 'ADMIN'
-                                            ? 'bg-red-50 dark:bg-red-500/10 text-red-600'
-                                            : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
+                                        ? 'bg-red-50 dark:bg-red-500/10 text-red-600'
+                                        : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
                                         }`}>
                                         {user.role}
                                     </span>

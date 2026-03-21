@@ -243,7 +243,21 @@ class TenantController extends Controller
         $tenant = Tenant::findOrFail($id);
         $tenant->delete();
 
-        return response()->json(['message' => 'Tenant deleted successfully']);
+        return response()->json(['message' => 'Firma (Tenant) başarıyla silindi.']);
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:tenants,id'
+        ]);
+
+        $count = Tenant::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json([
+            'message' => "$count firma başarıyla silindi."
+        ]);
     }
     public function updateStatus(Request $request, $id)
     {

@@ -200,6 +200,7 @@ Route::prefix('admin')->group(function () {
         
         Route::prefix('tenants')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\TenantController::class, 'index']);
+            Route::post('/bulk-delete', [\App\Http\Controllers\Admin\TenantController::class, 'bulkDestroy']);
             Route::post('/', [\App\Http\Controllers\Admin\TenantController::class, 'store']);
             Route::post('/import', [\App\Http\Controllers\Admin\TenantController::class, 'import']);
             Route::get('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'show']);
