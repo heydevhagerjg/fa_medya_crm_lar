@@ -8,13 +8,15 @@ import {
     FolderOpen,
     Search,
     Grid,
-    ListIcon,
+    List,
     HardDrive,
-    FileIcon,
+    File,
     UploadCloud,
     Trash2,
     Download,
-    ChevronRight
+    ChevronRight,
+    Image,
+    FileText
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal.jsx'
@@ -195,9 +197,9 @@ export default function FilesPage() {
     }, [jobsWithFiles])
 
     const getFileIcon = (type) => {
-        if (type?.includes('image')) return <ImageIcon className="text-blue-500" size={20} />
+        if (type?.includes('image')) return <Image className="text-blue-500" size={20} />
         if (type?.includes('pdf')) return <FileText className="text-red-500" size={20} />
-        return <FileIcon className="text-gray-500" size={20} />
+        return <File className="text-gray-500" size={20} />
     }
 
     if (isLoading) {
@@ -256,7 +258,7 @@ export default function FilesPage() {
                             onClick={() => setViewMode('list')}
                             className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                            <ListIcon size={18} />
+                            <List size={18} />
                         </button>
                     </div>
                 </div>
@@ -275,7 +277,7 @@ export default function FilesPage() {
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                        <FileIcon size={24} />
+                        <File size={24} />
                     </div>
                     <div>
                         <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Toplam Dosya</div>
@@ -514,7 +516,7 @@ export default function FilesPage() {
                                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                         />
                                                     ) : (
-                                                        <FileIcon size={32} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                                                        <File size={32} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
                                                     )}
 
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
