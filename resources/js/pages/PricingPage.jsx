@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, LayoutDashboard, Zap, ShieldCheck, Globe, Activity } from 'lucide-react'
+import { Check, X, LayoutDashboard, Zap, ShieldCheck, Globe, Activity, ChevronRight } from 'lucide-react'
 import api from '../lib/api'
+
+const features = [
+    { key: 'personnel_limit', label: 'Personel Limiti', type: 'numeric' },
+    { key: 'customer_limit', label: 'Müşteri Limiti', type: 'numeric' },
+    { key: 'job_limit', label: 'Aktif İş Limiti', type: 'numeric' },
+    { key: 'appointment_feature', label: 'Randevu Yönetimi', type: 'boolean' },
+    { key: 'service_tracking_feature', label: 'Hizmet Takibi', type: 'boolean' },
+    { key: 'proposal_feature', label: 'Teklif Yönetimi', type: 'boolean' },
+    { key: 'backup_feature', label: 'Bulut Yedekleme', type: 'boolean' },
+    { key: 'api_key_feature', label: 'API Erişimi', type: 'boolean' },
+    { key: 'disk_usage_limit', label: 'Depolama Alanı', type: 'numeric', suffix: ' MB' },
+]
 
 export default function PricingPage() {
     const [packages, setPackages] = useState([])
@@ -17,44 +29,40 @@ export default function PricingPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-white pb-20 selection:bg-indigo-500/30">
             {/* Navigation */}
-            <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900">
+            <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#030712]/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
                         <Link to="/" className="flex items-center gap-2">
-                            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+                            <img src="/logo.png" alt="Logo" className="w-9 h-9 object-contain" />
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
                                 {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
                         </Link>
-                        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-500 dark:text-gray-400">
                             <a href="/#features" className="hover:text-indigo-600 transition-colors">Özellikler</a>
-                            <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
+                            <Link to="/pricing" className="text-indigo-600">Fiyatlandırma</Link>
                             <a href="/#stats" className="hover:text-indigo-600 transition-colors">İstatistikler</a>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
-                                Giriş Yap
-                            </Link>
-                            <Link to="/register" className="px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95">
-                                Ücretsiz Dene
-                            </Link>
+                            <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">Giriş Yap</Link>
+                            <Link to="/register" className="px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">Hemen Başlat</Link>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <div className="pt-32 sm:pt-48 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-20 animate-fade-in">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold mb-6">
-                        <Zap size={14} /> Şeffaf Fiyatlandırma
+            <div className="pt-32 sm:pt-40 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-16">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold mb-4">
+                        <Zap size={14} /> Şeffaf Karşılaştırma
                     </div>
-                    <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-400">
-                        SİZE UYGUN <span className="text-indigo-600 dark:text-indigo-400">PAKETİ SEÇİN</span>
+                    <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-4">
+                        PAKETLERİ <span className="text-indigo-600">KARŞILAŞTIRIN</span>
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                        Karmaşık ücretler yok. İhtiyacınıza en uygun paketi seçin ve işletmenizi hemen büyütmeye başlayın. Tüm paketlerde {packages.length > 0 ? packages[0].trial_days : 14} gün ücretsiz deneme!
+                    <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+                        İhtiyaçlarınıza en uygun paketi seçin. Tüm paketlerde {packages.length > 0 ? packages[0].trial_days : 14} gün ücretsiz deneme imkanı.
                     </p>
                 </div>
 
@@ -63,107 +71,128 @@ export default function PricingPage() {
                         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {packages.map((pkg, i) => (
-                            <div key={pkg.id} className={`relative p-8 rounded-[40px] border flex flex-col transition-all duration-500 hover:scale-[1.02] ${i === 1 ? 'bg-indigo-600 border-indigo-600 shadow-2xl shadow-indigo-500/40 text-white scale-[1.05] z-10' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'}`}>
-                                {i === 1 && (
-                                    <div className="absolute top-0 right-10 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black uppercase rounded-full shadow-lg">
-                                        Popüler Seçim
-                                    </div>
-                                )}
+                    <div className="relative bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-[32px] overflow-hidden shadow-2xl">
+                        {/* Comparison Table */}
+                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+                            <table className="w-full table-fixed border-collapse">
+                                <thead>
+                                    <tr>
+                                        {/* Sticky Top-Left Corner */}
+                                        <th className="sticky left-0 z-20 w-64 p-8 bg-gray-50 dark:bg-gray-900 border-r border-b border-gray-100 dark:border-gray-800 text-left">
+                                            <div className="text-sm font-black text-gray-400 uppercase tracking-widest">ÖZELLİKLER</div>
+                                        </th>
+                                        
+                                        {packages.map((pkg, idx) => (
+                                            <th key={pkg.id} className={`min-w-[260px] p-8 border-b border-gray-100 dark:border-gray-800 text-center relative ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
+                                                {idx === 1 && (
+                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black uppercase rounded-b-xl">
+                                                        Popüler
+                                                    </div>
+                                                )}
+                                                <div className="text-2xl font-black text-gray-900 dark:text-white mb-2">{pkg.name}</div>
+                                                <div className="flex items-baseline justify-center gap-1 mb-4">
+                                                    {Number(pkg.price) > 0 ? (
+                                                        <>
+                                                            <span className="text-3xl font-black tracking-tighter">₺{Number(pkg.price).toLocaleString('tr-TR')}</span>
+                                                            <span className="text-xs font-bold text-gray-500">/ay</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-3xl font-black tracking-tighter text-emerald-500 uppercase">Ücretsiz</span>
+                                                    )}
+                                                </div>
+                                                <Link
+                                                    to={`/register?package=${pkg.id}`}
+                                                    className={`inline-flex items-center gap-2 w-full justify-center py-3 px-4 rounded-xl text-xs font-black transition-all active:scale-95 ${idx === 1 ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                                                >
+                                                    HEMEN BAŞLAT <ChevronRight size={14} />
+                                                </Link>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {features.map((feature, fIdx) => (
+                                        <tr key={feature.key} className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                                            {/* Sticky Left Column with Feature Name */}
+                                            <td className="sticky left-0 z-10 p-5 px-8 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                {feature.label}
+                                            </td>
 
-                                <div className="mb-8">
-                                    <h3 className={`text-2xl font-black mb-2 ${i === 1 ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{pkg.name}</h3>
-                                    <div className="flex items-baseline gap-1">
-                                        { Number(pkg.price) > 0 ? (
-                                            <>
-                                                <span className="text-4xl font-black tracking-tighter">₺{Number(pkg.price).toLocaleString('tr-TR')}</span>
-                                                <span className={`text-sm font-bold opacity-70 ${i === 1 ? 'text-white' : 'text-gray-500'}`}>/ay</span>
-                                            </>
-                                        ) : (
-                                            <span className="text-4xl font-black tracking-tighter text-green-500">Ücretsiz</span>
-                                        )}
-                                    </div>
-                                    <p className={`mt-4 text-sm font-medium ${i === 1 ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                                        {pkg.trial_days} gün ücretsiz deneme süresi. Kredi kartı gerekmeden tüm özellikleri keşfedin.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4 mb-10 flex-1">
-                                    <FeatureItem active={true} label={`${pkg.personnel_limit === 0 ? 'Sınırsız' : pkg.personnel_limit} Personel Limiti`} isLight={i === 1} />
-                                    <FeatureItem active={true} label={`${pkg.customer_limit === 0 ? 'Sınırsız' : pkg.customer_limit} Müşteri Limiti`} isLight={i === 1} />
-                                    <FeatureItem active={true} label={`${pkg.job_limit === 0 ? 'Sınırsız' : pkg.job_limit} Aktif İş Limiti`} isLight={i === 1} />
-                                    <FeatureItem active={pkg.appointment_feature} label="Randevu Yönetimi" isLight={i === 1} />
-                                    <FeatureItem active={pkg.service_tracking_feature} label="Hizmet Takibi" isLight={i === 1} />
-                                    <FeatureItem active={pkg.proposal_feature} label="Teklif Yönetimi" isLight={i === 1} />
-                                    <FeatureItem active={pkg.backup_feature} label="Bulut Yedekleme" isLight={i === 1} />
-                                    <FeatureItem active={pkg.api_key_feature} label="API Erişimi" isLight={i === 1} />
-                                    <FeatureItem active={true} label={pkg.disk_usage_limit === 0 ? 'Sınırsız Depolama' : `${pkg.disk_usage_limit} MB Depolama`} isLight={i === 1} />
-                                </div>
-
-                                <Link
-                                    to={`/register?package=${pkg.id}`}
-                                    className={`w-full py-4 rounded-2xl font-black text-center transition-all active:scale-95 ${i === 1 ? 'bg-white text-indigo-600 hover:bg-gray-50 shadow-xl shadow-black/10' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20'}`}
-                                >
-                                    Hemen Başlat
-                                </Link>
-                            </div>
-                        ))}
+                                            {packages.map((pkg, idx) => {
+                                                const value = pkg[feature.key];
+                                                return (
+                                                    <td key={`${pkg.id}-${feature.key}`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
+                                                        {feature.type === 'boolean' ? (
+                                                            value ? (
+                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500">
+                                                                    <Check size={18} strokeWidth={3} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-500/10 text-red-500/50">
+                                                                    <X size={18} strokeWidth={3} />
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            <span className={`text-base font-black ${value === 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}`}>
+                                                                {value === 0 ? 'Sınırsız' : `${value}${feature.suffix || ''}`}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                    {/* Additional Trial Row */}
+                                    <tr className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                                        <td className="sticky left-0 z-10 p-5 px-8 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                            Deneme Süresi
+                                        </td>
+                                        {packages.map((pkg, idx) => (
+                                            <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
+                                                {pkg.trial_days} Gün Ücretsiz
+                                            </td>
+                                        ))}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
-                <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-12 text-center border-t border-gray-100 dark:border-gray-900 pt-20">
-                    <div className="space-y-4">
-                        <div className="w-16 h-16 bg-blue-500/10 rounded-[24px] mx-auto flex items-center justify-center text-blue-500">
-                            <ShieldCheck size={32} />
+                <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-12 text-center border-t border-gray-200 dark:border-gray-800 pt-20">
+                    {[
+                        { icon: ShieldCheck, title: 'Güvenli Ödeme', text: 'Paddle güvencesiyle tüm ödemeleriniz 256-bit SSL ile korunur.', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { icon: Globe, title: 'Gizli Ücret Yok', text: 'İstediğiniz zaman tek tıkla aboneliğinizi dondurabilir veya iptal edebilirsiniz.', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                        { icon: Activity, title: '7/24 Teknik Destek', text: 'Tüm planlarda öncelikli e-posta ve canlı yardım desteği alırsınız.', color: 'text-purple-500', bg: 'bg-purple-500/10' }
+                    ].map((item, i) => (
+                        <div key={i} className="space-y-4">
+                            <div className={`w-16 h-16 ${item.bg} rounded-[24px] mx-auto flex items-center justify-center ${item.color}`}>
+                                <item.icon size={32} />
+                            </div>
+                            <h4 className="text-lg font-black uppercase tracking-tight">{item.title}</h4>
+                            <p className="text-gray-500 dark:text-gray-500 text-sm leading-relaxed">{item.text}</p>
                         </div>
-                        <h4 className="text-lg font-black uppercase tracking-tight">Güvenli Ödeme</h4>
-                        <p className="text-gray-500 text-sm leading-relaxed">Paddle güvencesiyle tüm ödemeleriniz 256-bit SSL ile korunur.</p>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="w-16 h-16 bg-emerald-500/10 rounded-[24px] mx-auto flex items-center justify-center text-emerald-500">
-                            <Globe size={32} />
-                        </div>
-                        <h4 className="text-lg font-black uppercase tracking-tight">Gizli Ücret Yok</h4>
-                        <p className="text-gray-500 text-sm leading-relaxed">İptal etmek istediğinizde tek tıkla aboneliğinizi durdurabilirsiniz.</p>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="w-16 h-16 bg-purple-500/10 rounded-[24px] mx-auto flex items-center justify-center text-purple-500">
-                            <Activity size={32} />
-                        </div>
-                        <h4 className="text-lg font-black uppercase tracking-tight">7/24 Teknik Destek</h4>
-                        <p className="text-gray-500 text-sm leading-relaxed">Tüm planlarda öncelikli e-posta ve canlı yardım desteği alırsınız.</p>
-                    </div>
+                    ))}
                 </div>
             </div>
 
             {/* Footer */}
-            <footer className="py-12 border-t border-gray-100 dark:border-gray-900">
+            <footer className="mt-20 py-12 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-2">
                         <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-                        <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
+                        <span className="text-lg font-black text-gray-900 dark:text-white uppercase">{import.meta.env.VITE_APP_NAME}</span>
                     </div>
-                    <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">
+                    <div className="text-gray-500 text-sm font-medium">
                         © {new Date().getFullYear()} {import.meta.env.VITE_APP_NAME}. Tüm hakları saklıdır.
                     </div>
-                    <div className="flex items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400">
-                        <Link to="/pricing" className="hover:text-indigo-600 transition-colors">Fiyatlandırma</Link>
-                        <Link to="/tos" className="hover:text-indigo-600 transition-colors">Kullanım Koşulları</Link>
-                        <Link to="/refund" className="hover:text-indigo-600 transition-colors">İade Politikası</Link>
-                        <Link to="/privacy" className="hover:text-indigo-600 transition-colors">Gizlilik Politikası</Link>
+                    <div className="flex flex-wrap justify-center items-center gap-6 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                        <Link to="/tos" className="hover:text-indigo-600 transition-colors">ŞARTLAR</Link>
+                        <Link to="/refund" className="hover:text-indigo-600 transition-colors">İADE</Link>
+                        <Link to="/privacy" className="hover:text-indigo-600 transition-colors">GİZLİLİK</Link>
                     </div>
                 </div>
             </footer>
-        </div>
-    )
-}
-
-function FeatureItem({ active, label, isLight }) {
-    return (
-        <div className={`flex items-center gap-3 text-sm font-bold ${!active ? 'opacity-30' : ''}`}>
-            <CheckCircle2 size={18} className={active ? (isLight ? 'text-white' : 'text-indigo-500') : (isLight ? 'text-indigo-300' : 'text-gray-300')} />
-            <span className={!active ? 'line-through decoration-2' : ''}>{label}</span>
         </div>
     )
 }
