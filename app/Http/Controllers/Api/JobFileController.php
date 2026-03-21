@@ -206,15 +206,19 @@ class JobFileController extends Controller
         $job = $jobFile->job;
 
         if ($this->setGlobalS3Config()) {
-            $admin = Admin::first();
-            $urlPrefix = "https://{$admin->aws_bucket_name}.s3.{$admin->aws_region}.amazonaws.com/";
-            if (Str::startsWith($jobFile->file_path, $urlPrefix)) {
-                $path = Str::after($jobFile->file_path, $urlPrefix);
-                try {
-                    Storage::disk('s3_global')->delete($path);
-                } catch (\Exception $e) {
-                    \Log::error("Global S3 Delete failed: " . $e->getMessage());
-                }
+            $path = $jobFile->file_path;
+
+            // If it's a full URL, extract the path
+            if (filter_var($path, FILTER_VALIDATE_URL)) {
+                $parsed = parse_url($path);
+                $path = ltrim($parsed['path'] ?? '', '/');
+                $path = urldecode($path);
+            }
+
+            try {
+                Storage::disk('s3_global')->delete($path);
+            } catch (\Exception $e) {
+                \Log::error("Global S3 Delete failed for file {$jobFile->id}: " . $e->getMessage());
             }
         }
 
