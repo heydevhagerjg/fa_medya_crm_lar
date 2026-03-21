@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -22,6 +22,8 @@ export default function TenantsPage() {
     const [form, setForm] = useState(emptyForm)
     const [limitForm, setLimitForm] = useState({})
     const [userForm, setUserForm] = useState(emptyUserForm)
+    const [importModal, setImportModal] = useState(false)
+    const [importForm, setImportForm] = useState({ name: '', package_id: '', file: null })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
@@ -127,6 +129,25 @@ export default function TenantsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
+    const importMutation = useMutation({
+        mutationFn: (data) => {
+            const formData = new FormData()
+            formData.append('name', data.name)
+            formData.append('package_id', data.package_id)
+            formData.append('file', data.file)
+            return api.post('/admin/tenants/import', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+        },
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('Yedek başarıyla yüklendi ve aktarıldı.')
+            setImportModal(false)
+            setImportForm({ name: '', package_id: '', file: null })
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Yükleme başarısız.'),
+    })
+
     const handleExport = async (tenant) => {
         const loadingToast = toast.loading(`${tenant.name} için yedek hazırlanıyor...`)
         try {
@@ -193,12 +214,20 @@ export default function TenantsPage() {
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{tenants.length} firma kayıtlı</p>
                 </div>
-                <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-red-500/25"
-                >
-                    <Plus size={18} /> Yeni Firma Ekle
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setImportModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700"
+                    >
+                        <Upload size={18} /> Yedek Yükle (Import)
+                    </button>
+                    <button
+                        onClick={() => openModal()}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-red-500/25"
+                    >
+                        <Plus size={18} /> Yeni Firma Ekle
+                    </button>
+                </div>
             </div>
 
             {/* Search */}
@@ -309,7 +338,7 @@ export default function TenantsPage() {
                                                 <button onClick={() => openStatusModal(tenant)} className="p-2 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all" title="Durum & Engelleme">
                                                     <Shield size={18} />
                                                 </button>
-                                                <button onClick={() => setDeleteConfirm(tenant.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
+                                                <button onClick={() => setDeleteConfirm(tenant)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -659,6 +688,58 @@ export default function TenantsPage() {
                         <button type="button" onClick={() => setStatusModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">İptal</button>
                         <button type="submit" disabled={statusMutation.isPending} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50">
                             {statusMutation.isPending ? 'Güncelleniyor...' : 'Durumu Güncelle'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Import Backup Modal */}
+            <Modal open={importModal} onClose={() => setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)">
+                <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
+                         <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                            Bu işlem, yüklediğiniz <b>ZIP</b> yedeğindeki tüm verileri ve dosyaları sisteme aktararak <b>yeni bir firma</b> oluşturur.
+                         </p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma Adı *</label>
+                        <input
+                            type="text"
+                            value={importForm.name}
+                            onChange={e => setImportForm({ ...importForm, name: e.target.value })}
+                            required
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            placeholder="Örn: Yedeği Geri Yüklenen Firma"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Paket *</label>
+                        <select
+                            value={importForm.package_id}
+                            onChange={e => setImportForm({ ...importForm, package_id: e.target.value })}
+                            required
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        >
+                            <option value="">Paket Seçiniz</option>
+                            {packages.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yedek Dosyası (.zip) *</label>
+                        <input
+                            type="file"
+                            accept=".zip"
+                            onChange={e => setImportForm({ ...importForm, file: e.target.files[0] })}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-300"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setImportModal(false)} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>
+                        <button type="submit" disabled={importMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
+                            {importMutation.isPending ? 'Aktarılıyor...' : 'Yüklemeyi Başlat'}
                         </button>
                     </div>
                 </form>

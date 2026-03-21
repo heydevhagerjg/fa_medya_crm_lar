@@ -33,6 +33,10 @@ import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
 import RefundPolicyPage from './pages/RefundPolicyPage.jsx'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx'
 
+import { useEffect, useState } from 'react'
+import api from './lib/api.js'
+import { Loader2 } from 'lucide-react'
+
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated } = useAuthStore()
     if (!isAuthenticated) return <Navigate to="/login" replace />
@@ -57,9 +61,63 @@ const AdminPublicRoute = ({ children }) => {
     return children
 }
 
+const RestoringOverlay = () => (
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-gray-950 p-6 text-center animate-in fade-in duration-500">
+        <div className="w-24 h-24 mb-8 relative">
+            <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping"></div>
+            <div className="relative bg-white dark:bg-gray-900 rounded-full w-full h-full flex items-center justify-center border-4 border-indigo-500 shadow-2xl shadow-indigo-500/20">
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+            </div>
+        </div>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Yedekten Geri Dönülüyor</h1>
+        <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+            Verileriniz ve dosyalarınız güvenli bir şekilde sisteme aktarılıyor. Bu işlem birkaç dakika sürebilir.
+        </p>
+        <div className="mt-12 flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 rounded-full border border-gray-100 dark:border-gray-800">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sistem Hazırlanıyor...</span>
+        </div>
+    </div>
+)
+
 export default function App() {
+    const { isAuthenticated, user, updateUser, clearAuth } = useAuthStore()
+    const [isPolling, setIsPolling] = useState(false)
+
+    // Poll for restoration status
+    useEffect(() => {
+        let interval;
+        if (isAuthenticated && user?.tenant?.is_restoring && !isPolling) {
+            setIsPolling(true)
+            interval = setInterval(async () => {
+                try {
+                    const response = await api.get('/auth/me')
+                    const newUser = response.data
+                    updateUser(newUser)
+                    if (!newUser.tenant?.is_restoring) {
+                        setIsPolling(false)
+                        clearInterval(interval)
+                        window.location.reload() // Reload to refresh all data caches
+                    }
+                } catch (err) {
+                    if (err.response?.status === 401) {
+                        clearAuth()
+                        clearInterval(interval)
+                    }
+                }
+            }, 5000)
+        }
+        return () => {
+            if (interval) clearInterval(interval)
+        }
+    }, [isAuthenticated, user?.tenant?.is_restoring])
+
+    const isRestoring = isAuthenticated && user?.tenant?.is_restoring
+    if (isRestoring) return <RestoringOverlay />
+
     return (
-        <Routes>
+        <>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             
             {/* Standard User Routes */}
@@ -105,6 +163,7 @@ export default function App() {
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            </Routes>
+        </>
     )
 }

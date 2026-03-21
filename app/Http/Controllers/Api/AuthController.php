@@ -232,6 +232,7 @@ class AuthController extends Controller
                 'storage_used' => $user->tenant->storage_used,
                 'storage_limit' => $user->tenant->plan_disk_usage_limit,
                 'single_file_limit' => $user->tenant->plan_single_file_limit ?: 50,
+                'is_restoring' => $user->tenant->is_restoring,
             ];
         }
 

@@ -86,39 +86,22 @@ class BackupController extends Controller
     }
 
     /**
-     * Export all tenant data as JSON (the same format as Next.js backup)
+     * Export all tenant data as a full ZIP (JSON + Files)
      */
     public function export(Request $request, \App\Services\TenantBackupService $service)
     {
         $user = $request->user();
         $tenantId = $user->tenant_id;
         $tenant = Tenant::find($tenantId);
+        $password = $request->query('password');
 
-        $backup = $service->generateBackupData($tenantId);
+        $zipPath = $service->createBackupZip($tenantId, $password);
+        
+        $filename = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup_' . now()->timestamp . ".zip";
+        
+        ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem tam yedeği (Veri+Dosyalar) oluşturuldu: ' . $filename);
 
-        $newImportKey = Str::random(40);
-        \App\Models\BackupKey::create([
-            'tenant_id' => $tenantId,
-            'key'       => $newImportKey,
-            'name'      => 'Yedek - ' . now()->format('d.m.Y H:i')
-        ]);
-
-        $backup['import_key'] = $newImportKey;
-        $jsonContent = json_encode($backup, JSON_UNESCAPED_UNICODE);
-        $filename = Str::slug($tenant->name ?? 'yedek', '_') . '_' . now()->timestamp . ".json";
-
-        if ($this->setGlobalS3Config()) {
-            try {
-                Storage::disk('s3_global')->put("tenants/{$tenantId}/backups/{$filename}", $jsonContent);
-                ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem yedeği AWS S3 üzerine aktarıldı: ' . $filename);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error("S3 Backup upload failed: " . $e->getMessage());
-            }
-        }
-
-        return response($jsonContent)
-            ->header('Content-Type', 'application/json')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        return response()->download($zipPath, $filename)->deleteFileAfterSend();
     }
 
     /**
@@ -188,561 +171,52 @@ class BackupController extends Controller
     }
 
     /**
-     * Import backup data (restore from JSON)
+     * Import backup data (restore from ZIP)
      */
-    public function import(Request $request): JsonResponse
+    public function import(Request $request, \App\Services\TenantBackupService $service): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:json',
+            'file' => 'required|file|mimes:zip',
         ]);
-
-        $content = file_get_contents($request->file('file')->getRealPath());
-        $backup = json_decode($content, true);
-
-        if (!$backup || !isset($backup['data'])) {
-            return response()->json(['message' => 'Geçersiz yedek dosyası.'], 422);
-        }
 
         $user = $request->user();
         $tenantId = $user->tenant_id;
-        $tenant = Tenant::find($tenantId);
 
-        // Security check
-        $isFamedyaExport = isset($backup['exported_from']) && $backup['exported_from'] === 'famedya_crm';
-        $hasCorrectKey = false;
-        $importKeyFromBackup = $backup['import_key'] ?? null;
-
-        if ($importKeyFromBackup) {
-            $hasCorrectKey = \App\Models\BackupKey::where('tenant_id', $tenantId)
-                ->where('key', $importKeyFromBackup)
-                ->exists();
-        }
-
-        if (!$isFamedyaExport || !$hasCorrectKey) {
-            return response()->json([
-                'message' => 'Geçersiz veya yetkisiz yedek dosyası. Lütfen JSON dosyasının bu CRM sisteminden dışa aktarıldığından ve Özel İmport Key kaydının geçerli olduğundan emin olun.'
-            ], 403);
-        }
-
-        $data = $backup['data'];
-        $settings = $backup['tenant_settings'] ?? [];
-
-        \Illuminate\Database\Eloquent\Model::unguard();
         try {
-            DB::transaction(function () use ($data, $tenantId, $settings, $user) {
-                // Restore Tenant Settings (S3 no longer restored here)
+            $file = $request->file('file');
+            $tempDir = storage_path('app/temp_backups');
+            if (!file_exists($tempDir)) mkdir($tempDir, 0755, true);
+            
+            $fileName = \Illuminate\Support\Str::random(40) . '.zip';
+            $zipPath = $tempDir . '/' . $fileName;
+            
+            // Move uploaded file to temp storage for the Job
+            $file->move($tempDir, $fileName);
 
+            $tenant = \App\Models\Tenant::find($request->user()->tenant_id);
+            $tenant->update(['is_restoring' => true]);
 
-                // Import services & custom fields
-                $serviceIdMap = [];
-                $customFieldIdMap = [];
-                foreach (($data['services'] ?? []) as $s) {
-                    $service = Service::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'name' => $s['name']],
-                        ['config' => $s['config'] ?? '{}', 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                    );
-                    $serviceIdMap[$s['id']] = $service->id;
+            // Dispatch background job
+            \App\Jobs\ImportBackupJob::dispatch($zipPath, $tenant->id, $request->input('password'), $request->user()->id);
 
-                    foreach (($s['customfield'] ?? []) as $cf) {
-                        $newCf = $service->customFields()->updateOrCreate(
-                            ['label' => $cf['label'], 'service_id' => $service->id],
-                            ['type' => $cf['type'], 'required' => $cf['required'] ?? false, 'order' => $cf['order'] ?? 0, 'created_at' => $cf['createdAt'] ?? now(), 'updated_at' => $cf['updatedAt'] ?? now()]
-                        );
-                        if (isset($cf['id'])) {
-                            $customFieldIdMap[$cf['id']] = $newCf->id;
-                        }
-                    }
-                }
-
-                // Import roles
-                foreach (($data['roles'] ?? []) as $r) {
-                    $role = Role::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'name' => $r['name']],
-                        ['guard_name' => 'web']
-                    );
-                    if (!empty($r['permissions'])) {
-                        $role->syncPermissions($r['permissions']);
-                    }
-                }
-
-
-                // Import job statuses
-                $statusIdMap = [];
-                foreach (($data['jobstatuses'] ?? []) as $s) {
-                    $status = JobStatus::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'name' => $s['name']],
-                        ['color' => $s['color'], 'order' => $s['order'] ?? 0, 'created_at' => $s['createdAt'] ?? now(), 'updated_at' => $s['updatedAt'] ?? now()]
-                    );
-                    $statusIdMap[$s['id']] = $status->id;
-                }
-
-            // Import step templates
-            foreach (($data['steptemplates'] ?? []) as $t) {
-                $template = StepTemplate::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $t['name']],
-                    ['created_at' => $t['createdAt'] ?? now(), 'updated_at' => $t['updatedAt'] ?? now()]
-                );
-                foreach (($t['defaultstep'] ?? []) as $step) {
-                    $template->defaultSteps()->updateOrCreate(
-                        ['title' => $step['title'], 'template_id' => $template->id],
-                        ['order' => $step['order'] ?? 0, 'tenant_id' => $tenantId, 'created_at' => $step['createdAt'] ?? now(), 'updated_at' => $step['updatedAt'] ?? now()]
-                    );
-                }
-            }
-
-            // Import customers
-            $customerIdMap = [];
-            foreach (($data['customers'] ?? []) as $c) {
-                $customer = Customer::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $c['name'], 'phone' => $c['phone']],
-                    ['email' => $c['email'], 'notes' => $c['notes'], 'created_at' => $c['createdAt'] ?? now(), 'updated_at' => $c['updatedAt'] ?? now()]
-                );
-                $customerIdMap[$c['id']] = $customer->id;
-            }
-
-            // Import proposals
-            $proposalIdMap = [];
-            foreach (($data['proposals'] ?? []) as $p) {
-                $customerId = $customerIdMap[$p['customerId']] ?? null;
-                if (!$customerId) continue;
-
-                $proposal = Proposal::create([
-                    'tenant_id' => $tenantId,
-                    'customer_id' => $customerId,
-                    'service_id' => isset($p['serviceId']) && isset($serviceIdMap[$p['serviceId']]) ? $serviceIdMap[$p['serviceId']] : null,
-                    'title' => $p['title'],
-                    'description' => $p['description'] ?? null,
-                    'total_price' => $p['totalPrice'] ?? 0,
-                    'subtotal' => $p['subtotal'] ?? 0,
-                    'vat_amount' => $p['vatAmount'] ?? 0,
-                    'is_vat_included' => $p['isVatIncluded'] ?? false,
-                    'vat_rate' => $p['vatRate'] ?? 20,
-                    'status' => $p['status'] ?? 'DRAFT',
-                    'notes' => $p['notes'] ?? null,
-                    'customer_notes' => $p['customerNotes'] ?? null,
-                    'sent_at' => $p['sentAt'] ?? null,
-                    'valid_until' => $p['validUntil'] ?? null,
-                    'created_at' => $p['createdAt'] ?? now(),
-                    'updated_at' => $p['updatedAt'] ?? now(),
-                ]);
-                $proposalIdMap[$p['id']] = $proposal->id;
-
-                if (!empty($p['items'])) {
-                    foreach ($p['items'] as $item) {
-                        $proposal->items()->create([
-                            'description' => $item['description'],
-                            'quantity' => $item['quantity'] ?? 1,
-                            'unit_price' => $item['unitPrice'] ?? 0,
-                            'total_price' => $item['totalPrice'] ?? 0,
-                            'created_at' => $item['createdAt'] ?? now(),
-                            'updated_at' => $item['updatedAt'] ?? now(),
-                        ]);
-                    }
-                }
-
-                if (!empty($p['installments'])) {
-                    foreach ($p['installments'] as $inst) {
-                        $proposal->installments()->create([
-                            'job_id' => null, // Will map later if we can
-                            'amount' => $inst['amount'] ?? 0,
-                            'percentage' => $inst['percentage'] ?? 0,
-                            'payment_date' => isset($inst['paymentDate']) ? substr($inst['paymentDate'], 0, 10) : null,
-                            'description' => $inst['description'] ?? null,
-                            'is_paid' => $inst['isPaid'] ?? false,
-                            'paid_at' => $inst['paidAt'] ?? null,
-                            'created_at' => $inst['createdAt'] ?? now(),
-                            'updated_at' => $inst['updatedAt'] ?? now(),
-                        ]);
-                    }
-                }
-
-                if (!empty($p['revisionRequests'])) {
-                    foreach ($p['revisionRequests'] as $rev) {
-                        $proposal->revisionRequests()->create([
-                            'notes' => $rev['notes'],
-                            'status' => $rev['status'] ?? 'PENDING',
-                            'created_at' => $rev['createdAt'] ?? now(),
-                            'updated_at' => $rev['updatedAt'] ?? now(),
-                        ]);
-                    }
-                }
-            }
-
-            // Import jobs
-            $jobIdMap = [];
-            foreach (($data['jobs'] ?? []) as $j) {
-                $customerId = $customerIdMap[$j['customerId']] ?? null;
-                if (!$customerId) continue;
-
-                $jsId = (isset($j['jobStatusId']) && isset($statusIdMap[$j['jobStatusId']])) ? $statusIdMap[$j['jobStatusId']] : null;
-                
-                if (!$jsId) {
-                    // Try to pick first status for tenant
-                    $ds = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
-                    if (!$ds) {
-                        $ds = JobStatus::create([
-                            'tenant_id' => $tenantId,
-                            'name'      => 'Varsayılan',
-                            'color'     => '#6366f1',
-                            'order'     => 0,
-                        ]);
-                    }
-                    $jsId = $ds->id;
-                }
-
-                $job = JobCrm::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'title' => $j['title'], 'customer_id' => $customerId],
-                    [
-                        'service_id'    => isset($j['serviceId']) && isset($serviceIdMap[$j['serviceId']]) ? $serviceIdMap[$j['serviceId']] : null,
-                        'job_status_id' => $jsId,
-                        'description'   => $j['description'],
-                        'status'        => $j['status'] ?? 'PENDING',
-                        'start_date'    => isset($j['startDate']) ? substr($j['startDate'], 0, 10) : now()->toDateString(),
-                        'end_date'      => isset($j['endDate']) ? substr($j['endDate'], 0, 10) : null,
-                        'total_price'   => $j['totalPrice'] ?? 0,
-                        'subtotal'      => $j['subtotal'] ?? 0,
-                        'is_vat_included' => $j['vat'] ?? $j['is_vat_included'] ?? false,
-                        'vat_amount'    => $j['vatAmount'] ?? $j['vat_amount'] ?? 0,
-                        'proposal_id'   => isset($j['proposalId']) && isset($proposalIdMap[$j['proposalId']]) ? $proposalIdMap[$j['proposalId']] : null,
-                        'order'         => $j['order'] ?? 0,
-                        'user_id'       => $j['userId'] ?? $j['user_id'] ?? null,
-                        'created_at'    => $j['createdAt'] ?? now(),
-                        'updated_at'    => $j['updatedAt'] ?? now(),
-                    ]
-                );
-                $jobIdMap[$j['id']] = $job->id;
-
-                // Restore job detail
-                if (!empty($j['jobdetail'])) {
-                    $job->jobDetail()->updateOrCreate(
-                        ['job_id' => $job->id],
-                        [
-                            'customer_requests' => $j['jobdetail']['customer_requests'] ?? $j['jobdetail']['customerRequests'] ?? null, 
-                            'notes'             => $j['jobdetail']['notes'] ?? null
-                        ]
-                    );
-                }
-
-                // Restore job steps
-                if (!empty($j['jobstep'])) {
-                    $job->jobSteps()->delete();
-                    foreach ($j['jobstep'] as $step) {
-                        $job->jobSteps()->create(['title' => $step['title'], 'is_completed' => $step['isCompleted'] ?? false, 'order' => $step['order'] ?? 0, 'created_at' => $step['createdAt'] ?? now(), 'updated_at' => $step['updatedAt'] ?? now()]);
-                    }
-                }
-
-                // Restore job files
-                if (!empty($j['jobfile'])) {
-                    $job->jobFiles()->delete();
-                    foreach ($j['jobfile'] as $file) {
-                        $job->jobFiles()->create([
-                            'file_name' => $file['fileName'] ?? $file['file_name'] ?? 'unknown',
-                            'file_path' => $file['filePath'] ?? $file['file_path'] ?? '',
-                            'file_type' => $file['fileType'] ?? $file['file_type'] ?? 'application/octet-stream',
-                            'file_size' => $file['fileSize'] ?? $file['file_size'] ?? 0,
-                            'uploaded_at' => $file['uploadedAt'] ?? $file['uploaded_at'] ?? now(),
-                        ]);
-                    }
-                }
-
-                // Restore custom field values
-                if (!empty($j['customfieldvalue'])) {
-                    $job->customFieldValues()->delete();
-                    foreach ($j['customfieldvalue'] as $cfv) {
-                        $oldCfId = $cfv['customFieldId'] ?? $cfv['custom_field_id'] ?? null;
-                        $newCfId = $oldCfId && isset($customFieldIdMap[$oldCfId]) ? $customFieldIdMap[$oldCfId] : null;
-
-                        if ($newCfId) {
-                            $job->customFieldValues()->create([
-                                'custom_field_id' => $newCfId,
-                                'value'           => $cfv['value'] ?? '',
-                                'created_at'      => $cfv['createdAt'] ?? now(),
-                                'updated_at'      => $cfv['updatedAt'] ?? now(),
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            // Import expense categories
-            $expenseCategoryIdMap = [];
-            $allCategorySources = [
-                $data['expensecategories'] ?? [],
-                $data['expenseCategories'] ?? [],
-                $data['expense_categories'] ?? [],
-                $data['categories'] ?? []
-            ];
-
-            foreach ($allCategorySources as $source) {
-                foreach ($source as $ec) {
-                    $catName = $ec['name'] ?? $ec['label'] ?? $ec['title'] ?? null;
-                    if (!$catName) continue;
-
-                    $category = ExpenseCategory::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'name' => $catName],
-                        ['created_at' => $ec['createdAt'] ?? now(), 'updated_at' => $ec['updatedAt'] ?? now()]
-                    );
-                    
-                    $oldId = $ec['id'] ?? $ec['categoryId'] ?? $ec['category_id'] ?? null;
-                    if ($oldId) {
-                        $expenseCategoryIdMap[$oldId] = $category->id;
-                    }
-                }
-            }
-
-            // Import cash registers
-            $cashRegisterIdMap = [];
-            $allRegisterSources = [
-                $data['cash_registers'] ?? [],
-                $data['cash_register'] ?? [],
-                $data['cashRegisters'] ?? [],
-                $data['cashregisters'] ?? [],
-                $data['registers'] ?? []
-            ];
-
-            foreach ($allRegisterSources as $source) {
-                foreach ($source as $cr) {
-                    $regName = $cr['name'] ?? $cr['label'] ?? $cr['title'] ?? null;
-                    if (!$regName) continue;
-
-                    $cashRegister = CashRegister::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'name' => $regName],
-                        ['is_default' => $cr['is_default'] ?? $cr['isDefault'] ?? false, 'created_at' => $cr['createdAt'] ?? now(), 'updated_at' => $cr['updatedAt'] ?? now()]
-                    );
-                    
-                    $oldId = $cr['id'] ?? $cr['cashRegisterId'] ?? $cr['cash_register_id'] ?? null;
-                    if ($oldId) {
-                        $cashRegisterIdMap[$oldId] = $cashRegister->id;
-                    }
-                }
-            }
-
-            // Restore payments nested in jobs
-            foreach (($data['jobs'] ?? []) as $j) {
-                $jobId = $jobIdMap[$j['id']] ?? null;
-                if (!$jobId) continue;
-                
-                $payments = $j['payment'] ?? $j['payments'] ?? [];
-                if (empty($payments)) continue;
-
-                foreach ($payments as $p) {
-                    $oldCRId = $p['cashRegisterId'] ?? $p['cash_register_id'] ?? null;
-                    $cashRegisterId = $oldCRId && isset($cashRegisterIdMap[$oldCRId]) ? $cashRegisterIdMap[$oldCRId] : null;
-                    $pDate = $p['paymentDate'] ?? $p['payment_date'] ?? now()->toDateString();
-                    $pAmount = $p['amount'] ?? 0;
-
-                    Payment::updateOrCreate(
-                        ['tenant_id' => $tenantId, 'job_id' => $jobId, 'payment_date' => substr($pDate, 0, 10), 'amount' => $pAmount],
-                        [
-                            'payment_type'     => $p['paymentType'] ?? $p['payment_type'] ?? 'CASH',
-                            'description'      => $p['description'] ?? null,
-                            'cash_register_id' => $cashRegisterId,
-                            'receipt_path'     => $p['receiptPath'] ?? $p['receipt_path'] ?? null,
-                            'created_at'       => $p['createdAt'] ?? now(),
-                            'updated_at'       => $p['updatedAt'] ?? now(),
-                        ]
-                    );
-                }
-            }
-
-            // Import Appointment Titles
-            foreach (($data['appointment_titles'] ?? []) as $at) {
-                AppointmentTitle::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $at['name']],
-                    ['created_at' => $at['createdAt'] ?? now(), 'updated_at' => $at['updatedAt'] ?? now()]
-                );
-            }
-
-            // Import Appointments
-            foreach (($data['appointments'] ?? []) as $a) {
-                $customerId = isset($a['customerId']) && isset($customerIdMap[$a['customerId']]) ? $customerIdMap[$a['customerId']] : null;
-                if (!$customerId) continue;
-
-                Appointment::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'customer_id' => $customerId, 'start_time' => $a['startTime']],
-                    [
-                        'title'       => $a['title'],
-                        'description' => $a['description'] ?? null,
-                        'end_time'    => $a['endTime'] ?? null,
-                        'status'      => $a['status'] ?? 'PENDING',
-                        'created_at'  => $a['createdAt'] ?? now(),
-                        'updated_at'  => $a['updatedAt'] ?? now(),
-                    ]
-                );
-            }
-
-            // Import Service Tracking Categories
-            $stCategoryIdMap = [];
-            foreach (($data['service_tracking_categories'] ?? []) as $stc) {
-                $category = ServiceTrackingCategory::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'name' => $stc['name']],
-                    ['created_at' => $stc['createdAt'] ?? now(), 'updated_at' => $stc['updatedAt'] ?? now()]
-                );
-                $stCategoryIdMap[$stc['id']] = $category->id;
-            }
-
-            // Import Service Trackings
-            $stIdMap = [];
-            foreach (($data['service_trackings'] ?? []) as $st) {
-                $stCategoryId = isset($st['categoryId']) && isset($stCategoryIdMap[$st['categoryId']]) ? $stCategoryIdMap[$st['categoryId']] : null;
-                if (!$stCategoryId) continue;
-
-                $stCustomerId = isset($st['customerId']) && isset($customerIdMap[$st['customerId']]) ? $customerIdMap[$st['customerId']] : null;
-                $stJobId = isset($st['jobId']) && isset($jobIdMap[$st['jobId']]) ? $jobIdMap[$st['jobId']] : null;
-
-                $serviceTracking = ServiceTracking::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'category_id' => $stCategoryId, 'title' => $st['title'], 'customer_id' => $stCustomerId, 'job_id' => $stJobId],
-                    [
-                        'description' => $st['description'] ?? null,
-                        'period' => $st['period'] ?? 1,
-                        'period_unit' => $st['periodUnit'] ?? $st['period_unit'] ?? 'month',
-                        'start_date' => $st['startDate'] ?? $st['start_date'] ?? now()->toDateString(),
-                        'next_date' => $st['nextDate'] ?? $st['next_date'] ?? null,
-                        'status' => $st['status'] ?? 'active',
-                        'created_at' => $st['createdAt'] ?? now(),
-                        'updated_at' => $st['updatedAt'] ?? now(),
-                    ]
-                );
-                $stIdMap[$st['id']] = $serviceTracking->id;
-            }
-
-            // Import Service Tracking Logs
-            foreach (($data['service_tracking_logs'] ?? []) as $stl) {
-                $stId = isset($stl['serviceTrackingId']) && isset($stIdMap[$stl['serviceTrackingId']]) ? $stIdMap[$stl['serviceTrackingId']] : null;
-                if (!$stId) continue;
-
-                ServiceTrackingLog::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'service_tracking_id' => $stId, 'planned_date' => $stl['plannedDate']],
-                    [
-                        'completed_at' => $stl['completedAt'] ?? null,
-                        'status' => $stl['status'] ?? 'completed',
-                        'notes' => $stl['notes'] ?? null,
-                        'created_at' => $stl['createdAt'] ?? now(),
-                        'updated_at' => $stl['updatedAt'] ?? now(),
-                    ]
-                );
-            }
-
-            // Import expenses
-            foreach (($data['expenses'] ?? []) as $e) {
-                $oldJobId = $e['jobId'] ?? $e['job_id'] ?? null;
-                $jobId = $oldJobId && isset($jobIdMap[$oldJobId]) ? $jobIdMap[$oldJobId] : null;
-                
-                $oldCRId = $e['cashRegisterId'] ?? $e['cash_register_id'] ?? null;
-                $cashRegisterId = $oldCRId && isset($cashRegisterIdMap[$oldCRId]) ? $cashRegisterIdMap[$oldCRId] : null;
-                
-                $oldCatId = $e['categoryId'] ?? $e['category_id'] ?? null;
-                $categoryId = $oldCatId && isset($expenseCategoryIdMap[$oldCatId]) ? $expenseCategoryIdMap[$oldCatId] : null;
-                
-                $eDate = $e['date'] ?? now()->toDateString();
-                $eAmount = $e['amount'] ?? 0;
-
-                Expense::updateOrCreate(
-                    ['tenant_id' => $tenantId, 'title' => $e['title'], 'date' => substr($eDate, 0, 10), 'amount' => $eAmount],
-                    [
-                        'job_id'           => $jobId,
-                        'description'      => $e['description'] ?? null,
-                        'category_id'      => $categoryId,
-                        'cash_register_id' => $cashRegisterId,
-                        'receipt_path'     => $e['receiptPath'] ?? $e['receipt_path'] ?? null,
-                        'created_at'       => $e['createdAt'] ?? now(),
-                        'updated_at'       => $e['updatedAt'] ?? now(),
-                    ]
-                );
-            }
-
-            // Import Activity Logs
-            foreach (($data['activitylogs'] ?? $data['activity_logs'] ?? []) as $l) {
-                ActivityLog::create([
-                    'tenant_id'   => $tenantId,
-                    'user_id'     => $l['userId'] ?? $l['user_id'] ?? $user->id,
-                    'action'      => $l['action'] ?? 'BACKUP_IMPORT',
-                    'entity_type' => $l['entityType'] ?? $l['entity_type'] ?? 'SYSTEM',
-                    'entity_id'   => $l['entityId'] ?? $l['entity_id'] ?? null,
-                    'entity_name' => $l['entityName'] ?? $l['entity_name'] ?? '',
-                    'details'     => $l['details'] ?? '',
-                    'created_at'  => $l['createdAt'] ?? $l['created_at'] ?? now(),
-                ]);
-            }
-        });
-    } finally {
-        \Illuminate\Database\Eloquent\Model::reguard();
-    }
-
-        // Clear all tenant caches after restore
-        $this->clearTenantCache('jobs');
-        $this->clearTenantCache('customers');
-        $this->clearTenantCache('services');
-        $this->clearTenantCache('statuses');
-        $this->clearTenantCache('expenses');
-        $this->clearTenantCache('payments');
-        $this->clearTenantCache('appointments');
-        $this->clearTenantCache('cash_registers');
-        $this->clearTenantCache('service_trackings');
-
-        return response()->json(['message' => 'Yedek başarıyla içe aktarıldı.']);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Yedek geri yükleme işlemi arka planda başlatıldı. İşlem tamamlandığında sisteminiz açılacaktır.'
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Import Error: " . $e->getMessage());
+            return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
      * Clear all data for the current tenant
      */
-    public function reset(Request $request): JsonResponse
+    public function reset(Request $request, \App\Services\TenantBackupService $service): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
 
-        DB::transaction(function () use ($tenantId, $request) {
-            // Delete jobs and their related data
-            $jobIds = JobCrm::where('tenant_id', $tenantId)->pluck('id');
-            
-            JobDetail::whereIn('job_id', $jobIds)->delete();
-            JobFile::whereIn('job_id', $jobIds)->delete();
-            JobStep::whereIn('job_id', $jobIds)->delete();
-            CustomFieldValue::whereIn('job_id', $jobIds)->delete();
-            Payment::whereIn('job_id', $jobIds)->delete();
-            Expense::whereIn('job_id', $jobIds)->delete();
-            JobCrm::where('tenant_id', $tenantId)->delete();
-
-            // Delete customers and proposals
-            Customer::where('tenant_id', $tenantId)->delete();
-            
-            $proposalIds = Proposal::where('tenant_id', $tenantId)->pluck('id');
-            ProposalItem::whereIn('proposal_id', $proposalIds)->delete();
-            ProposalInstallment::whereIn('proposal_id', $proposalIds)->delete();
-            ProposalRevisionRequest::whereIn('proposal_id', $proposalIds)->delete();
-            Proposal::where('tenant_id', $tenantId)->delete();
-
-            // Delete specific settings
-            Payment::where('tenant_id', $tenantId)->delete(); // Catch-all for tenant payments
-            Expense::where('tenant_id', $tenantId)->delete(); // Catch-all for tenant expenses
-            CashRegister::where('tenant_id', $tenantId)->delete();
-            ExpenseCategory::where('tenant_id', $tenantId)->delete();
-            
-            // Delete service configurations
-            $serviceIds = Service::where('tenant_id', $tenantId)->pluck('id');
-            CustomField::whereIn('service_id', $serviceIds)->delete();
-            Service::where('tenant_id', $tenantId)->delete();
-
-            // Delete job status configurations
-            JobStatus::where('tenant_id', $tenantId)->delete();
-
-            // Delete step templates
-            $templateIds = StepTemplate::where('tenant_id', $tenantId)->pluck('id');
-            DefaultStep::whereIn('template_id', $templateIds)->delete();
-            StepTemplate::where('tenant_id', $tenantId)->delete();
-
-            // Delete activity logs and api keys
-            ActivityLog::where('tenant_id', $tenantId)->delete();
-            ApiKey::where('tenant_id', $tenantId)->delete();
-            Appointment::where('tenant_id', $tenantId)->delete();
-            AppointmentTitle::where('tenant_id', $tenantId)->delete();
-            ServiceTrackingLog::where('tenant_id', $tenantId)->delete();
-            ServiceTracking::where('tenant_id', $tenantId)->delete();
-            ServiceTrackingCategory::where('tenant_id', $tenantId)->delete();
-
-            // Delete roles and personnel (except the one doing the reset)
-            Role::where('tenant_id', $tenantId)->delete();
-            User::where('tenant_id', $tenantId)->where('id', '!=', $request->user()->id)->delete();
-        });
+        $service->resetTenantData($tenantId, $request->user()->id);
 
         // Clear all tenant caches after reset
         $this->clearTenantCache('jobs');

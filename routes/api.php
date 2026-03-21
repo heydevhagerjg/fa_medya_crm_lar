@@ -40,14 +40,14 @@ Route::group(['prefix' => 'auth'], function () {
 });
 
 // Public Proposal Routes
-Route::prefix('public')->group(function () {
+Route::group(['prefix' => 'public'], function () {
     Route::get('/proposals/{uuid}', [App\Http\Controllers\Api\PublicProposalController::class, 'show']);
     Route::get('/proposals/{uuid}/pdf', [App\Http\Controllers\Api\PublicProposalController::class, 'downloadPdf']);
     Route::post('/proposals/{uuid}/respond', [App\Http\Controllers\Api\PublicProposalController::class, 'respond']);
 });
 
 // Protected routes
-Route::middleware(['auth:sanctum', 'check.tenant', 'check.plan'])->group(function () {
+Route::middleware(['auth:sanctum', 'check.tenant', 'check.restoring', 'check.plan'])->group(function () {
 
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -199,6 +199,7 @@ Route::prefix('admin')->group(function () {
         Route::prefix('tenants')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\TenantController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\Admin\TenantController::class, 'store']);
+            Route::post('/import', [\App\Http\Controllers\Admin\TenantController::class, 'import']);
             Route::get('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'show']);
             Route::post('/{id}/users', [\App\Http\Controllers\Admin\TenantController::class, 'addUser']);
             Route::put('/{id}/limits', [\App\Http\Controllers\Admin\TenantController::class, 'updateLimits']);

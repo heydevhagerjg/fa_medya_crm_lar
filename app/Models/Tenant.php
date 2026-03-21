@@ -14,6 +14,13 @@ class Tenant extends Model
     protected static function booted()
     {
         static::deleting(function ($tenant) {
+            // Delete S3 files first!
+            try {
+                $tenant->deleteS3Folder();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("S3 Cleanup Error for Tenant {$tenant->id}: " . $e->getMessage());
+            }
+
             // Delete all associated records to ensure clean database
             $tenant->users()->each(fn($u) => $u->delete());
             $tenant->customers()->each(fn($c) => $c->delete());
@@ -30,9 +37,38 @@ class Tenant extends Model
         });
     }
 
+    /**
+     * Delete the entire S3 folder for this tenant
+     */
+    public function deleteS3Folder()
+    {
+        if (!$this->s3_config_id) return;
+
+        $s3Config = $this->s3Config;
+        if (!$s3Config) return;
+
+        // Temporarily configure disk
+        config(['filesystems.disks.s3_cleanup' => [
+            'driver' => 's3',
+            'key' => trim($s3Config->aws_access_key_id),
+            'secret' => trim($s3Config->aws_secret_access_key),
+            'region' => trim($s3Config->aws_region),
+            'bucket' => trim($s3Config->aws_bucket_name),
+            'use_path_style_endpoint' => false,
+            'throw' => false
+        ]]);
+
+        $disk = \Illuminate\Support\Facades\Storage::disk('s3_cleanup');
+        $folder = "tenants/{$this->id}";
+
+        if ($disk->exists($folder)) {
+            $disk->deleteDirectory($folder);
+        }
+    }
+
     protected $fillable = [
         'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at', 'is_gifted',
-        'is_active', 'suspension_message',
+        'is_active', 'suspension_message', 'is_restoring',
         'plan_personnel_limit', 'plan_customer_limit', 'plan_job_limit',
         'plan_appointment_feature', 'plan_appointment_limit',
         'plan_service_tracking_feature', 'plan_service_tracking_limit', 'plan_service_tracking_category_feature', 'plan_service_tracking_category_limit',
@@ -60,6 +96,7 @@ class Tenant extends Model
         'storage_used' => 'integer',
         'trial_ends_at' => 'datetime',
         'is_gifted' => 'boolean',
+        'is_restoring' => 'boolean',
     ];
 
     public function package()

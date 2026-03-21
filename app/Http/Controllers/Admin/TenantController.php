@@ -297,13 +297,68 @@ class TenantController extends Controller
         ]);
     }
 
-    public function backup($id, \App\Services\TenantBackupService $service)
+    public function backup($id, \App\Services\TenantBackupService $service, Request $request)
     {
         $tenant = Tenant::findOrFail($id);
-        $zipPath = $service->createBackupZip($id);
+        $password = $request->query('password');
+        $zipPath = $service->createBackupZip($id, $password);
         
         $fileName = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup.zip';
         
         return response()->download($zipPath, $fileName)->deleteFileAfterSend();
+    }
+
+    public function import(Request $request, \App\Services\TenantBackupService $service)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'package_id' => 'required|exists:packages,id',
+            'file' => 'required|file|mimes:zip',
+        ]);
+
+        // 1. Create a "shell" tenant with chosen name and package
+        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        if (!$s3Config) {
+            return response()->json(['message' => 'Aktif S3 bulunamadı.'], 400);
+        }
+
+        $package = \App\Models\Package::findOrFail($request->package_id);
+
+        $tenant = Tenant::create([
+            'id' => Str::uuid()->toString(),
+            'name' => $request->name,
+            'slug' => Str::slug($request->name) . '-' . rand(1000, 9999),
+            's3_config_id' => $s3Config->id,
+            'package_id' => $package->id,
+        ]);
+
+        $tenant->applyPackage($package);
+
+        try {
+            $file = $request->file('file');
+            $tempDir = storage_path('app/temp_backups');
+            if (!file_exists($tempDir)) mkdir($tempDir, 0755, true);
+            
+            $fileName = \Illuminate\Support\Str::random(40) . '.zip';
+            $zipPath = $tempDir . '/' . $fileName;
+            
+            // Move uploaded file to temp storage for the Job
+            $file->move($tempDir, $fileName);
+
+            $tenant->update(['is_restoring' => true]);
+
+            // Dispatch background job
+            \App\Jobs\ImportBackupJob::dispatch($zipPath, $tenant->id, $request->input('password'));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Firma oluşturma ve yedek aktarma işlemi arka planda başlatıldı.',
+                'tenant' => $tenant
+            ]);
+        } catch (\Exception $e) {
+            $tenant->delete(); // Rollback tenant creation on fail
+            \Illuminate\Support\Facades\Log::error("Admin Import Error: " . $e->getMessage());
+            return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
+        }
     }
 }

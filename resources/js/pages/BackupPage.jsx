@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
+import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
 import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -10,17 +11,20 @@ export default function BackupPage() {
     const [resetting, setResetting] = useState(false)
     const [importFile, setImportFile] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
+    const [exportPassword, setExportPassword] = useState('')
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+    const [tempImportPassword, setTempImportPassword] = useState('')
 
     const handleExport = async () => {
         setExporting(true)
         try {
-            const response = await api.get('/settings/backup/export', { responseType: 'blob' })
-            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }))
+            const response = await api.get(`/settings/backup/export${exportPassword ? `?password=${encodeURIComponent(exportPassword)}` : ''}`, { responseType: 'blob' })
+            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }))
             const a = document.createElement('a')
             a.href = url
 
             // Try to extract filename from content-disposition header
-            let filename = `${new Date().toISOString().substring(0, 10)}.json`
+            let filename = `backup_${new Date().toISOString().substring(0, 10)}.zip`
             const disposition = response.headers['content-disposition']
             if (disposition && disposition.indexOf('attachment') !== -1) {
                 const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
@@ -35,7 +39,8 @@ export default function BackupPage() {
             a.click()
             a.remove()
             URL.revokeObjectURL(url)
-            toast.success('Yedek başarıyla indirildi.')
+            toast.success('Tam yedek (ZIP) başarıyla indirildi.')
+            setExportPassword('')
             s3BackupsRefetch()
         } catch {
             toast.error('Yedek alınamadı.')
@@ -44,18 +49,38 @@ export default function BackupPage() {
         }
     }
 
-    const handleImport = async (e) => {
-        e.preventDefault()
+    const handleImport = async (e, providedPassword = null) => {
+        if (e) e.preventDefault()
         if (!importFile) { toast.error('Lütfen bir dosya seçin.'); return }
         setImporting(true)
         const formData = new FormData()
         formData.append('file', importFile)
+        if (providedPassword) {
+            formData.append('password', providedPassword)
+            setPasswordModalOpen(false)
+        }
         try {
             await api.post('/settings/backup/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            toast.success('Yedek başarıyla içe aktarıldı!')
+            
+            // Hemen is_restoring moduna geçmesini sağlıyoruz ki ekran kapansın
+            const currentUser = useAuthStore.getState().user
+            if (currentUser && currentUser.tenant) {
+                useAuthStore.getState().updateUser({
+                    ...currentUser,
+                    tenant: { ...currentUser.tenant, is_restoring: true }
+                })
+            }
+            
+            toast.success('Yedek aktarma işlemi arka planda başlatıldı.')
             setImportFile(null)
+            setTempImportPassword('')
         } catch (err) {
-            toast.error(err.response?.data?.message || 'İçe aktarma başarısız.')
+            if (err.response?.status === 403) {
+                setPasswordModalOpen(true)
+                toast('Yedek şifreli. Lütfen şifreyi girin.', { icon: '🔑' })
+            } else {
+                toast.error(err.response?.data?.message || 'İçe aktarma başarısız.')
+            }
         } finally {
             setImporting(false)
         }
@@ -85,7 +110,7 @@ export default function BackupPage() {
         try {
             const toastId = toast.loading('İndiriliyor...')
             const response = await api.get(`/settings/backup/s3/download?filename=${encodeURIComponent(filename)}`, { responseType: 'blob' })
-            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }))
+            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }))
             const a = document.createElement('a')
             a.href = url
             a.download = filename
@@ -121,8 +146,8 @@ export default function BackupPage() {
                             <Download size={20} className="text-indigo-500" />
                         </div>
                         <div>
-                            <h2 className="font-semibold text-gray-900 dark:text-white">Yedek Al (Export)</h2>
-                            <p className="text-sm text-gray-500">JSON formatında dışa aktar</p>
+                            <h2 className="font-semibold text-gray-900 dark:text-white">Tam Yedek Al (Full Export)</h2>
+                            <p className="text-sm text-gray-500">Veri ve Dosyaları ZIP formatında indir</p>
                         </div>
                     </div>
 
@@ -133,6 +158,17 @@ export default function BackupPage() {
                                 {item}
                             </div>
                         ))}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Opsiyonel Yedek Şifresi</label>
+                        <input 
+                            type="password"
+                            value={exportPassword}
+                            onChange={(e) => setExportPassword(e.target.value)}
+                            placeholder="Şifresiz için boş bırakın"
+                            className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
                     </div>
 
                     <button
@@ -153,20 +189,20 @@ export default function BackupPage() {
                         </div>
                         <div>
                             <h2 className="font-semibold text-gray-900 dark:text-white">Yedek Yükle (Import)</h2>
-                            <p className="text-sm text-gray-500">JSON dosyasından içe aktar</p>
+                            <p className="text-sm text-gray-500">ZIP dosyasından tüm sistemi geri yükle</p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-2 p-3 mb-4 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl">
-                        <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                            Yedek yükleme mevcut verilerin üzerine yazmaz, eksik verileri ekler. Yine de dikkatli kullanın.
+                    <div className="flex items-start gap-2 p-3 mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
+                        <AlertCircle size={16} className="text-orange-600 dark:text-orange-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-orange-700 dark:text-orange-400">
+                            <b>Dikkat:</b> Yedek yükleme işlemi mevcut tüm verilerinizi silecek ve yedeği yükleyecektir. İşlem öncesi güncel yedek almayı unutmayın.
                         </p>
                     </div>
 
                     <form onSubmit={handleImport} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JSON Dosyası Seçin</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ZIP Dosyası Seçin</label>
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                                 <div className="flex flex-col items-center text-center">
                                     <Upload size={24} className="text-gray-400 mb-2" />
@@ -175,11 +211,11 @@ export default function BackupPage() {
                                     ) : (
                                         <>
                                             <span className="text-sm text-gray-500">Dosya seçmek için tıklayın</span>
-                                            <span className="text-xs text-gray-400 mt-1">Sadece .json</span>
+                                            <span className="text-xs text-gray-400 mt-1">Sadece .zip</span>
                                         </>
                                     )}
                                 </div>
-                                <input type="file" accept=".json" className="hidden" onChange={e => setImportFile(e.target.files[0])} />
+                                <input type="file" accept=".zip" className="hidden" onChange={e => setImportFile(e.target.files[0])} />
                             </label>
                         </div>
                         <button
@@ -317,6 +353,41 @@ export default function BackupPage() {
                     )}
                 </div>
             </div>
+            {/* Password Modal for Import */}
+            {passwordModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Yedek Şifresi Gerekli</h3>
+                        <p className="text-sm text-gray-500 mb-4">Bu yedek dosyası şifrelenmiş. Lütfen devam etmek için şifreyi girin.</p>
+                        
+                        <div className="space-y-4">
+                            <input 
+                                type="password"
+                                value={tempImportPassword}
+                                onChange={(e) => setTempImportPassword(e.target.value)}
+                                placeholder="Backup Şifresi"
+                                autoFocus
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white"
+                            />
+                            
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => { setPasswordModalOpen(false); setImporting(false); }} 
+                                    className="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                >
+                                    İptal
+                                </button>
+                                <button 
+                                    onClick={() => handleImport(null, tempImportPassword)}
+                                    className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
+                                >
+                                    Onayla ve Yükle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
