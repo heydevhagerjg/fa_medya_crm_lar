@@ -102,6 +102,7 @@ Route::middleware(['auth:sanctum', 'check.tenant', 'check.restoring', 'check.pla
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
     Route::get('/files/trash', [JobFileController::class, 'trash']);
+    Route::post('/files/trash/clear', [JobFileController::class, 'clearTrash']);
     Route::post('/files/{id}/restore', [JobFileController::class, 'restore']);
     Route::delete('/files/{id}/force', [JobFileController::class, 'forceDelete']);
     Route::post('/jobs/{id}/files', [JobFileController::class, 'store']);

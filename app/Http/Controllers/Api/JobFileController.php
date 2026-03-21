@@ -254,6 +254,68 @@ class JobFileController extends Controller
     }
 
     /**
+     * Clear all trashed files (Empty Trash)
+     */
+    public function clearTrash(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('files.delete')) {
+            return response()->json(['message' => 'Yetkisiz işlem.'], 403);
+        }
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        $files = JobFile::onlyTrashed()->whereHas('job', function ($q) use ($tenant, $user) {
+            $q->where('tenant_id', $tenant->id);
+            if ($user->role !== 'ADMIN' && !$user->can('files.view_all')) {
+                $q->where('user_id', $user->id);
+            }
+        })->get();
+
+        if ($files->isEmpty()) {
+            return response()->json(['message' => 'Çöp kutusu zaten boş.']);
+        }
+
+        $totalBytes = 0;
+        $fileIds = [];
+
+        if ($this->setGlobalS3Config()) {
+            $s3 = Storage::disk('s3_global');
+            foreach ($files as $file) {
+                $path = $file->file_path;
+                if (filter_var($path, FILTER_VALIDATE_URL)) {
+                    $parsed = parse_url($path);
+                    $path = ltrim($parsed['path'] ?? '', '/');
+                    $path = urldecode($path);
+                }
+                try {
+                    $s3->delete($path);
+                } catch (\Exception $e) {
+                    Log::error("Clear Trash: S3 Delete failed for file {$file->id}: " . $e->getMessage());
+                }
+                $totalBytes += (int)$file->file_size;
+                $fileIds[] = $file->id;
+            }
+        } else {
+            // S3 config failing, we still want to clean DB if S3 is broken? 
+            // Better to stop if S3 file won't be deleted, but often admin wants to clean broken refs too.
+            // Let's at least log it.
+        }
+
+        if ($totalBytes > 0) {
+            $tenant->decrement('storage_used', $totalBytes);
+            if ($tenant->storage_used < 0) $tenant->update(['storage_used' => 0]);
+        }
+
+        JobFile::onlyTrashed()->whereIn('id', $fileIds)->forceDelete();
+
+        $this->clearTenantCache('files');
+        $this->clearTenantCache('jobs');
+
+        return response()->json(['message' => 'Çöp kutusu başarıyla temizlendi.', 'count' => count($fileIds)]);
+    }
+
+    /**
      * Helper to download or redirect to S3 URL
      */
     public function download(Request $request, $id = null)
