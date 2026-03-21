@@ -253,10 +253,16 @@ class TenantController extends Controller
             'ids.*' => 'exists:tenants,id'
         ]);
 
-        $count = Tenant::whereIn('id', $validated['ids'])->delete();
+        $tenants = Tenant::whereIn('id', $validated['ids'])->get();
+        $count = 0;
+        
+        foreach ($tenants as $tenant) {
+            $tenant->delete();
+            $count++;
+        }
 
         return response()->json([
-            'message' => "$count firma başarıyla silindi."
+            'message' => "$count firma ve firmaya ait tüm veriler başarıyla silindi."
         ]);
     }
     public function updateStatus(Request $request, $id)
