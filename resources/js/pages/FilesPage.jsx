@@ -16,7 +16,9 @@ import {
     Download,
     ChevronRight,
     Image,
-    FileText
+    FileText,
+    Eye,
+    X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal.jsx'
@@ -40,12 +42,32 @@ export default function FilesPage() {
         }
     }
 
+    const handlePreviewFile = async (file) => {
+        const toastId = toast.loading('Yükleniyor...')
+        try {
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
+            const contentType = response.headers['content-type']
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }))
+            setPreview({
+                open: true,
+                url,
+                type: contentType,
+                fileName: file.file_name || file.fileName
+            })
+            toast.dismiss(toastId)
+        } catch (error) {
+            console.error('File preview error:', error)
+            toast.error('Dosya yüklenemedi.', { id: toastId })
+        }
+    }
+
     const [currentPage, setCurrentPage] = useState(1)
     const [fileSortMode, setFileSortMode] = useState('name')
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [showClearTrashConfirm, setShowClearTrashConfirm] = useState(false)
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
     const [selectedFileIds, setSelectedFileIds] = useState([])
+    const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
     const [downloadingZip, setDownloadingZip] = useState(false)
 
     const [showTrash, setShowTrash] = useState(false)
@@ -605,10 +627,19 @@ export default function FilesPage() {
                                                         <File size={32} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
                                                     )}
 
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
+                                                        {(file.file_type || file.fileType || '').includes('image') || (file.file_type || file.fileType || '').includes('pdf') ? (
+                                                            <button
+                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }}
+                                                                className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-lg backdrop-blur-md transition-colors"
+                                                                title="Önizle"
+                                                            >
+                                                                <Eye size={16} />
+                                                            </button>
+                                                        ) : null}
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }}
-                                                            className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md transition-colors"
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSingle(file); }}
+                                                            className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-lg backdrop-blur-md transition-colors"
                                                             title="İndir"
                                                         >
                                                             <Download size={16} />
@@ -685,6 +716,11 @@ export default function FilesPage() {
                                                         <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
+                                                                {(file.file_type || file.fileType || '').includes('image') || (file.file_type || file.fileType || '').includes('pdf') ? (
+                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="Önizle">
+                                                                        <Eye size={16} />
+                                                                    </button>
+                                                                ) : null}
                                                                 <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
                                                                     <Download size={16} />
                                                                 </button>
@@ -792,6 +828,45 @@ export default function FilesPage() {
                             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg transition-all disabled:opacity-50"
                         >
                             {clearTrashMutation.isLoading ? 'Temizleniyor...' : 'Çöpü Boşalt'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* File Preview Modal */}
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dosya Önizleme" size="xl">
+                <div className="flex flex-col h-[70vh]">
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
+                        {preview.type?.includes('pdf') ? (
+                            <iframe src={preview.url} className="w-full h-full border-none" title="PDF Preview" />
+                        ) : preview.type?.includes('image') ? (
+                            <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Preview" />
+                        ) : (
+                            <div className="text-center p-12 text-gray-400">
+                                <FileText size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>Bu dosya önizlenemiyor.</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-between items-center mt-6">
+                        <button
+                            onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }}
+                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Kapat
+                        </button>
+                        <button
+                            onClick={() => {
+                                const a = document.createElement('a')
+                                a.href = preview.url
+                                a.download = preview.fileName
+                                document.body.appendChild(a)
+                                a.click()
+                                a.remove()
+                            }}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                        >
+                            <Download size={18} /> İndir
                         </button>
                     </div>
                 </div>

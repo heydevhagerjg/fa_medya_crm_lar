@@ -4,7 +4,10 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
 import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar, Eye } from 'lucide-react'
+import {
+    ArrowLeft, Briefcase, CheckSquare, Square, Plus, Trash2, CreditCard, FileText, Upload, File, Download, Edit2, TrendingDown, LayoutList, X, Check, Calendar, Eye,
+    LayoutPanelLeft, ListCheck, ListTodo, MoreVertical, Search, Sheet, SquareCheck, Star, TrendingUp, Users, Wallet, FolderOpen, Image as ImageIcon
+} from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -398,13 +401,13 @@ export default function JobDetailPage() {
     })
 
     const handlePreviewReceipt = async (transaction) => {
+        if (!transaction?.receipt_path) return
         const toastId = toast.loading('Dekont yükleniyor...')
         try {
             const endpoint = transaction._type === 'PAYMENT' ? 'payments' : 'expenses';
             const response = await api.get(`/${endpoint}/${transaction.id}/receipt`, { responseType: 'blob' })
             const contentType = response.headers['content-type']
-            const blob = new Blob([response.data], { type: contentType })
-            const url = window.URL.createObjectURL(blob)
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }))
 
             let ext = 'jpg'
             if (contentType === 'application/pdf') ext = 'pdf'
@@ -421,6 +424,26 @@ export default function JobDetailPage() {
         } catch (error) {
             console.error('Preview error:', error)
             toast.error('Dekont yüklenemedi.', { id: toastId })
+        }
+    }
+
+    const handlePreviewFile = async (file) => {
+        const toastId = toast.loading('Dosya yükleniyor...')
+        try {
+            const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
+            const contentType = response.headers['content-type']
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }))
+            setPreview({
+                open: true,
+                url,
+                type: contentType,
+                fileName: file.file_name || file.fileName,
+                fileData: file
+            })
+            toast.dismiss(toastId)
+        } catch (error) {
+            console.error('File preview error:', error)
+            toast.error('Dosya yüklenemedi.', { id: toastId })
         }
     }
 
@@ -887,6 +910,11 @@ export default function JobDetailPage() {
                                     <div className="text-[11px] text-gray-400 mt-0.5">{((f.file_size || f.fileSize || 0) / 1024).toFixed(1)} KB</div>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {(f.file_type || f.fileType || '').includes('image') || (f.file_type || f.fileType || '').includes('pdf') ? (
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(f); }} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors relative z-20" title="Önizle">
+                                            <Eye size={14} />
+                                        </button>
+                                    ) : null}
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownload(f); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors relative z-20" title="İndir">
                                         <Download size={14} />
                                     </button>
@@ -1158,17 +1186,17 @@ export default function JobDetailPage() {
                 </>
             )}
             {/* Receipt Preview Modal */}
-            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dekont Önizleme" size="xl">
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dosya Önizleme" size="xl">
                 <div className="flex flex-col h-[70vh]">
                     <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
                         {preview.type?.includes('pdf') ? (
                             <iframe src={preview.url} className="w-full h-full border-none" title="PDF Preview" />
                         ) : preview.type?.includes('image') ? (
-                            <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Receipt Preview" />
+                            <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Preview" />
                         ) : (
-                            <div className="text-center p-12">
-                                <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                                <p className="text-gray-500">Bu dosya önizlenemiyor.</p>
+                            <div className="text-center p-12 text-gray-400">
+                                <FileText size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>Bu dosya önizlenemiyor.</p>
                             </div>
                         )}
                     </div>
