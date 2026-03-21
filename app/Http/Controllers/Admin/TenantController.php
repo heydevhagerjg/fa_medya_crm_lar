@@ -144,6 +144,7 @@ class TenantController extends Controller
             'plan_cash_register_limit' => $package->cash_register_limit,
             'plan_api_key_feature' => $package->api_key_feature,
             'plan_disk_usage_limit' => $package->disk_usage_limit,
+            'plan_single_file_limit' => $package->single_file_limit,
         ]);
 
         // Create as Paddle customer with trial
@@ -187,6 +188,7 @@ class TenantController extends Controller
             'plan_cash_register_limit' => 'required|integer|min:0',
             'plan_api_key_feature' => 'required|boolean',
             'plan_disk_usage_limit' => 'required|integer|min:0',
+            'plan_single_file_limit' => 'required|integer|min:0',
         ]);
 
         $tenant->update($validated);
@@ -242,6 +244,19 @@ class TenantController extends Controller
 
         return response()->json(['message' => 'Tenant deleted successfully']);
     }
+    public function updateStatus(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $validated = $request->validate([
+            'is_active' => 'required|boolean',
+            'suspension_message' => 'nullable|string',
+        ]);
+
+        $tenant->update($validated);
+
+        return response()->json(['message' => 'Tenant durumu güncellendi.', 'tenant' => $tenant]);
+    }
+
     public function giftPackage(Request $request, $id)
     {
         $tenant = Tenant::findOrFail($id);

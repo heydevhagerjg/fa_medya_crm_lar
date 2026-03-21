@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'check.plan' => \App\Http\Middleware\CheckPlanLimits::class,
+            'check.tenant' => \App\Http\Middleware\CheckTenantStatus::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

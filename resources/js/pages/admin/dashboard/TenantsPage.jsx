@@ -17,6 +17,8 @@ export default function TenantsPage() {
     const [limitModal, setLimitModal] = useState({ open: false, tenant: null })
     const [pkgModal, setPkgModal] = useState({ open: false, tenant: null })
     const [s3Modal, setS3Modal] = useState({ open: false, tenant: null })
+    const [statusModal, setStatusModal] = useState({ open: false, tenant: null })
+    const [statusForm, setStatusForm] = useState({ is_active: true, suspension_message: '' })
     const [form, setForm] = useState(emptyForm)
     const [limitForm, setLimitForm] = useState({})
     const [userForm, setUserForm] = useState(emptyUserForm)
@@ -96,6 +98,16 @@ export default function TenantsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
+    const statusMutation = useMutation({
+        mutationFn: (data) => api.put(`/admin/tenants/${statusModal.tenant.id}/status`, data),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('Firma durumu güncellendi.')
+            setStatusModal({ open: false, tenant: null })
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
+    })
+
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/admin/tenants/${id}`),
         onSuccess: () => {
@@ -132,6 +144,14 @@ export default function TenantsPage() {
 
     const openUserModal = async (tenant) => {
         setUserModal({ open: true, tenant })
+    }
+
+    const openStatusModal = (tenant) => {
+        setStatusForm({
+            is_active: tenant.is_active,
+            suspension_message: tenant.suspension_message || ''
+        })
+        setStatusModal({ open: true, tenant })
     }
 
     const filtered = tenants
@@ -194,7 +214,18 @@ export default function TenantsPage() {
                                 {paginatedData.map(tenant => (
                                     <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
                                         <td className="px-5 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-gray-100 font-bold">{tenant.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-sm text-gray-900 dark:text-white font-bold">{tenant.name}</div>
+                                                {tenant.is_active ? (
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold flex items-center gap-1">
+                                                        AKTİF
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[9px] font-bold flex items-center gap-1">
+                                                        ASKIDA
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[10px] text-gray-500 font-mono mt-0.5">{tenant.slug}</div>
                                             {tenant.s3_config ? (
                                                 <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -246,11 +277,10 @@ export default function TenantsPage() {
                                                 >
                                                     <UserPlus size={16} />
                                                 </button>
-                                                <button
-                                                    onClick={() => setDeleteConfirm(tenant)}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                    title="Sil"
-                                                >
+                                                <button onClick={() => openStatusModal(tenant)} className="p-2 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all" title="Durum & Engelleme">
+                                                    <Shield size={18} />
+                                                </button>
+                                                <button onClick={() => setDeleteConfirm(tenant.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -259,12 +289,7 @@ export default function TenantsPage() {
                                 ))}
                             </tbody>
                         </table>
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                            totalItems={filtered.length}
-                        />
+                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={filtered.length} />
                     </div>
                 )}
             </div>
@@ -330,6 +355,7 @@ export default function TenantsPage() {
                         <LimitInput label="İş Limiti" value={limitForm.plan_job_limit} onChange={v => setLimitForm({ ...limitForm, plan_job_limit: v })} />
                         <LimitInput label="Kasa Limiti" value={limitForm.plan_cash_register_limit} onChange={v => setLimitForm({ ...limitForm, plan_cash_register_limit: v })} />
                         <LimitInput label="Disk Kotası (MB)" value={limitForm.plan_disk_usage_limit} onChange={v => setLimitForm({ ...limitForm, plan_disk_usage_limit: v })} />
+                        <LimitInput label="Tek Dosya Limiti (MB)" value={limitForm.plan_single_file_limit} onChange={v => setLimitForm({ ...limitForm, plan_single_file_limit: v })} />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
@@ -566,6 +592,47 @@ export default function TenantsPage() {
                         </button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Status & Suspension Modal */}
+            <Modal open={statusModal.open} onClose={() => setStatusModal({ open: false, tenant: null })} title="Firma Durumu ve Erişim Yönetimi">
+                <form onSubmit={(e) => { e.preventDefault(); statusMutation.mutate(statusForm) }} className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={statusForm.is_active}
+                                onChange={e => setStatusForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                                className="w-5 h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-white">Hesap Aktif</div>
+                                <div className="text-xs text-gray-500">Hesabı kapatırsanız tüm kullanıcıların erişimi anında kesilir.</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    {!statusForm.is_active && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Erişim Engeli Mesajı (Müşteriye Gösterilecek)</label>
+                            <textarea
+                                value={statusForm.suspension_message}
+                                onChange={e => setStatusForm(prev => ({ ...prev, suspension_message: e.target.value }))}
+                                placeholder="Örn: Ödeme gecikmesi nedeniyle hesabınız geçici olarak dondurulmuştur. Lütfen bizimle iletişime geçin."
+                                rows={4}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            />
+                            <p className="mt-1 text-xs text-gray-500 italic">Mesaj girilmezse varsayılan sistem mesajı gösterilir.</p>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setStatusModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">İptal</button>
+                        <button type="submit" disabled={statusMutation.isPending} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50">
+                            {statusMutation.isPending ? 'Güncelleniyor...' : 'Durumu Güncelle'}
+                        </button>
+                    </div>
+                </form>
             </Modal>
         </div>
     )

@@ -32,6 +32,7 @@ const emptyPackage = {
     cash_register_limit: 0,
     api_key_feature: false,
     disk_usage_limit: 0,
+    single_file_limit: 50,
     is_active: true
 }
 
@@ -140,7 +141,7 @@ export default function PackagesPage() {
                                     <th className="px-5 py-4">Paket Adı</th>
                                     <th className="px-5 py-4">Fiyat</th>
                                     <th className="px-5 py-4">Personel/Müşteri/İş</th>
-                                    <th className="px-5 py-4">Kota</th>
+                                    <th className="px-5 py-4">Kota / Dosya Limiti</th>
                                     <th className="px-5 py-4">Durum</th>
                                     <th className="px-5 py-4 text-right">İşlem</th>
                                 </tr>
@@ -163,13 +164,11 @@ export default function PackagesPage() {
                                                 <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded">J: {pkg.job_limit === 0 ? '∞' : pkg.job_limit}</span>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 font-bold">
-                                            {pkg.disk_usage_limit === 0
-                                                ? 'Sınırsız'
-                                                : (pkg.disk_usage_limit >= 1024
-                                                    ? (pkg.disk_usage_limit / 1024).toFixed(1) + ' GB'
-                                                    : pkg.disk_usage_limit + ' MB')
-                                            }
+                                        <td className="px-5 py-4">
+                                            <div className="text-sm text-gray-900 dark:text-white font-bold">
+                                                {pkg.disk_usage_limit === 0 ? '∞' : pkg.disk_usage_limit + ' MB'}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5">Tek Dosya: {pkg.single_file_limit} MB</div>
                                         </td>
                                         <td className="px-5 py-4">
                                             {pkg.is_active ? (
@@ -305,8 +304,12 @@ export default function PackagesPage() {
                                     <input type="number" value={form.job_limit} onChange={e => setForm({ ...form, job_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><HardDrive size={12} /> Kota (MB)</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><HardDrive size={12} /> Toplam Kota (MB)</label>
                                     <input type="number" value={form.disk_usage_limit} onChange={e => setForm({ ...form, disk_usage_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Layers size={12} /> Tek Dosya Limiti (MB)</label>
+                                    <input type="number" value={form.single_file_limit} onChange={e => setForm({ ...form, single_file_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                             </div>
                         </div>

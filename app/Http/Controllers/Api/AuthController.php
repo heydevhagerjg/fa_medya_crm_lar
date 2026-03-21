@@ -117,6 +117,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'Hesabınız henüz onaylanmamış.'], 403);
         }
 
+        if ($user->tenant && !$user->tenant->is_active) {
+            $msg = $user->tenant->suspension_message ?: 'Hesabınız yönetici tarafından geçici olarak askıya alınmıştır.';
+            $msg .= ' Hata olduğunu düşünüyorsanız bizimle iletişime geçin.';
+            return response()->json(['message' => $msg], 403);
+        }
+
         if ($user->tenant_id && (!$user->tenant || !$user->tenant->package_id)) {
             return response()->json(['message' => 'Hesabınıza tanımlı bir paket bulunamadı. Lütfen yönetici ile iletişime geçin.'], 403);
         }
@@ -225,6 +231,7 @@ class AuthController extends Controller
                 'is_free' => $user->tenant->package ? $user->tenant->package->isFree() : false,
                 'storage_used' => $user->tenant->storage_used,
                 'storage_limit' => $user->tenant->plan_disk_usage_limit,
+                'single_file_limit' => $user->tenant->plan_single_file_limit ?: 50,
             ];
         }
 

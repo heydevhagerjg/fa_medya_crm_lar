@@ -242,13 +242,18 @@ export default function JobDetailPage() {
 
         let currentUsed = user?.tenant?.storage_used || 0
         const limit = (user?.tenant?.storage_limit || 0) * 1024 * 1024
-        
+        const singleLimit = (user?.tenant?.single_file_limit || 50) * 1024 * 1024
+
         const newUploads = []
         const skippedFiles = []
 
         for (const f of Array.from(filesToUpload)) {
+            if (f.size > singleLimit) {
+                skippedFiles.push(`${f.name} (Tek dosya limitini aşıyor: ${user?.tenant?.single_file_limit || 50} MB)`)
+                continue
+            }
             if (limit > 0 && (currentUsed + f.size) > limit) {
-                skippedFiles.push(f.name)
+                skippedFiles.push(`${f.name} (Toplam kota yetersiz)`)
                 continue
             }
             newUploads.push({
@@ -292,6 +297,7 @@ export default function JobDetailPage() {
                     }
                 })
                 qc.invalidateQueries(['job', id])
+                qc.invalidateQueries(['files'])
                 toast.success(`"${uf.name}" yüklendi.`)
             } catch {
                 toast.error(`"${uf.name}" yüklenemedi.`)
@@ -363,7 +369,7 @@ export default function JobDetailPage() {
         mutationFn: (fid) => api.delete(`/files/${fid}`),
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
-            toast.success('Dosya silindi.')
+            toast.success('Dosya çöp kutusuna taşındı.')
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Dosya silinemedi.'),
     })
@@ -386,11 +392,11 @@ export default function JobDetailPage() {
             const contentType = response.headers['content-type']
             const blob = new Blob([response.data], { type: contentType })
             const url = window.URL.createObjectURL(blob)
-            
+
             let ext = 'jpg'
             if (contentType === 'application/pdf') ext = 'pdf'
             else if (contentType === 'image/png') ext = 'png'
-            
+
             setPreview({
                 open: true,
                 url,
@@ -505,15 +511,15 @@ export default function JobDetailPage() {
     const files = job.jobfile || []
 
     const financialTransactions = [
-        ...payments.map(p => ({ 
-            ...p, 
-            _type: 'PAYMENT', 
+        ...payments.map(p => ({
+            ...p,
+            _type: 'PAYMENT',
             _date: new Date(p.paymentDate || p.payment_date).getTime(),
             receiptUrl: (p.receipt_path || p.receiptUrl) ? `/api/payments/${p.id}/receipt` : null
         })),
-        ...expenses.map(e => ({ 
-            ...e, 
-            _type: 'EXPENSE', 
+        ...expenses.map(e => ({
+            ...e,
+            _type: 'EXPENSE',
             _date: new Date(e.date).getTime(),
             receiptUrl: (e.receipt_path || e.receiptUrl) ? `/api/expenses/${e.id}/receipt` : null
         }))
@@ -1108,14 +1114,14 @@ export default function JobDetailPage() {
                         )}
                     </div>
                     <div className="flex justify-between items-center mt-6">
-                        <button 
-                            onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} 
+                        <button
+                            onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }}
                             className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
                             Kapat
                         </button>
-                        <button 
-                            onClick={() => handleDownloadReceipt()} 
+                        <button
+                            onClick={() => handleDownloadReceipt()}
                             className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                         >
                             <Download size={18} /> İndir

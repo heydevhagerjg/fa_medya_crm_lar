@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\JobFile;
 use App\Models\JobCrm;
 use App\Models\Tenant;
-use App\Models\Admin;
 use App\Services\ActivityLogService;
 use App\Traits\HasTenantCache;
+use App\Traits\S3GlobalConfigTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,174 +19,120 @@ use Illuminate\Support\Facades\Config;
 
 class JobFileController extends Controller
 {
-    use HasTenantCache;
+    use HasTenantCache, S3GlobalConfigTrait;
 
     private static $globalS3Disk = null;
 
-    private function setGlobalS3Config()
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $tenant = request()->user()->tenant ?? null;
-        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
-            return false;
-        }
-        $config = $tenant->s3Config;
-
-        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
-
-        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
-
-        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($config->aws_access_key_id),
-            'secret' => trim($config->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = 's3_global';
-        return true;
-    }
-
     /**
-     * List all jobs with their files (for the global Files page)
+     * Display a listing of files for the tenant
      */
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $cacheKey = $this->getTenantCacheKey('files');
 
-        $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
-            $user = $request->user();
-            $tenantId = $user->tenant_id;
+        return Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($user) {
+            $query = JobCrm::with(['jobfile', 'customer:id,name'])
+                ->where('tenant_id', $user->tenant_id)
+                ->whereHas('jobfile')
+                ->when($user->role !== 'ADMIN' && !$user->can('files.view_all'), function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
 
-            $query = JobCrm::where('tenant_id', $tenantId);
-            // All users in the tenant can view files as per JobsPage rules
-
-            return $query->with(['customer', 'jobFiles'])
-                ->get()
-                ->map(fn($j) => [
-                    'id'       => $j->id,
-                    'title'    => $j->title,
-                    'customer' => ['name' => $j->customer?->name],
-                    'jobfile'  => $j->jobFiles->map(fn($f) => [
-                        'id'         => $f->id,
-                        'fileName'   => $f->file_name,
-                        'filePath'   => "/api/files/{$f->id}/download",
-                        'fileType'   => $f->file_type,
-                        'fileSize'   => $f->file_size,
-                        'uploadedAt' => $f->uploaded_at,
-                    ])
-                ])->toArray();
+            return response()->json($query->orderBy('title', 'asc')->get());
         });
-
-        return response()->json($data);
     }
 
     /**
-     * Upload a file to S3
+     * Store newly uploaded files
      */
-    public function store(Request $request, $jobId = null): JsonResponse
+    public function store(Request $request, $id = null): JsonResponse
     {
-        // Job ID can be from URL or request body
-        $jobId = $jobId ?? $request->jobId;
-
-        $request->validate([
-            'file' => 'required|file|max:51200', // 50MB
-        ]);
+        $jobId = $id ?? $request->input('job_id') ?? $request->input('jobId');
+        if (!$jobId) return response()->json(['message' => 'İş id bulunamadı'], 400);
 
         $user = $request->user();
-        
+        $job = JobCrm::where('tenant_id', $user->tenant_id)->findOrFail($jobId);
+
         if ($user->role !== 'ADMIN' && !$user->can('files.upload')) {
             return response()->json(['message' => 'Oturum yetkiniz dosya yüklemek için yetersiz.'], 403);
         }
-        
+
+        $files = [];
+        if ($request->hasFile('files')) {
+            $files = $request->file('files');
+            if (!is_array($files)) $files = [$files];
+        } elseif ($request->hasFile('file')) {
+            $files = [$request->file('file')];
+        }
+
+        if (count($files) === 0) {
+            return response()->json(['message' => 'Dosya bulunamadı'], 400);
+        }
+
         $tenant = Tenant::find($user->tenant_id);
 
-        $file = $request->file('file');
-        if (!$tenant->canUploadFile($file->getSize())) {
-            $limit = $tenant->plan_disk_usage_limit;
-            return response()->json([
-                'message' => "Bu dosya yükleme limitinizi ({$limit} MB) aşıyor. Lütfen paketinizi yükseltiniz veya bazı dosyaları siliniz."
-            ], 403);
+        if (!$this->setGlobalS3Config()) {
+            return response()->json(['message' => 'S3 Yapılandırması hatası.'], 400);
         }
 
-        $query = JobCrm::where('tenant_id', $tenant->id);
-        if ($user->role !== 'ADMIN') {
-            if (!$user->can('files.view_all')) {
-                $query->where('user_id', $user->id);
+        $uploadedCount = 0;
+
+        foreach ($files as $file) {
+            $fileName = $file->getClientOriginalName();
+            $fileSize = $file->getSize();
+
+            // Dynamic limit check from tenant
+            $maxLimit = ($tenant->plan_single_file_limit ?: 50) * 1024 * 1024;
+            if ($fileSize > $maxLimit) {
+                continue;
             }
-        }
-        $job = $query->findOrFail($jobId);
 
-        $file = $request->file('file');
-        $fileName = $file->getClientOriginalName();
-        $path = "tenants/{$tenant->id}/jobs/{$job->id}/" . Str::uuid() . '_' . $fileName;
+            // Global quota check
+            if (!$tenant->canUploadFile($fileSize)) {
+                continue;
+            }
 
-        if ($this->setGlobalS3Config()) {
+            $path = "tenants/{$tenant->id}/jobs/{$job->id}/" . Str::random(10) . '_' . $fileName;
+
             try {
-                $s3Disk = Storage::disk('s3_global');
-                $stream = fopen($file->getRealPath(), 'r+');
-                $s3Disk->put($path, $stream);
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
-                // Store RELATIVE path instead of URL
-                $url = $path;
+                Storage::disk('s3_global')->put($path, file_get_contents($file));
+                $url = Storage::disk('s3_global')->url($path);
+
+                JobFile::create([
+                    'job_id' => $job->id,
+                    'file_name' => $fileName,
+                    'file_path' => $url,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_size' => $fileSize,
+                ]);
+
+                $tenant->increment('storage_used', $fileSize);
+                $uploadedCount++;
+
+                ActivityLogService::log($user, 'CREATE', 'FILE', null, $job->title,
+                    "{$job->title} işine \"{$fileName}\" isimli dosya yüklendi.");
+
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error("Global S3 Upload Error: " . $e->getMessage());
-                return response()->json(['message' => 'S3 Yükleme hatası: ' . $e->getMessage()], 500);
+                Log::error("File upload failed: " . $e->getMessage());
             }
-        } else {
-             return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
         }
-
-        // Update used storage
-        $tenant->increment('storage_used', $file->getSize());
-
-        $jobFile = $job->jobFiles()->create([
-            'file_name' => $fileName,
-            'file_path' => $url,
-            'file_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'uploaded_at' => now(),
-        ]);
 
         $this->clearTenantCache('files');
         $this->clearTenantCache('jobs');
 
-        ActivityLogService::log($user, 'CREATE', 'FILE', $jobFile->id, $job->title,
-            "{$job->title} işine yeni bir dosya yüklendi: {$fileName}");
-
         return response()->json([
-            'id'         => $jobFile->id,
-            'fileName'   => $jobFile->file_name,
-            'filePath'   => "/api/files/{$jobFile->id}/download",
-            'fileType'   => $jobFile->file_type,
-            'fileSize'   => $jobFile->file_size,
-            'uploadedAt' => $jobFile->uploaded_at,
-        ], 201);
+            'message' => "{$uploadedCount} dosya başarıyla yüklendi.",
+            'count' => $uploadedCount
+        ]);
     }
 
     /**
-     * Delete a file from storage and database
+     * Remove the specified file (Soft Delete)
      */
-    public function destroy(Request $request, $jobId = null): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
-        // For /files/{id} endpoint, jobId is actually the fileId
-        // For /jobs/{jobId}/files endpoint, fileId is in the body
-        $fileId = $request->input('fileId') ?? $jobId;
-        
+        $fileId = $id;
         $user = $request->user();
         
         if ($user->role !== 'ADMIN' && !$user->can('files.delete')) {
@@ -206,10 +152,85 @@ class JobFileController extends Controller
 
         $job = $jobFile->job;
 
+        ActivityLogService::log($user, 'DELETE', 'FILE', $jobFile->id, $job->title,
+            "{$job->title} işinden \"{$jobFile->file_name}\" isimli dosya çöp kutusuna taşındı.");
+
+        $jobFile->delete(); // Soft Delete
+        $this->clearTenantCache('files');
+        $this->clearTenantCache('jobs');
+
+        return response()->json(['message' => 'Dosya çöp kutusuna taşındı.']);
+    }
+
+    /**
+     * List trashed files
+     */
+    public function trash(Request $request)
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $files = JobFile::onlyTrashed()
+            ->with('job:id,title')
+            ->whereHas('job', function ($q) use ($tenantId, $user) {
+                $q->where('tenant_id', $tenantId);
+                if ($user->role !== 'ADMIN' && !$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            })->get();
+
+        return response()->json($files);
+    }
+
+    /**
+     * Restore a trashed file
+     */
+    public function restore(Request $request, $id)
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant_id;
+
+        $jobFile = JobFile::onlyTrashed()->whereHas('job', function ($q) use ($tenantId, $user) {
+            $q->where('tenant_id', $tenantId);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            }
+        })->findOrFail($id);
+
+        $jobFile->restore();
+        $this->clearTenantCache('files');
+
+        return response()->json(['message' => 'Dosya geri yüklendi.']);
+    }
+
+    /**
+     * Permanently delete a file
+     */
+    public function forceDelete(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'ADMIN' && !$user->can('files.delete')) {
+            return response()->json(['message' => 'Yetkisiz işlem.'], 403);
+        }
+
+        $tenant = Tenant::find($user->tenant_id);
+
+        $jobFile = JobFile::withTrashed()->whereHas('job', function ($q) use ($tenant, $user) {
+            $q->where('tenant_id', $tenant->id);
+            if ($user->role !== 'ADMIN') {
+                if (!$user->can('files.view_all')) {
+                    $q->where('user_id', $user->id);
+                }
+            }
+        })->findOrFail($id);
+
+        $job = $jobFile->job;
+
         if ($this->setGlobalS3Config()) {
             $path = $jobFile->file_path;
 
-            // If it's a full URL, extract the path
             if (filter_var($path, FILTER_VALIDATE_URL)) {
                 $parsed = parse_url($path);
                 $path = ltrim($parsed['path'] ?? '', '/');
@@ -219,21 +240,17 @@ class JobFileController extends Controller
             try {
                 Storage::disk('s3_global')->delete($path);
             } catch (\Exception $e) {
-                \Log::error("Global S3 Delete failed for file {$jobFile->id}: " . $e->getMessage());
+                Log::error("Force Delete: S3 Delete failed for file {$jobFile->id}: " . $e->getMessage());
             }
         }
 
-        // Decrease used storage
         $tenant->decrement('storage_used', $jobFile->file_size);
+        $jobFile->forceDelete();
 
-        ActivityLogService::log($user, 'DELETE', 'FILE', $jobFile->id, $job->title,
-            "{$job->title} işinden \"{$jobFile->file_name}\" isimli dosya silindi.");
-
-        $jobFile->delete();
         $this->clearTenantCache('files');
         $this->clearTenantCache('jobs');
 
-        return response()->json(['message' => 'Dosya silindi.']);
+        return response()->json(['message' => 'Dosya kalıcı olarak silindi.']);
     }
 
     /**
@@ -258,20 +275,17 @@ class JobFileController extends Controller
         $s3 = Storage::disk('s3_global');
         $path = $jobFile->file_path;
 
-        // If it's a full URL, extract the path
         if (filter_var($path, FILTER_VALIDATE_URL)) {
             $parsed = parse_url($path);
             $path = ltrim($parsed['path'] ?? '', '/');
-            // Decode path because S3 expects raw path, but url might be encoded
             $path = urldecode($path);
         }
 
         if (!$s3->exists($path)) {
-            \Log::warning("File not found on S3: {$path}");
+            Log::warning("File not found on S3: {$path}");
             abort(404, 'Dosya depolama alanında bulunamadı.');
         }
 
         return $s3->response($path, $jobFile->file_name);
     }
-
 }

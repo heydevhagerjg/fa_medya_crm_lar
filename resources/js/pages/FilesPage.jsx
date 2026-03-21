@@ -3,11 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import {
-    FolderOpen, FileText, Search, Download, Trash2,
-    MoreVertical, ExternalLink, Image as ImageIcon,
-    File as FileIcon, ChevronRight, HardDrive, Filter,
-    Grid, List as ListIcon, Loader2, UploadCloud,
-    ChevronLeft, ArrowLeft
+    ChevronLeft, ArrowLeft, RotateCcw, Trash,
+    Loader2,
+    FolderOpen,
+    Search,
+    Grid,
+    ListIcon,
+    HardDrive,
+    FileIcon,
+    UploadCloud,
+    Trash2,
+    Download,
+    ChevronRight
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal.jsx'
@@ -36,9 +43,12 @@ export default function FilesPage() {
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [downloadingZip, setDownloadingZip] = useState(false)
 
+    const [showTrash, setShowTrash] = useState(false)
+    const [trashSearch, setTrashSearch] = useState('')
+
     useEffect(() => {
         setCurrentPage(1)
-    }, [search, activeFolderId])
+    }, [search, activeFolderId, showTrash])
 
     const { data: jobsWithFiles = [], isLoading } = useQuery({
         queryKey: ['files'],
@@ -46,13 +56,40 @@ export default function FilesPage() {
     })
 
     const deleteMutation = useMutation({
-        mutationFn: ({ jobId, fileId }) => api.delete(`/jobs/${jobId}/files`, { data: { fileId } }),
+        mutationFn: ({ fileId }) => api.delete(`/files/${fileId}`),
         onSuccess: () => {
             qc.invalidateQueries(['files'])
-            toast.success('Dosya başarıyla silindi.')
+            qc.invalidateQueries(['trash-files'])
+            toast.success('Dosya çöp kutusuna taşındı.')
             setDeleteConfirm(null)
         },
-        onError: () => toast.error('Dosya silinirken bir hata oluştu.')
+        onError: () => toast.error('Hata oluştu.')
+    })
+
+    const restoreMutation = useMutation({
+        mutationFn: (fileId) => api.post(`/files/${fileId}/restore`),
+        onSuccess: () => {
+            qc.invalidateQueries(['files'])
+            qc.invalidateQueries(['trash-files'])
+            toast.success('Dosya geri yüklendi.')
+        },
+        onError: () => toast.error('Geri yüklenemedi.')
+    })
+
+    const forceDeleteMutation = useMutation({
+        mutationFn: (fileId) => api.delete(`/files/${fileId}/force`),
+        onSuccess: () => {
+            qc.invalidateQueries(['trash-files'])
+            toast.success('Dosya kalıcı olarak silindi.')
+            setDeleteConfirm(null)
+        },
+        onError: () => toast.error('Kalıcı silme hatası.')
+    })
+
+    const { data: trashedFiles = [], isLoading: isTrashLoading } = useQuery({
+        queryKey: ['trash-files'],
+        queryFn: () => api.get('/files/trash').then(r => r.data),
+        enabled: showTrash
     })
 
     const handleDownloadSingle = async (file) => {
@@ -96,7 +133,7 @@ export default function FilesPage() {
 
             const promises = filesToDownload.map(async (file) => {
                 try {
-                const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
+                    const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
                     if (!response.data) throw new Error('Ağ hatası')
                     zip.file(file.fileName, response.data)
                 } catch (err) {
@@ -196,6 +233,20 @@ export default function FilesPage() {
                     </div>
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                         <button
+                            onClick={() => { setShowTrash(false); setActiveFolderId(null); }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!showTrash ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <FolderOpen size={14} /> Dosyalar
+                        </button>
+                        <button
+                            onClick={() => { setShowTrash(true); setActiveFolderId(null); }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showTrash ? 'bg-white dark:bg-gray-700 text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <Trash size={14} /> Çöp Kutusu
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <button
                             onClick={() => setViewMode('grid')}
                             className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                         >
@@ -244,7 +295,72 @@ export default function FilesPage() {
 
             {/* Files Explorer */}
             <div className="space-y-4">
-                {filteredJobs.length === 0 ? (
+                {showTrash ? (
+                    <div className="space-y-4">
+                        <div className="bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/20 p-4 rounded-2xl flex items-center gap-3">
+                            <Trash className="text-red-500" size={20} />
+                            <p className="text-xs text-red-800 dark:text-red-300 font-medium">
+                                Çöp kutusundaki dosyalar 30 gün sonra otomatik olarak tamamen silinecektir. İstediğiniz zaman geri yükleyebilir veya kalıcı olarak silebilirsiniz.
+                            </p>
+                        </div>
+
+                        {trashedFiles.length === 0 ? (
+                            <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800">
+                                <Trash className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-400">Çöp Kutusu Boş</h3>
+                            </div>
+                        ) : (
+                            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                            <th className="px-4 py-3 text-left font-semibold">Dosya Adı / Ait Olduğu İş</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Silinme Tarihi</th>
+                                            <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {trashedFiles.map(file => (
+                                            <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        {getFileIcon(file.file_type)}
+                                                        <div>
+                                                            <div className="font-medium text-gray-900 dark:text-white">{file.file_name}</div>
+                                                            <div className="text-[10px] text-gray-400">İş: {file.job?.title}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-500 text-xs">
+                                                    {new Date(file.deleted_at).toLocaleString('tr-TR')}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => restoreMutation.mutate(file.id)}
+                                                            className="p-1.5 text-gray-400 hover:text-green-500 transition-colors"
+                                                            title="Geri Yükle"
+                                                            disabled={restoreMutation.isLoading}
+                                                        >
+                                                            <RotateCcw size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setDeleteConfirm({ fileId: file.id, fileName: file.file_name, isPermanent: true })}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                            title="Kalıcı Olarak Sil"
+                                                        >
+                                                            <Trash size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                ) : filteredJobs.length === 0 ? (
                     <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
                         <UploadCloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Dosya Bulunamadı</h3>
@@ -505,9 +621,11 @@ export default function FilesPage() {
                         <Trash2 size={24} />
                     </div>
                     <div className="text-center">
-                        <p className="text-gray-900 dark:text-white font-medium mb-1">Dosyayı siliyorsunuz</p>
+                        <p className="text-gray-900 dark:text-white font-medium mb-1">
+                            {deleteConfirm?.isPermanent ? 'Kalıcı olarak silmek istediğinize emin misiniz?' : 'Dosyayı çöp kutusuna taşıyorsunuz'}
+                        </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
-                            <span className="font-semibold text-gray-700 dark:text-gray-200">"{deleteConfirm?.fileName}"</span> isimli dosya kalıcı olarak silinecek. Bu işlem geri alınamaz.
+                            <span className="font-semibold text-gray-700 dark:text-gray-200">"{deleteConfirm?.fileName}"</span> isimli dosya {deleteConfirm?.isPermanent ? 'KALICI olarak silinecek ve kota iade edilecek.' : 'çöp kutusuna aktarılacak.'}
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -518,11 +636,11 @@ export default function FilesPage() {
                             İptal
                         </button>
                         <button
-                            onClick={() => deleteMutation.mutate(deleteConfirm)}
-                            disabled={deleteMutation.isLoading}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-600/20 transition-all disabled:opacity-50"
+                            onClick={() => deleteConfirm?.isPermanent ? forceDeleteMutation.mutate(deleteConfirm.fileId) : deleteMutation.mutate(deleteConfirm)}
+                            disabled={deleteMutation.isLoading || forceDeleteMutation.isLoading}
+                            className={`flex-1 px-4 py-2 text-sm font-medium text-white ${deleteConfirm?.isPermanent ? 'bg-black hover:bg-gray-900' : 'bg-red-600 hover:bg-red-700'} rounded-xl shadow-lg transition-all disabled:opacity-50`}
                         >
-                            {deleteMutation.isLoading ? 'Siliniyor...' : 'Evet, Sil'}
+                            {deleteMutation.isLoading || forceDeleteMutation.isLoading ? 'Bekleyin...' : 'Onayla'}
                         </button>
                     </div>
                 </div>

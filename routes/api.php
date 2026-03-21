@@ -46,7 +46,7 @@ Route::prefix('public')->group(function () {
 });
 
 // Protected routes
-Route::middleware(['auth:sanctum', 'check.plan'])->group(function () {
+Route::middleware(['auth:sanctum', 'check.tenant', 'check.plan'])->group(function () {
 
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -100,6 +100,9 @@ Route::middleware(['auth:sanctum', 'check.plan'])->group(function () {
     Route::get('/files/{id}/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);
     Route::delete('/files/{id}', [JobFileController::class, 'destroy']);
+    Route::get('/files/trash', [JobFileController::class, 'trash']);
+    Route::post('/files/{id}/restore', [JobFileController::class, 'restore']);
+    Route::delete('/files/{id}/force', [JobFileController::class, 'forceDelete']);
     Route::post('/jobs/{id}/files', [JobFileController::class, 'store']);
     Route::delete('/jobs/{id}/files', [JobFileController::class, 'destroy']);
 
@@ -201,6 +204,7 @@ Route::prefix('admin')->group(function () {
             Route::put('/{id}/change-package', [\App\Http\Controllers\Admin\TenantController::class, 'changePackage']);
             Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
             Route::put('/{id}/s3-config', [\App\Http\Controllers\Admin\TenantController::class, 'updateS3Config']);
+            Route::put('/{id}/status', [\App\Http\Controllers\Admin\TenantController::class, 'updateStatus']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 

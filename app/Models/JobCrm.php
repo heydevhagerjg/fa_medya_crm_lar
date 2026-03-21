@@ -8,6 +8,18 @@ class JobCrm extends Model
 {
     protected $table = 'jobs_crm';
 
+    protected static function booted()
+    {
+        static::deleting(function ($job) {
+            $job->jobSteps()->each(fn($s) => $s->delete());
+            $job->jobFiles()->each(fn($f) => $f->delete());
+            $job->payments()->each(fn($p) => $p->delete());
+            $job->expenses()->each(fn($e) => $e->delete());
+            $job->installments()->each(fn($i) => $i->delete());
+            $job->customFieldValues()->each(fn($cf) => $cf->delete());
+        });
+    }
+
     protected $fillable = [
         'tenant_id', 'user_id', 'customer_id', 'proposal_id', 'service_id', 'job_status_id',
         'title', 'description', 'status', 'start_date', 'end_date', 'total_price', 'order',
@@ -54,6 +66,11 @@ class JobCrm extends Model
     }
 
     public function jobFiles()
+    {
+        return $this->hasMany(JobFile::class, 'job_id');
+    }
+
+    public function jobfile()
     {
         return $this->hasMany(JobFile::class, 'job_id');
     }

@@ -11,8 +11,28 @@ class Tenant extends Model
 {
     use HasPlanLimits, Billable;
 
+    protected static function booted()
+    {
+        static::deleting(function ($tenant) {
+            // Delete all associated records to ensure clean database
+            $tenant->users()->each(fn($u) => $u->delete());
+            $tenant->customers()->each(fn($c) => $c->delete());
+            $tenant->jobs()->each(fn($j) => $j->delete());
+            $tenant->services()->each(fn($s) => $s->delete());
+            $tenant->jobStatuses()->each(fn($js) => $js->delete());
+            $tenant->stepTemplates()->each(fn($st) => $st->delete());
+            $tenant->payments()->each(fn($p) => $p->delete());
+            $tenant->expenses()->each(fn($e) => $e->delete());
+            $tenant->expenseCategories()->each(fn($ec) => $ec->delete());
+            $tenant->cashRegisters()->each(fn($cr) => $cr->delete());
+            $tenant->apiKeys()->each(fn($ak) => $ak->delete());
+            $tenant->activityLogs()->each(fn($al) => $al->delete());
+        });
+    }
+
     protected $fillable = [
         'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at', 'is_gifted',
+        'is_active', 'suspension_message',
         'plan_personnel_limit', 'plan_customer_limit', 'plan_job_limit',
         'plan_appointment_feature', 'plan_appointment_limit',
         'plan_service_tracking_feature', 'plan_service_tracking_limit', 'plan_service_tracking_category_feature', 'plan_service_tracking_category_limit',
@@ -20,7 +40,7 @@ class Tenant extends Model
         'plan_backup_feature', 'plan_backup_limit',
         'plan_services_section_feature', 'plan_service_limit',
         'plan_step_templates_feature', 'plan_step_template_limit',
-        'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit'
+        'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit', 'plan_single_file_limit'
     ];
 
     public $incrementing = false;
@@ -36,6 +56,7 @@ class Tenant extends Model
         'plan_step_templates_feature' => 'boolean',
         'plan_api_key_feature' => 'boolean',
         'plan_disk_usage_limit' => 'integer',
+        'plan_single_file_limit' => 'integer',
         'storage_used' => 'integer',
         'trial_ends_at' => 'datetime',
         'is_gifted' => 'boolean',
@@ -70,6 +91,7 @@ class Tenant extends Model
             'plan_cash_register_limit' => $package->cash_register_limit,
             'plan_api_key_feature' => $package->api_key_feature,
             'plan_disk_usage_limit' => $package->disk_usage_limit,
+            'plan_single_file_limit' => $package->single_file_limit,
         ]);
     }
 

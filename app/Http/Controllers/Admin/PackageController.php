@@ -41,6 +41,7 @@ class PackageController extends Controller
             'cash_register_limit' => 'required|integer|min:0',
             'api_key_feature' => 'required|boolean',
             'disk_usage_limit' => 'required|integer|min:0',
+            'single_file_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
         ]);
 
@@ -83,6 +84,7 @@ class PackageController extends Controller
             'cash_register_limit' => 'required|integer|min:0',
             'api_key_feature' => 'required|boolean',
             'disk_usage_limit' => 'required|integer|min:0',
+            'single_file_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
         ]);
 

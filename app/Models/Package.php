@@ -33,6 +33,7 @@ class Package extends Model
         'cash_register_limit',
         'api_key_feature',
         'disk_usage_limit',
+        'single_file_limit',
         'is_active',
     ];
 
@@ -47,6 +48,7 @@ class Package extends Model
         'api_key_feature' => 'boolean',
         'is_active' => 'boolean',
         'disk_usage_limit' => 'integer',
+        'single_file_limit' => 'integer',
     ];
 
     public function tenants(): HasMany
