@@ -75,8 +75,14 @@ export default function PricingPage() {
                                 <div className="mb-8">
                                     <h3 className={`text-2xl font-black mb-2 ${i === 1 ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{pkg.name}</h3>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl font-black tracking-tighter">₺{pkg.price || '0'}</span>
-                                        <span className={`text-sm font-bold opacity-70 ${i === 1 ? 'text-white' : 'text-gray-500'}`}>/ay</span>
+                                        { Number(pkg.price) > 0 ? (
+                                            <>
+                                                <span className="text-4xl font-black tracking-tighter">₺{Number(pkg.price).toLocaleString('tr-TR')}</span>
+                                                <span className={`text-sm font-bold opacity-70 ${i === 1 ? 'text-white' : 'text-gray-500'}`}>/ay</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-4xl font-black tracking-tighter text-green-500">Ücretsiz</span>
+                                        )}
                                     </div>
                                     <p className={`mt-4 text-sm font-medium ${i === 1 ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {pkg.trial_days} gün ücretsiz deneme süresi. Kredi kartı gerekmeden tüm özellikleri keşfedin.

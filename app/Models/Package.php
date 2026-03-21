@@ -53,4 +53,9 @@ class Package extends Model
     {
         return $this->hasMany(Tenant::class);
     }
+
+    public function isFree(): bool
+    {
+        return $this->price <= 0 || (empty($this->paddle_product_id) && empty($this->paddle_price_id));
+    }
 }

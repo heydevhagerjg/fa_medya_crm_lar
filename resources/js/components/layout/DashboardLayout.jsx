@@ -184,7 +184,7 @@ export default function DashboardLayout() {
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
-                    {user?.tenant && user.tenant.id && !user.tenant.is_subscribed && !user.tenant.on_trial && !user.tenant.is_gifted && (
+                    {user?.tenant && user.tenant.id && !user.tenant.is_subscribed && !user.tenant.on_trial && !user.tenant.is_gifted && !user.tenant.is_free && (
                         <div className="bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 px-6 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-10 backdrop-blur-md">
                             <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400">
                                 <AlertCircle size={20} className="shrink-0" />

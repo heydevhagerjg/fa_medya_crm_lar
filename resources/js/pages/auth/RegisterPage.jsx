@@ -149,8 +149,11 @@ export default function RegisterPage() {
                                                 <Check size={14} />
                                             </div>
                                         )}
-                                        <div className={`text-sm font-bold mb-1 ${form.package_id === pkg.id ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
-                                            {pkg.name}
+                                        <div className={`text-sm font-bold flex justify-between items-center mb-1 ${form.package_id === pkg.id ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
+                                            <span>{pkg.name}</span>
+                                            <span className="text-[10px] opacity-80">
+                                                { Number(pkg.price) > 0 ? `₺${Number(pkg.price).toLocaleString('tr-TR')}/ay` : 'Ücretsiz' }
+                                            </span>
                                         </div>
                                         <div className={`text-[10px] space-y-1 ${form.package_id === pkg.id ? 'text-indigo-100' : 'text-gray-400'}`}>
                                             <div className="flex justify-between"><span>Personel:</span> <span>{pkg.personnel_limit === 0 ? 'Sınırsız' : pkg.personnel_limit}</span></div>

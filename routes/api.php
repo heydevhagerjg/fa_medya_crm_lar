@@ -200,6 +200,7 @@ Route::prefix('admin')->group(function () {
             Route::put('/{id}/limits', [\App\Http\Controllers\Admin\TenantController::class, 'updateLimits']);
             Route::put('/{id}/change-package', [\App\Http\Controllers\Admin\TenantController::class, 'changePackage']);
             Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
+            Route::put('/{id}/s3-config', [\App\Http\Controllers\Admin\TenantController::class, 'updateS3Config']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 

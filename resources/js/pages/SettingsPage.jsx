@@ -1679,6 +1679,11 @@ function SubscriptionTab() {
     const checkoutMutation = useMutation({
         mutationFn: (package_id) => api.get(`/billing/checkout${package_id ? `?package_id=${package_id}` : ''}`).then(r => r.data),
         onSuccess: (res) => {
+            if (res.applied) {
+                toast.success(res.message);
+                qc.invalidateQueries(['subscription']);
+                return;
+            }
             if (res.checkout && window.Paddle) {
                 try {
                     window.Paddle.Checkout.open({
@@ -1739,7 +1744,7 @@ function SubscriptionTab() {
                     <div className="flex items-end gap-2 mb-2">
                         <p className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{sub.package?.name || 'Paket Seçilmedi'}</p>
                     </div>
-                    {sub.is_subscribed || sub.on_trial || sub.is_gifted ? (
+                    {sub.is_subscribed || sub.on_trial || sub.is_gifted || sub.is_free ? (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-100 dark:border-green-500/20 w-fit">
                             <ShieldCheck size={12} /> AKTİF
                         </div>
@@ -1802,6 +1807,16 @@ function SubscriptionTab() {
                                 <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Yönetici Tarafından Yetkilendirildi</p>
                             </div>
                         </div>
+                    ) : sub.is_free ? (
+                        <div className="text-center space-y-2">
+                            <div className="mx-auto w-10 h-10 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center">
+                                <CheckCircle size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">{sub.package?.name || 'Aktif Plan'}</p>
+                                <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Ömür Boyu Ücretsiz Kullanım</p>
+                            </div>
+                        </div>
                     ) : (
                         <>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Tam özellikler için abone olun</p>
@@ -1827,6 +1842,7 @@ function SubscriptionTab() {
                         {sub.all_packages.map(p => {
                             const isCurrent = p.id === sub.package?.id;
                             const isPending = sub.is_subscribed ? swapMutation.isPending : checkoutMutation.isPending;
+                            const isFree = Number(p.price) <= 0 || !p.paddle_price_id;
 
                             return (
                                 <div key={p.id} className={`p-4 rounded-xl border ${isCurrent ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-gray-100 dark:border-gray-800'} transition-all`}>
@@ -1835,11 +1851,28 @@ function SubscriptionTab() {
                                         {isCurrent && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">MEVCUT</span>}
                                     </div>
                                     <p className="text-lg font-black text-gray-900 dark:text-white mb-3">
-                                        {Number(p.price).toLocaleString('tr-TR')} <span className="text-xs font-normal text-gray-400">₺ / ay</span>
+                                        {Number(p.price) > 0 ? (
+                                            <>
+                                                {Number(p.price).toLocaleString('tr-TR')} <span className="text-xs font-normal text-gray-400">₺ / ay</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-green-500">Ücretsiz</span>
+                                        )}
                                     </p>
                                     <button
-                                        disabled={(isCurrent && sub.is_subscribed) || isPending}
+                                        disabled={(isCurrent && (sub.is_subscribed || isFree)) || isPending}
                                         onClick={() => {
+                                            if (isFree) {
+                                                if (sub.is_subscribed) {
+                                                    if (window.confirm(`${p.name} ücretsiz paketine geçmek istediğinizden emin misiniz? Mevcut ücretli aboneliğiniz dönem sonunda sona erecek şekilde iptal edilecektir.`)) {
+                                                        swapMutation.mutate(p.id)
+                                                    }
+                                                } else {
+                                                    checkoutMutation.mutate(p.id)
+                                                }
+                                                return;
+                                            }
+
                                             if (sub.is_subscribed) {
                                                 if (window.confirm(`${p.name} paketine geçmek istediğinizden emin misiniz? Aradaki fiyat farkı Paddle tarafından otomatik hesaplanacaktır.`)) {
                                                     swapMutation.mutate(p.id)
@@ -1848,9 +1881,9 @@ function SubscriptionTab() {
                                                 checkoutMutation.mutate(p.id)
                                             }
                                         }}
-                                        className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${(isCurrent && sub.is_subscribed) ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'}`}
+                                        className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${(isCurrent && (sub.is_subscribed || isFree)) ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'}`}
                                     >
-                                        {isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : isCurrent && sub.is_subscribed ? 'Şu Anki Paketiniz' : sub.is_subscribed ? 'Bu Pakete Geç' : 'Bu Paketle Başla'}
+                                        {isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : (isCurrent && (sub.is_subscribed || isFree)) ? 'Şu Anki Paketiniz' : sub.is_subscribed ? 'Bu Pakete Geç' : 'Bu Paketle Başla'}
                                     </button>
                                 </div>
                             )

@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
-const emptyForm = { name: '', package_id: '' }
+const emptyForm = { name: '', package_id: '', s3_config_id: '' }
 const emptyUserForm = { name: '', email: '', password: 'password123', role: 'USER' }
 
 export default function TenantsPage() {
@@ -16,6 +16,7 @@ export default function TenantsPage() {
     const [addUserModal, setAddUserModal] = useState({ open: false, tenant: null })
     const [limitModal, setLimitModal] = useState({ open: false, tenant: null })
     const [pkgModal, setPkgModal] = useState({ open: false, tenant: null })
+    const [s3Modal, setS3Modal] = useState({ open: false, tenant: null })
     const [form, setForm] = useState(emptyForm)
     const [limitForm, setLimitForm] = useState({})
     const [userForm, setUserForm] = useState(emptyUserForm)
@@ -36,6 +37,11 @@ export default function TenantsPage() {
     const { data: packages = [] } = useQuery({
         queryKey: ['admin-packages'],
         queryFn: () => api.get('/admin/packages').then(r => r.data),
+    })
+    
+    const { data: s3Configs = [] } = useQuery({
+        queryKey: ['admin-s3-configs'],
+        queryFn: () => api.get('/admin/settings').then(r => r.data),
     })
 
     const saveMutation = useMutation({
@@ -72,7 +78,7 @@ export default function TenantsPage() {
         mutationFn: (package_id) => api.post(`/admin/tenants/${pkgModal.tenant.id}/gift-package`, { package_id }),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Paket sınırsız (100 yıl) süreyle tanımlandı.')
+            toast.success('Paket sınırsız süreyle tanımlandı.')
             setPkgModal({ open: false, tenant: null })
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
@@ -98,6 +104,15 @@ export default function TenantsPage() {
             setDeleteConfirm(null)
         },
         onError: () => toast.error('Silinemedi.'),
+    })
+
+    const s3UpdateMutation = useMutation({
+        mutationFn: ({ tenantId, s3_config_id }) => api.put(`/admin/tenants/${tenantId}/s3-config`, { s3_config_id }),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('S3 Yapılandırması güncellendi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const openModal = () => {
@@ -169,7 +184,7 @@ export default function TenantsPage() {
                         <table className="w-full text-left border-collapse border-spacing-0">
                             <thead>
                                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <th className="px-5 py-4">Firma Adı</th>
+                                    <th className="px-5 py-4">Firma Adı / S3</th>
                                     <th className="px-5 py-4">Mevcut Paket</th>
                                     <th className="px-5 py-4 text-center">Limitler/Kullanıcılar</th>
                                     <th className="px-5 py-4 text-right">İşlem</th>
@@ -181,9 +196,18 @@ export default function TenantsPage() {
                                         <td className="px-5 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900 dark:text-gray-100 font-bold">{tenant.name}</div>
                                             <div className="text-[10px] text-gray-500 font-mono mt-0.5">{tenant.slug}</div>
+                                            {tenant.s3_config ? (
+                                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
+                                                    S3: {tenant.s3_config.name}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-[10px] font-bold text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20">
+                                                    S3: Atanmamış
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-5 py-4">
-                                            <div 
+                                            <div
                                                 onClick={() => setPkgModal({ open: true, tenant })}
                                                 className="cursor-pointer inline-flex flex-col"
                                             >
@@ -193,13 +217,19 @@ export default function TenantsPage() {
                                         </td>
                                         <td className="px-5 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => openLimitModal(tenant)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-100 transition-colors"
                                                 >
                                                     <Shield size={14} /> Limitler
                                                 </button>
                                                 <button 
+                                                    onClick={() => setS3Modal({ open: true, tenant })}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                >
+                                                    <FolderOpen size={14} /> S3
+                                                </button>
+                                                <button
                                                     onClick={() => openUserModal(tenant)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 transition-colors"
                                                 >
@@ -209,16 +239,16 @@ export default function TenantsPage() {
                                         </td>
                                         <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button 
+                                                <button
                                                     onClick={() => setAddUserModal({ open: true, tenant })}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors" 
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
                                                     title="Kullanıcı Ekle"
                                                 >
                                                     <UserPlus size={16} />
                                                 </button>
-                                                <button 
-                                                    onClick={() => setDeleteConfirm(tenant)} 
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" 
+                                                <button
+                                                    onClick={() => setDeleteConfirm(tenant)}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                                     title="Sil"
                                                 >
                                                     <Trash2 size={16} />
@@ -266,6 +296,19 @@ export default function TenantsPage() {
                             ))}
                         </select>
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Yapılandırması (Opsiyonel)</label>
+                        <select
+                            value={form.s3_config_id}
+                            onChange={e => setForm({ ...form, s3_config_id: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        >
+                            <option value="">Otomatik Ata (Rastgele Aktif)</option>
+                            {s3Configs.map(s3 => (
+                                <option key={s3.id} value={s3.id}>{s3.name} {!s3.is_active && '(Pasif)'}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
@@ -282,55 +325,54 @@ export default function TenantsPage() {
                         <div className="sm:col-span-3 pb-2 border-b dark:border-gray-800">
                             <h3 className="text-sm font-bold flex items-center gap-2"><Briefcase size={16} /> Temel Kapasiteler</h3>
                         </div>
-                        <LimitInput label="Personel Limiti" value={limitForm.plan_personnel_limit} onChange={v => setLimitForm({...limitForm, plan_personnel_limit: v})} />
-                        <LimitInput label="Müşteri Limiti" value={limitForm.plan_customer_limit} onChange={v => setLimitForm({...limitForm, plan_customer_limit: v})} />
-                        <LimitInput label="İş Limiti" value={limitForm.plan_job_limit} onChange={v => setLimitForm({...limitForm, plan_job_limit: v})} />
-                        <LimitInput label="Kasa Limiti" value={limitForm.plan_cash_register_limit} onChange={v => setLimitForm({...limitForm, plan_cash_register_limit: v})} />
-                        <LimitInput label="Disk Kotası (MB)" value={limitForm.plan_disk_usage_limit} onChange={v => setLimitForm({...limitForm, plan_disk_usage_limit: v})} />
+                        <LimitInput label="Personel Limiti" value={limitForm.plan_personnel_limit} onChange={v => setLimitForm({ ...limitForm, plan_personnel_limit: v })} />
+                        <LimitInput label="Müşteri Limiti" value={limitForm.plan_customer_limit} onChange={v => setLimitForm({ ...limitForm, plan_customer_limit: v })} />
+                        <LimitInput label="İş Limiti" value={limitForm.plan_job_limit} onChange={v => setLimitForm({ ...limitForm, plan_job_limit: v })} />
+                        <LimitInput label="Kasa Limiti" value={limitForm.plan_cash_register_limit} onChange={v => setLimitForm({ ...limitForm, plan_cash_register_limit: v })} />
+                        <LimitInput label="Disk Kotası (MB)" value={limitForm.plan_disk_usage_limit} onChange={v => setLimitForm({ ...limitForm, plan_disk_usage_limit: v })} />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                         <div className="sm:col-span-2 pb-2 border-b dark:border-gray-800">
                             <h3 className="text-sm font-bold flex items-center gap-2"><Layers size={16} /> Modül Özellikleri</h3>
                         </div>
-                        
+
                         <div className="space-y-4">
-                             <FeatureToggle label="Randevu Modülü" checked={limitForm.plan_appointment_feature} onChange={v => setLimitForm({...limitForm, plan_appointment_feature: v})} />
-                             {limitForm.plan_appointment_feature && <LimitInput label="Randevu Limiti" value={limitForm.plan_appointment_limit} onChange={v => setLimitForm({...limitForm, plan_appointment_limit: v})} />}
+                            <FeatureToggle label="Randevu Modülü" checked={limitForm.plan_appointment_feature} onChange={v => setLimitForm({ ...limitForm, plan_appointment_feature: v })} />
+                            {limitForm.plan_appointment_feature && <LimitInput label="Randevu Limiti" value={limitForm.plan_appointment_limit} onChange={v => setLimitForm({ ...limitForm, plan_appointment_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                             <FeatureToggle label="Hizmet Takibi" checked={limitForm.plan_service_tracking_feature} onChange={v => setLimitForm({...limitForm, plan_service_tracking_feature: v})} />
-                             {limitForm.plan_service_tracking_feature && (
-                                 <>
-                                    <LimitInput label="Takip Limiti" value={limitForm.plan_service_tracking_limit} onChange={v => setLimitForm({...limitForm, plan_service_tracking_limit: v})} />
-                                    <LimitInput label="Takip Kategori Limiti" value={limitForm.plan_service_tracking_category_limit} onChange={v => setLimitForm({...limitForm, plan_service_tracking_category_limit: v})} />
-                                 </>
-                             )}
+                            <FeatureToggle label="Hizmet Takibi" checked={limitForm.plan_service_tracking_feature} onChange={v => setLimitForm({ ...limitForm, plan_service_tracking_feature: v })} />
+                            {limitForm.plan_service_tracking_feature && (
+                                <>
+                                    <LimitInput label="Takip Limiti" value={limitForm.plan_service_tracking_limit} onChange={v => setLimitForm({ ...limitForm, plan_service_tracking_limit: v })} />
+                                    <LimitInput label="Takip Kategori Limiti" value={limitForm.plan_service_tracking_category_limit} onChange={v => setLimitForm({ ...limitForm, plan_service_tracking_category_limit: v })} />
+                                </>
+                            )}
                         </div>
 
                         <div className="space-y-4">
-                             <FeatureToggle label="Teklif Modülü" checked={limitForm.plan_proposal_feature} onChange={v => setLimitForm({...limitForm, plan_proposal_feature: v})} />
-                             {limitForm.plan_proposal_feature && <LimitInput label="Teklif Limiti" value={limitForm.plan_proposal_limit} onChange={v => setLimitForm({...limitForm, plan_proposal_limit: v})} />}
+                            <FeatureToggle label="Teklif Modülü" checked={limitForm.plan_proposal_feature} onChange={v => setLimitForm({ ...limitForm, plan_proposal_feature: v })} />
+                            {limitForm.plan_proposal_feature && <LimitInput label="Teklif Limiti" value={limitForm.plan_proposal_limit} onChange={v => setLimitForm({ ...limitForm, plan_proposal_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                             <FeatureToggle label="Yedekleme Özelliği" checked={limitForm.plan_backup_feature} onChange={v => setLimitForm({...limitForm, plan_backup_feature: v})} />
-                             {limitForm.plan_backup_feature && <LimitInput label="Yedek Limiti" value={limitForm.plan_backup_limit} onChange={v => setLimitForm({...limitForm, plan_backup_limit: v})} />}
+                            <FeatureToggle label="Yedekleme Özelliği" checked={limitForm.plan_backup_feature} onChange={v => setLimitForm({ ...limitForm, plan_backup_feature: v })} />
+                            {limitForm.plan_backup_feature && <LimitInput label="Yedek Limiti" value={limitForm.plan_backup_limit} onChange={v => setLimitForm({ ...limitForm, plan_backup_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                             <FeatureToggle label="Hizmetler Bölümü" checked={limitForm.plan_services_section_feature} onChange={v => setLimitForm({...limitForm, plan_services_section_feature: v})} />
-                             {limitForm.plan_services_section_feature && <LimitInput label="Hizmet Limiti" value={limitForm.plan_service_limit} onChange={v => setLimitForm({...limitForm, plan_service_limit: v})} />}
+                            <FeatureToggle label="Hizmetler Bölümü" checked={limitForm.plan_services_section_feature} onChange={v => setLimitForm({ ...limitForm, plan_services_section_feature: v })} />
+                            {limitForm.plan_services_section_feature && <LimitInput label="Hizmet Limiti" value={limitForm.plan_service_limit} onChange={v => setLimitForm({ ...limitForm, plan_service_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                             <FeatureToggle label="Adım Şablonları" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({...limitForm, plan_step_templates_feature: v})} />
-                             {limitForm.plan_step_templates_feature && <LimitInput label="Şablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({...limitForm, plan_step_template_limit: v})} />}
+                            <FeatureToggle label="Adım Şablonları" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({ ...limitForm, plan_step_templates_feature: v })} />
+                            {limitForm.plan_step_templates_feature && <LimitInput label="Şablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({ ...limitForm, plan_step_template_limit: v })} />}
                         </div>
 
-                        <FeatureToggle label="API Anahtarı Özelliği" checked={limitForm.plan_api_key_feature} onChange={v => setLimitForm({...limitForm, plan_api_key_feature: v})} />
-
+                        <FeatureToggle label="API Anahtarı Özelliği" checked={limitForm.plan_api_key_feature} onChange={v => setLimitForm({ ...limitForm, plan_api_key_feature: v })} />
                     </div>
 
                     <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-4 flex gap-3 border-t dark:border-gray-800 pb-2">
@@ -352,18 +394,17 @@ export default function TenantsPage() {
                         {packages.map(p => (
                             <div
                                 key={p.id}
-                                className={`p-4 rounded-2xl border-2 transition-all ${
-                                    pkgModal.tenant?.package_id === p.id 
-                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' 
-                                    : 'border-gray-100 dark:border-gray-800'
-                                }`}
+                                className={`p-4 rounded-2xl border-2 transition-all ${pkgModal.tenant?.package_id === p.id
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                        : 'border-gray-100 dark:border-gray-800'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <span className="font-bold text-gray-900 dark:text-white uppercase text-xs tracking-wider">{p.name}</span>
                                     {pkgModal.tenant?.package_id === p.id && <ShieldCheck size={16} className="text-blue-500" />}
                                 </div>
                                 <div className="text-[10px] text-gray-400 mt-1 mb-3">U: {p.personnel_limit === 0 ? '∞' : p.personnel_limit} | C: {p.customer_limit === 0 ? '∞' : p.customer_limit} | J: {p.job_limit === 0 ? '∞' : p.job_limit}</div>
-                                
+
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => pkgMutation.mutate(p.id)}
@@ -377,7 +418,7 @@ export default function TenantsPage() {
                                         disabled={pkgMutation.isPending || giftMutation.isPending}
                                         className="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-md shadow-purple-500/10"
                                     >
-                                        {giftMutation.isPending ? '...' : 'Sınırsız Yap (100 Yıl)'}
+                                        {giftMutation.isPending ? '...' : 'Sınırsız Yap'}
                                     </button>
                                 </div>
                             </div>
@@ -450,11 +491,56 @@ export default function TenantsPage() {
                 </form>
             </Modal>
 
+            {/* S3 Modal */}
+            <Modal open={s3Modal.open} onClose={() => setS3Modal({ open: false, tenant: null })} title={`${s3Modal.tenant?.name} - S3 Yapılandırması`}>
+                <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl">
+                         <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Mevcut Bağlantı</div>
+                         <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                             <Database size={16} className="text-blue-500" />
+                             {s3Modal.tenant?.s3_config?.name || 'Atanmamış'}
+                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Yeni Bağlantı Seçin</label>
+                        <div className="space-y-2 max-h-[40vh] overflow-y-auto px-1 custom-scrollbar">
+                            {s3Configs.map(s3 => (
+                                <button
+                                    key={s3.id}
+                                    onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: s3.id })}
+                                    disabled={s3UpdateMutation.isPending}
+                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between group ${
+                                        s3Modal.tenant?.s3_config_id === s3.id
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                        : 'border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-500/20'
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">{s3.name}</div>
+                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">{s3.aws_region} - {s3.aws_bucket_name}</div>
+                                    </div>
+                                    {s3Modal.tenant?.s3_config_id === s3.id ? (
+                                        <Check size={18} className="text-blue-500" />
+                                    ) : (
+                                        <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button onClick={() => setS3Modal({ open: false, tenant: null })} className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold transition-colors">
+                        Kapat
+                    </button>
+                </div>
+            </Modal>
+
             {/* User List Modal */}
-            <UserListModal 
-                open={userModal.open} 
-                tenant={userModal.tenant} 
-                onClose={() => setUserModal({ open: false, tenant: null })} 
+            <UserListModal
+                open={userModal.open}
+                tenant={userModal.tenant}
+                onClose={() => setUserModal({ open: false, tenant: null })}
             />
 
             {/* Delete Confirm Modal */}
@@ -508,11 +594,10 @@ function UserListModal({ open, tenant, onClose }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                        user.role === 'ADMIN' 
-                                        ? 'bg-red-50 dark:bg-red-500/10 text-red-600' 
-                                        : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
-                                    }`}>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${user.role === 'ADMIN'
+                                            ? 'bg-red-50 dark:bg-red-500/10 text-red-600'
+                                            : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
+                                        }`}>
                                         {user.role}
                                     </span>
                                 </div>
@@ -522,7 +607,7 @@ function UserListModal({ open, tenant, onClose }) {
                 )}
             </div>
             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
-                <button 
+                <button
                     onClick={onClose}
                     className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >

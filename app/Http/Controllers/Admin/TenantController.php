@@ -94,7 +94,7 @@ class TenantController extends Controller
     }
     public function index()
     {
-        $tenants = Tenant::with('package')->withCount('users')->get();
+        $tenants = Tenant::with(['package', 's3Config'])->withCount('users')->get();
         return response()->json($tenants);
     }
 
@@ -103,12 +103,17 @@ class TenantController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'package_id' => 'required|exists:packages,id',
+            's3_config_id' => 'nullable|exists:s3_configs,id',
         ]);
 
-        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        $s3ConfigId = $validated['s3_config_id'] ?? null;
 
-        if (!$s3Config) {
-            return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+        if (!$s3ConfigId) {
+            $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+            if (!$s3Config) {
+                return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+            }
+            $s3ConfigId = $s3Config->id;
         }
 
         $package = \App\Models\Package::findOrFail($validated['package_id']);
@@ -117,7 +122,7 @@ class TenantController extends Controller
             'id' => Str::uuid()->toString(),
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']) . '-' . rand(1000, 9999),
-            's3_config_id' => $s3Config->id,
+            's3_config_id' => $s3ConfigId,
             'package_id' => $package->id,
             'plan_personnel_limit' => $package->personnel_limit,
             'plan_customer_limit' => $package->customer_limit,
@@ -257,6 +262,23 @@ class TenantController extends Controller
         return response()->json([
             'message' => 'Paket sınırsız (100 yıl) süreyle tenant\'a başarıyla tanımlandı.',
             'tenant' => $tenant->load('package')
+        ]);
+    }
+
+    public function updateS3Config(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $validated = $request->validate([
+            's3_config_id' => 'required|exists:s3_configs,id'
+        ]);
+
+        $tenant->update([
+            's3_config_id' => $validated['s3_config_id']
+        ]);
+
+        return response()->json([
+            'message' => 'S3 Yapılandırması güncellendi.',
+            'tenant' => $tenant->load('s3Config')
         ]);
     }
 }

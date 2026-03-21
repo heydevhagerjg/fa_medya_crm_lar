@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
@@ -25,8 +25,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
 export default function ProposalsPage() {
-    const location = useLocation()
-    const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+    const [searchParams, setSearchParams] = useSearchParams()
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
     const [modal, setModal] = useState({ open: false, proposal: null })
@@ -53,12 +52,21 @@ export default function ProposalsPage() {
     })
 
     useEffect(() => {
-        const idParam = queryParams.get('id')
+        const idParam = searchParams.get('id')
         if (idParam && proposals.length > 0 && !modal.open) {
             const prop = proposals.find(p => p.id.toString() === idParam)
             if (prop) openModal(prop)
         }
-    }, [queryParams, proposals, modal.open])
+    }, [searchParams, proposals, modal.open])
+
+    const closeMainModal = () => {
+        setModal({ open: false, proposal: null })
+        if (searchParams.has('id')) {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('id')
+            setSearchParams(newParams, { replace: true })
+        }
+    }
 
     const { data: customers = [] } = useQuery({
         queryKey: ['customers'],
@@ -77,7 +85,7 @@ export default function ProposalsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
             toast.success(modal.proposal ? 'Teklif güncellendi.' : 'Teklif oluşturuldu.')
-            setModal({ open: false, proposal: null })
+            closeMainModal()
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
@@ -473,7 +481,7 @@ export default function ProposalsPage() {
 
             <Modal
                 open={modal.open}
-                onClose={() => setModal({ open: false, proposal: null })}
+                onClose={closeMainModal}
                 title={modal.proposal ? 'Teklifi Düzenle' : 'Yeni Teklif Oluştur'}
                 size="lg"
             >
@@ -752,7 +760,7 @@ export default function ProposalsPage() {
                     </div>
 
                     <div className="pt-6 flex gap-3">
-                        <button type="button" onClick={() => setModal({ open: false, proposal: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button
                             type="submit"
                             disabled={saveMutation.isPending}

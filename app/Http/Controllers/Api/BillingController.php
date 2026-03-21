@@ -37,6 +37,7 @@ class BillingController extends Controller
         return response()->json([
             'is_on_trial' => $tenant->onTrial(),
             'is_gifted' => $tenant->is_gifted,
+            'is_free' => $tenant->package ? $tenant->package->isFree() : false,
             'trial_ends_at' => $tenant->trialEndsAt() ? $tenant->trialEndsAt()->toIso8601String() : null,
             'is_subscribed' => $tenant->subscribed(),
             'subscription' => $subscription ? array_merge($subscription->toArray(), ['next_billed_at' => $nextBilledAt]) : null,
@@ -54,6 +55,21 @@ class BillingController extends Controller
 
         $tenant = $request->user()->tenant;
         $package = \App\Models\Package::findOrFail($request->package_id);
+
+        // If switching to a free package
+        if ($package->isFree()) {
+            try {
+                // If there is an active subscription, cancel it
+                if ($tenant->subscribed()) {
+                    $tenant->subscription()->cancel();
+                }
+                
+                $tenant->applyPackage($package);
+                return response()->json(['message' => 'Ücretsiz pakete başarıyla geçildi. Mevcut ücretli aboneliğiniz varsa dönem sonunda sona erecektir.']);
+            } catch (\Exception $e) {
+                return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
+            }
+        }
 
         if (!$package->paddle_price_id) {
              return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
@@ -106,7 +122,19 @@ class BillingController extends Controller
         $packageId = $request->get('package_id');
         $package = $packageId ? \App\Models\Package::find($packageId) : $tenant->package;
 
-        if (!$package || !$package->paddle_price_id) {
+        if (!$package) {
+            return response()->json(['message' => 'Paket bulunamadı.'], 404);
+        }
+
+        if ($package->isFree()) {
+            $tenant->applyPackage($package);
+            return response()->json([
+                'message' => 'Ücretsiz paket başarıyla tanımlandı.',
+                'applied' => true
+            ]);
+        }
+
+        if (!$package->paddle_price_id) {
             return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
         }
 

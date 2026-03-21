@@ -72,7 +72,7 @@ class AuthController extends Controller
         ]);
 
         // Create as Paddle customer with trial (Only if it's a paid package)
-        if ($package->price > 0) {
+        if (!$package->isFree()) {
             $tenant->createAsCustomer([
                 'email' => $validated['email'], // Tenant modelinde email olmadığı için manuel gönderiyoruz
                 'trial_ends_at' => now()->addDays($package->trial_days),
@@ -222,6 +222,7 @@ class AuthController extends Controller
                 'slug' => $user->tenant->slug,
                 'is_subscribed' => $user->tenant->subscribed(),
                 'on_trial' => $user->tenant->onTrial(),
+                'is_free' => $user->tenant->package ? $user->tenant->package->isFree() : false,
             ];
         }
 

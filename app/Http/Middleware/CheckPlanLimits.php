@@ -22,10 +22,9 @@ class CheckPlanLimits
         }
 
         $tenant = $user->tenant;
-
-        // Check subscription/trial status (Skip check if package is free)
         $package = $tenant->package;
-        $isFree = $package && $package->price <= 0;
+
+        $isFree = $tenant->is_gifted || ($package && $package->isFree());
 
         if (!$isFree && !$tenant->onTrial() && !$tenant->subscribed()) {
             // Allow access to billing, auth AND all GET requests (read-only) even if not subscribed
