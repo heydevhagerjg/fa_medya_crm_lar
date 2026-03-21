@@ -223,6 +223,8 @@ class AuthController extends Controller
                 'is_subscribed' => $user->tenant->subscribed(),
                 'on_trial' => $user->tenant->onTrial(),
                 'is_free' => $user->tenant->package ? $user->tenant->package->isFree() : false,
+                'storage_used' => $user->tenant->storage_used,
+                'storage_limit' => $user->tenant->plan_disk_usage_limit,
             ];
         }
 

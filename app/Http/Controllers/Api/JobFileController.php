@@ -113,10 +113,11 @@ class JobFileController extends Controller
         
         $tenant = Tenant::find($user->tenant_id);
 
-        if ($tenant->reachedDiskLimit()) {
+        $file = $request->file('file');
+        if (!$tenant->canUploadFile($file->getSize())) {
             $limit = $tenant->plan_disk_usage_limit;
             return response()->json([
-                'message' => "Dosya yükleme limitiniz (disk kotası: {$limit} MB) dolmuştur. Daha fazla dosya yüklemek için lütfen paketinizi yükseltiniz."
+                'message' => "Bu dosya yükleme limitinizi ({$limit} MB) aşıyor. Lütfen paketinizi yükseltiniz veya bazı dosyaları siliniz."
             ], 403);
         }
 

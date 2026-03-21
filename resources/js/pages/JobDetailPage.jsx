@@ -240,13 +240,41 @@ export default function JobDetailPage() {
     const uploadFiles = async (filesToUpload) => {
         if (!filesToUpload || filesToUpload.length === 0) return
 
-        const newUploads = Array.from(filesToUpload).map(f => ({
-            id: Math.random().toString(36).substring(7),
-            file: f,
-            name: f.name,
-            size: f.size,
-            progress: 0
-        }))
+        let currentUsed = user?.tenant?.storage_used || 0
+        const limit = (user?.tenant?.storage_limit || 0) * 1024 * 1024
+        
+        const newUploads = []
+        const skippedFiles = []
+
+        for (const f of Array.from(filesToUpload)) {
+            if (limit > 0 && (currentUsed + f.size) > limit) {
+                skippedFiles.push(f.name)
+                continue
+            }
+            newUploads.push({
+                id: Math.random().toString(36).substring(7),
+                file: f,
+                name: f.name,
+                size: f.size,
+                progress: 0
+            })
+            currentUsed += f.size
+        }
+
+        if (skippedFiles.length > 0) {
+            toast.error(
+                <div>
+                    <strong>Kota Yetersiz:</strong>
+                    <ul className="mt-1 ml-4 list-disc text-xs">
+                        {skippedFiles.map(name => <li key={name}>{name}</li>)}
+                    </ul>
+                    <p className="mt-1 text-[10px]">Bu dosyalar disk limitinizi aşıyor.</p>
+                </div>,
+                { duration: 4000 }
+            )
+        }
+
+        if (newUploads.length === 0) return
 
         setUploadingFiles(prev => [...prev, ...newUploads])
 
@@ -777,10 +805,12 @@ export default function JobDetailPage() {
                                         <div className="text-sm text-blue-700 dark:text-blue-300 truncate">{uf.name}</div>
                                         <div className="text-[11px] text-blue-400 mt-0.5">{(uf.size / 1024).toFixed(1)} KB</div>
                                     </div>
-                                    <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{uf.progress}%</div>
+                                    <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                                        {uf.progress === 100 ? 'S3\'e Aktarılıyor...' : `${uf.progress}%`}
+                                    </div>
                                 </div>
                                 <div className="h-1.5 w-full bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${uf.progress}%` }}></div>
+                                    <div className={`h-full bg-blue-500 transition-all duration-300 ${uf.progress === 100 ? 'animate-pulse' : ''}`} style={{ width: `${uf.progress}%` }}></div>
                                 </div>
                             </div>
                         ))}
@@ -892,7 +922,7 @@ export default function JobDetailPage() {
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={savePayment.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-                            {savePayment.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                            {savePayment.isPending ? (paymentForm.receipt ? 'S3\'e Yükleniyor...' : 'Kaydediliyor...') : 'Kaydet'}
                         </button>
                     </div>
                 </form>
@@ -944,7 +974,7 @@ export default function JobDetailPage() {
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setExpenseModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveExpense.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-                            {saveExpense.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                            {saveExpense.isPending ? (expenseForm.receipt ? 'S3\'e Yükleniyor...' : 'Kaydediliyor...') : 'Kaydet'}
                         </button>
                     </div>
                 </form>

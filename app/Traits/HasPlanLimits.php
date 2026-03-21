@@ -80,6 +80,19 @@ trait HasPlanLimits
         return $this->storage_used >= ($this->plan_disk_usage_limit * 1024 * 1024);
     }
 
+    /**
+     * Check if a file of a given size can be uploaded.
+     */
+    public function canUploadFile(int $fileSizeInBytes): bool
+    {
+        if ($this->plan_disk_usage_limit === 0) {
+            return true;
+        }
+
+        $projectedUsage = $this->storage_used + $fileSizeInBytes;
+        return $projectedUsage <= ($this->plan_disk_usage_limit * 1024 * 1024);
+    }
+
     public function getFeatureLabel(string $feature): string
     {
         return match ($feature) {

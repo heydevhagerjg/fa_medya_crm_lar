@@ -128,6 +128,26 @@ export default function DashboardLayout() {
                         <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.name}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</div>
+                            {user?.tenant && user.tenant.storage_limit > 0 && (
+                                <div className="mt-2.5 space-y-1.5">
+                                    <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">
+                                        <span>Depolama</span>
+                                        <span>
+                                            {(user.tenant.storage_used / 1024 / 1024).toFixed(1)} / {user.tenant.storage_limit} MB
+                                        </span>
+                                    </div>
+                                    <div className="h-1 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all duration-500 rounded-full ${
+                                                (user.tenant.storage_used / 1024 / 1024 / user.tenant.storage_limit) > 0.9 
+                                                ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' 
+                                                : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]'
+                                            }`}
+                                            style={{ width: `${Math.min(100, (user.tenant.storage_used / 1024 / 1024 / user.tenant.storage_limit) * 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <NavLink
