@@ -44,6 +44,8 @@ export default function FilesPage() {
     const [fileSortMode, setFileSortMode] = useState('name')
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [showClearTrashConfirm, setShowClearTrashConfirm] = useState(false)
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+    const [selectedFileIds, setSelectedFileIds] = useState([])
     const [downloadingZip, setDownloadingZip] = useState(false)
 
     const [showTrash, setShowTrash] = useState(false)
@@ -51,6 +53,7 @@ export default function FilesPage() {
 
     useEffect(() => {
         setCurrentPage(1)
+        setSelectedFileIds([])
     }, [search, activeFolderId, showTrash])
 
     const { data: jobsWithFiles = [], isLoading } = useQuery({
@@ -103,6 +106,17 @@ export default function FilesPage() {
             toast.success('Çöp kutusu temizlendi.')
         },
         onError: () => toast.error('Temizleme sırasında hata oluştu.')
+    })
+
+    const bulkDeleteMutation = useMutation({
+        mutationFn: (ids) => api.post('/files/bulk-delete', { ids }),
+        onSuccess: (res) => {
+            qc.invalidateQueries(['files'])
+            qc.invalidateQueries(['trash-files'])
+            setSelectedFileIds([])
+            toast.success(res.data.message)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Silinemedi.'),
     })
 
     const handleDownloadSingle = async (file) => {
@@ -502,6 +516,17 @@ export default function FilesPage() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
+                                        {selectedFileIds.length > 0 && (
+                                            <button
+                                                onClick={() => setShowBulkDeleteConfirm(true)}
+                                                disabled={bulkDeleteMutation.isLoading || downloadingZip}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                            >
+                                                <Trash2 size={16} />
+                                                <span className="hidden sm:inline">Seçilenleri Sil ({selectedFileIds.length})</span>
+                                            </button>
+                                        )}
+
                                         <button
                                             onClick={() => handleDownloadAll(activeJob, files)}
                                             disabled={downloadingZip || files.length === 0}
@@ -528,13 +553,44 @@ export default function FilesPage() {
                                     </div>
                                 </div>
 
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800 rounded-xl">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        checked={files.length > 0 && selectedFileIds.length === files.length}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedFileIds(files.map(f => f.id))
+                                            } else {
+                                                setSelectedFileIds([])
+                                            }
+                                        }}
+                                    />
+                                    <span className="text-xs font-semibold text-gray-500">Tümünü Seç ({files.length} Dosya)</span>
+                                </div>
+
                                 {viewMode === 'grid' ? (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                         {paginatedFiles.map(file => (
                                             <div
                                                 key={file.id}
-                                                className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-500/30 transition-all cursor-default"
+                                                className={`group bg-white dark:bg-gray-900 border ${selectedFileIds.includes(file.id) ? 'border-indigo-500 ring-1 ring-indigo-500 ring-inset shadow-lg shadow-indigo-500/5' : 'border-gray-200 dark:border-gray-800'} rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 transition-all cursor-default relative`}
                                             >
+                                                <div className="absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={{ opacity: selectedFileIds.includes(file.id) ? 1 : undefined }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shadow-sm"
+                                                        checked={selectedFileIds.includes(file.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedFileIds(prev => [...prev, file.id])
+                                                            } else {
+                                                                setSelectedFileIds(prev => prev.filter(id => id !== file.id))
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+
                                                 <div className="aspect-square bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
                                                     {(file.file_type || file.fileType || '').includes('image') ? (
                                                         <img
@@ -577,6 +633,7 @@ export default function FilesPage() {
                                         <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                                    <th className="px-4 py-3 w-10"></th>
                                                     <th className="px-4 py-3 text-left font-semibold">Dosya Adı</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Tür</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Boyut</th>
@@ -586,7 +643,21 @@ export default function FilesPage() {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                                 {paginatedFiles.map(file => (
-                                                    <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                                    <tr key={file.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors ${selectedFileIds.includes(file.id) ? 'bg-indigo-50/30 dark:bg-indigo-500/5' : ''}`}>
+                                                        <td className="px-4 py-3 w-10">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                checked={selectedFileIds.includes(file.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedFileIds(prev => [...prev, file.id])
+                                                                    } else {
+                                                                        setSelectedFileIds(prev => prev.filter(id => id !== file.id))
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-3">
                                                                 {getFileIcon(file.file_type || file.fileType)}
@@ -598,10 +669,10 @@ export default function FilesPage() {
                                                         <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
-                                                        <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
                                                                     <Download size={16} />
                                                                 </button>
-                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Sil">
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             </div>
