@@ -20,45 +20,9 @@ use App\Models\Admin;
 
 class JobController extends Controller
 {
-    use HasTenantCache;
+    use HasTenantCache, \App\Traits\S3GlobalConfigTrait;
 
     private static $globalS3Disk = null;
-
-    private function setGlobalS3Config()
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $tenant = request()->user()->tenant ?? null;
-        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
-            return false;
-        }
-        $config = $tenant->s3Config;
-
-        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
-
-        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
-
-        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($config->aws_access_key_id),
-            'secret' => trim($config->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = 's3_global';
-        return true;
-    }
 
     public function index(Request $request): JsonResponse
     {

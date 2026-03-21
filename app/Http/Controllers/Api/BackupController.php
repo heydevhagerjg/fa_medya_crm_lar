@@ -75,7 +75,8 @@ class BackupController extends Controller
             'secret' => trim($config->aws_secret_access_key),
             'region' => $region,
             'bucket' => trim($config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
+            'endpoint' => $config->aws_endpoint ? trim($config->aws_endpoint) : null,
+            'use_path_style_endpoint' => (bool)($config->use_path_style_endpoint ?? false),
             'url_encode_filenames' => true,
             'throw'  => true,
             'version' => 'latest'

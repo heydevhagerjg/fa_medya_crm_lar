@@ -18,12 +18,14 @@ class S3ConfigController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'                  => 'required|string|max:255',
-            'aws_access_key_id'     => 'required|string|max:255',
-            'aws_secret_access_key' => 'required|string|max:255',
-            'aws_region'            => 'required|string|max:255',
-            'aws_bucket_name'       => 'required|string|max:255',
-            'is_active'             => 'boolean',
+            'name'                      => 'required|string|max:255',
+            'aws_access_key_id'         => 'required|string|max:255',
+            'aws_secret_access_key'     => 'required|string|max:255',
+            'aws_region'                => 'required|string|max:255',
+            'aws_bucket_name'           => 'required|string|max:255',
+            'aws_endpoint'              => 'nullable|string|max:255',
+            'use_path_style_endpoint'   => 'nullable|boolean',
+            'is_active'                 => 'boolean',
         ]);
 
         $config = S3Config::create($validated);
@@ -40,12 +42,14 @@ class S3ConfigController extends Controller
         $config = S3Config::findOrFail($id);
         
         $validated = $request->validate([
-            'name'                  => 'sometimes|string|max:255',
-            'aws_access_key_id'     => 'sometimes|string|max:255',
-            'aws_secret_access_key' => 'sometimes|string|max:255',
-            'aws_region'            => 'sometimes|string|max:255',
-            'aws_bucket_name'       => 'sometimes|string|max:255',
-            'is_active'             => 'boolean',
+            'name'                      => 'sometimes|string|max:255',
+            'aws_access_key_id'         => 'sometimes|string|max:255',
+            'aws_secret_access_key'     => 'sometimes|string|max:255',
+            'aws_region'                => 'sometimes|string|max:255',
+            'aws_bucket_name'           => 'sometimes|string|max:255',
+            'aws_endpoint'              => 'nullable|string|max:255',
+            'use_path_style_endpoint'   => 'nullable|boolean',
+            'is_active'                 => 'boolean',
         ]);
 
         $config->update($validated);
@@ -66,6 +70,8 @@ class S3ConfigController extends Controller
             'aws_secret_access_key' => 'required|string',
             'aws_region'            => 'required|string',
             'aws_bucket_name'       => 'required|string',
+            'aws_endpoint'          => 'nullable|string',
+            'use_path_style_endpoint' => 'nullable|boolean',
         ]);
 
         try {
@@ -80,7 +86,8 @@ class S3ConfigController extends Controller
                 'secret' => $secret,
                 'region' => $region,
                 'bucket' => $bucket,
-                'use_path_style_endpoint' => false,
+                'endpoint' => $request->input('aws_endpoint') ? trim($request->input('aws_endpoint')) : null,
+                'use_path_style_endpoint' => (bool)($request->input('use_path_style_endpoint') ?? false),
                 'throw'  => true,
                 'version' => 'latest'
             ]);

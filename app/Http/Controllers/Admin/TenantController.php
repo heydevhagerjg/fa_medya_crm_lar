@@ -61,7 +61,8 @@ class TenantController extends Controller
                 'secret' => $secret,
                 'region' => $region,
                 'bucket' => $bucket,
-                'use_path_style_endpoint' => false,
+                'endpoint' => $request->input('aws_endpoint') ? trim($request->input('aws_endpoint')) : null,
+                'use_path_style_endpoint' => (bool)($request->input('use_path_style_endpoint') ?? false),
                 'throw'  => true,
                 'version' => 'latest'
             ]);

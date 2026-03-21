@@ -15,6 +15,8 @@ export default function AdminSettingsPage() {
         aws_secret_access_key: '',
         aws_region: '',
         aws_bucket_name: '',
+        aws_endpoint: '',
+        use_path_style_endpoint: false,
         is_active: true
     });
 
@@ -68,11 +70,13 @@ export default function AdminSettingsPage() {
                 aws_secret_access_key: config.aws_secret_access_key,
                 aws_region: config.aws_region,
                 aws_bucket_name: config.aws_bucket_name,
+                aws_endpoint: config.aws_endpoint || '',
+                use_path_style_endpoint: !!config.use_path_style_endpoint,
                 is_active: config.is_active
             });
         } else {
             setEditingState(null);
-            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', is_active: true });
+            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', aws_endpoint: '', use_path_style_endpoint: false, is_active: true });
         }
         setModal(true);
     };
@@ -195,6 +199,19 @@ export default function AdminSettingsPage() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                             <Server size={14} className="text-gray-400" /> Custom Endpoint (Opsiyonel)
+                        </label>
+                        <input
+                            type="text"
+                            value={form.aws_endpoint || ''}
+                            onChange={e => setForm({ ...form, aws_endpoint: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                            placeholder="https://s3.idrivee2-7.com"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">Hetzner, IDrive vb. kullanıyorsanız giriniz. AWS için boş bırakın.</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></svg>
                              Bucket Adı
                         </label>
@@ -208,13 +225,22 @@ export default function AdminSettingsPage() {
                         />
                     </div>
                     
-                    <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />
-                        <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">Aktif</div>
-                            <div className="text-xs text-gray-500">Tenantlar için rastgele seçime dahil edilsin mi?</div>
-                        </div>
-                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />
+                            <div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">Aktif</div>
+                                <div className="text-[10px] text-gray-500">Rastgele seçime dahil edilsin.</div>
+                            </div>
+                        </label>
+                        <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <input type="checkbox" checked={form.use_path_style_endpoint} onChange={e => setForm({ ...form, use_path_style_endpoint: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />
+                            <div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">Path Style</div>
+                                <div className="text-[10px] text-gray-500">Hetzner vb. için gerekebilir.</div>
+                            </div>
+                        </label>
+                    </div>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
                         <button

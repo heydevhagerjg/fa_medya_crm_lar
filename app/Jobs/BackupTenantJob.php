@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 
 class BackupTenantJob implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, \App\Traits\S3GlobalConfigTrait;
 
     private string $tenantId;
 
@@ -41,7 +41,8 @@ class BackupTenantJob implements ShouldQueue
             return;
         }
 
-        if (!$this->setGlobalS3Config()) {
+        if (!$this->setGlobalS3Config($tenantId)) {
+            Log::error("S3 Full Auto Backup failed for tenant ID {$tenantId}: S3 Configuration missing.");
             return;
         }
 
@@ -66,38 +67,5 @@ class BackupTenantJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error("S3 Full Auto Backup failed for tenant ID {$tenantId}: " . $e->getMessage());
         }
-    }
-
-    private static $globalS3Disk = null;
-
-    private function setGlobalS3Config(): bool
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $admin = Admin::first();
-        if (!$admin || !$admin->aws_access_key_id || !$admin->aws_secret_access_key || !$admin->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($admin->aws_region ?? 'eu-central-1'));
-
-        Storage::forgetDisk('s3_global');
-
-        Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($admin->aws_access_key_id),
-            'secret' => trim($admin->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($admin->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = true;
-        return true;
     }
 }
