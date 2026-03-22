@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud, ChevronLeft, ChevronRight, XCircle } from 'lucide-react'
+import { Database, Download, Upload, CheckCircle, AlertCircle, XCircle, RefreshCcw, Loader2, Info, Clock } from 'lucide-react'
 import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
+import { useState } from 'react'
 
 export default function BackupPage() {
     const { user } = useAuthStore()
@@ -15,47 +15,39 @@ export default function BackupPage() {
     }
 
     const [importing, setImporting] = useState(false)
-    const [exporting, setExporting] = useState(false)
     const [resetting, setResetting] = useState(false)
     const [importFile, setImportFile] = useState(null)
-    const [currentPage, setCurrentPage] = useState(1)
-    const [exportPassword, setExportPassword] = useState('')
     const [passwordModalOpen, setPasswordModalOpen] = useState(false)
     const [tempImportPassword, setTempImportPassword] = useState('')
+    const qc = useQueryClient()
 
-    const handleExport = async () => {
-        setExporting(true)
-        try {
-            const response = await api.get(`/settings/backup/export${exportPassword ? `?password=${encodeURIComponent(exportPassword)}` : ''}`, { responseType: 'blob' })
-            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }))
-            const a = document.createElement('a')
-            a.href = url
+    // 1. Admin'in aldığı yedekleri listele
+    const { data: appBackupsData, refetch: refetchAppBackups, isLoading: loadingApp } = useQuery({
+        queryKey: ['app-backups'],
+        queryFn: () => api.get('/settings/backup/list').then(r => r.data)
+    })
+    const appBackups = Array.isArray(appBackupsData?.backups) ? appBackupsData.backups : []
+    const isRequested = appBackupsData?.backup_requested || false
 
-            // Try to extract filename from content-disposition header
-            let filename = `backup_${new Date().toISOString().substring(0, 10)}.zip`
-            const disposition = response.headers['content-disposition']
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-                const matches = filenameRegex.exec(disposition)
-                if (matches != null && matches[1]) {
-                    filename = matches[1].replace(/['"]/g, '')
-                }
-            }
+    // 2. Yedekleme Talebi
+    const requestMutation = useMutation({
+        mutationFn: () => api.post('/settings/backup/request'),
+        onSuccess: (data) => {
+            toast.success(data.data.message || 'Yedekleme talebi iletildi.')
+            qc.invalidateQueries(['app-backups'])
+        },
+        onError: () => toast.error('Talep iletilemedi.')
+    })
 
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-            URL.revokeObjectURL(url)
-            toast.success('Tam yedek (ZIP) başarıyla indirildi.')
-            setExportPassword('')
-            s3BackupsRefetch()
-        } catch {
-            toast.error('Yedek alınamadı.')
-        } finally {
-            setExporting(false)
+    const cancelRequestMutation = useMutation({
+        mutationFn: () => api.post('/settings/backup/cancel-request'),
+        onSuccess: () => {
+            toast.success('Talep iptal edildi.')
+            qc.invalidateQueries(['app-backups'])
         }
-    }
+    })
+
+    const handleExport = () => requestMutation.mutate()
 
     const handleImport = async (e, providedPassword = null) => {
         if (e) e.preventDefault()
@@ -69,7 +61,7 @@ export default function BackupPage() {
         }
         try {
             await api.post('/settings/backup/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            
+
             // Hemen is_restoring moduna geçmesini sağlıyoruz ki ekran kapansın
             const currentUser = useAuthStore.getState().user
             if (currentUser && currentUser.tenant) {
@@ -78,7 +70,7 @@ export default function BackupPage() {
                     tenant: { ...currentUser.tenant, is_restoring: true }
                 })
             }
-            
+
             toast.success('Yedek aktarma işlemi arka planda başlatıldı.')
             setImportFile(null)
             setTempImportPassword('')
@@ -108,51 +100,6 @@ export default function BackupPage() {
         }
     }
 
-    const { data: s3Backups = [], isLoading: isLoadingS3, error, isError, refetch: s3BackupsRefetch } = useQuery({
-        queryKey: ['s3-backups'],
-        queryFn: () => api.get('/settings/backup/s3/list').then(r => r.data),
-        retry: false, // In case S3 isn't set up, it will just fail gracefully
-    })
-
-    const handleS3Download = async (filename) => {
-        try {
-            const toastId = toast.loading('İndiriliyor...')
-            const response = await api.get(`/settings/backup/s3/download?filename=${encodeURIComponent(filename)}`, { responseType: 'blob' })
-            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }))
-            const a = document.createElement('a')
-            a.href = url
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-            URL.revokeObjectURL(url)
-            toast.success('Yedek indirildi.', { id: toastId })
-        } catch {
-            toast.error('Buluttan indirme başarısız.')
-        }
-    }
-
-    const itemsPerPage = 5
-    const totalPages = Math.ceil((s3Backups?.length || 0) / itemsPerPage)
-    const paginatedBackups = s3Backups?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) || []
-
-    if (isError) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] p-6 text-center bg-white dark:bg-transparent rounded-3xl border border-gray-100 dark:border-gray-800">
-                <XCircle size={48} className="text-red-500 mb-4 opacity-20" />
-                <h3 className="text-gray-900 dark:text-white font-bold text-lg mb-2">Erişim Kısıtlandı</h3>
-                <p className="text-gray-600 dark:text-gray-400 max-w-xs mx-auto">
-                    {error.response?.data?.message || 'Yedekleme özelliği paketinizde bulunmamaktadır.'}
-                </p>
-                <button 
-                    onClick={() => navigate('/dashboard')}
-                    className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none"
-                >
-                    Ana Sayfaya Dön
-                </button>
-            </div>
-        )
-    }
 
     return (
         <div className="space-y-6">
@@ -172,39 +119,40 @@ export default function BackupPage() {
                             <Download size={20} className="text-indigo-500" />
                         </div>
                         <div>
-                            <h2 className="font-semibold text-gray-900 dark:text-white">Tam Yedek Al (Full Export)</h2>
-                            <p className="text-sm text-gray-500">Veri ve Dosyaları ZIP formatında indir</p>
+                            <h2 className="font-semibold text-gray-900 dark:text-white">Firma Tam Yedek Talebi</h2>
+                            <p className="text-sm text-gray-500 text-xs font-medium">Admin panelinden tam paket yedeği talep edin</p>
                         </div>
                     </div>
 
-                    <div className="space-y-3 mb-6">
-                        {['Müşteriler ve iş geçmişi', 'Randevular ve Takvim', 'Tahsilatlar ve masraflar', 'Hizmetler ve ayarlar', 'Aktivite logları'].map(item => (
-                            <div key={item} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <CheckCircle size={14} className="text-green-500 flex-shrink-0" />
-                                {item}
+                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 mb-6">
+                        <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+                            Butona tıkladığınızda admin paneline bir yedekleme talebi düşer. Admin talebi onayladığında tam yedeğiniz hazırlanır ve aşağıda listelenir.
+                        </p>
+                    </div>
+
+                    {isRequested ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold border border-red-100 dark:border-red-500/20 animate-pulse uppercase">
+                                <AlertCircle size={16} /> Aktif Bir Yedek Talebiniz Bulunuyor
                             </div>
-                        ))}
-                    </div>
-
-                    <div className="mb-4">
-                        <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Opsiyonel Yedek Şifresi</label>
-                        <input 
-                            type="password"
-                            value={exportPassword}
-                            onChange={(e) => setExportPassword(e.target.value)}
-                            placeholder="Şifresiz için boş bırakın"
-                            className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                    </div>
-
-                    <button
-                        onClick={handleExport}
-                        disabled={exporting}
-                        className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {exporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={16} />}
-                        {exporting ? 'Hazırlanıyor...' : 'Yedek İndir'}
-                    </button>
+                            <button
+                                onClick={() => cancelRequestMutation.mutate()}
+                                disabled={cancelRequestMutation.isLoading}
+                                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-bold transition-all"
+                            >
+                                {cancelRequestMutation.isLoading ? 'İptal ediliyor...' : 'Talebi İptal Et'}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleExport}
+                            disabled={requestMutation.isLoading}
+                            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {requestMutation.isLoading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                            {requestMutation.isLoading ? 'Gönderiliyor...' : 'Şimdi Yedek Talep Et'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Import */}
@@ -256,6 +204,93 @@ export default function BackupPage() {
                 </div>
             </div>
 
+            {/* Admin Backups Table */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <Database size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Hazır Yedekler</h2>
+                            <p className="text-xs text-gray-500">Admin tarafından sizin için hazırlanan yedekler</p>
+                        </div>
+                    </div>
+                    <button onClick={() => refetchAppBackups()} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all">
+                        <RefreshCcw size={18} className={loadingApp ? 'animate-spin' : ''} />
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50/50 dark:bg-gray-800/30 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
+                                <th className="px-6 py-4">Dosya Adı</th>
+                                <th className="px-6 py-4">Boyut</th>
+                                <th className="px-6 py-4">Tarih</th>
+                                <th className="px-6 py-4 text-right">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {loadingApp && appBackups.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-12 text-center text-gray-400">
+                                        <Loader2 className="mx-auto animate-spin mb-2" size={24} />
+                                        Yedekler yükleniyor...
+                                    </td>
+                                </tr>
+                            ) : appBackups.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400 italic text-sm">
+                                        Henüz admin tarafından hazırlanan bir yedek bulunmuyor.
+                                    </td>
+                                </tr>
+                            ) : (
+                                appBackups.map((bak) => (
+                                    <tr key={bak.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                                        <td className="px-6 py-4 font-bold text-sm text-gray-900 dark:text-white">
+                                            {bak.filename}
+                                        </td>
+                                        <td className="px-6 py-4 text-xs font-medium text-gray-500">
+                                            {(bak.size / 1024 / 1024).toFixed(2)} MB
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Date(bak.created_at).toLocaleDateString('tr-TR')}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400">
+                                                    {new Date(bak.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={async () => {
+                                                    const toastId = toast.loading('İndirme hazırlanıyor...');
+                                                    try {
+                                                        const res = await api.get(`/settings/backup/${bak.id}/signed-url`);
+                                                        if (res.data.url) {
+                                                            window.open(res.data.url, '_blank');
+                                                            toast.success('İndirme başladı.', { id: toastId });
+                                                        }
+                                                    } catch (err) {
+                                                        toast.error('İndirme bağlantısı oluşturulamadı.', { id: toastId });
+                                                    }
+                                                }}
+                                                className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all"
+                                            >
+                                                Yedeği İndir
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             {/* Reset Data Section */}
             <div className="bg-white dark:bg-gray-900 border border-red-200 dark:border-red-500/20 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -283,111 +318,15 @@ export default function BackupPage() {
                     {resetting ? 'Sıfırlanıyor...' : 'Tüm Verileri Şimdi Sil'}
                 </button>
             </div>
-
-            {/* S3 Backups Section */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                            <Cloud size={20} className="text-indigo-500" />
-                        </div>
-                        <div>
-                            <h2 className="font-semibold text-gray-900 dark:text-white">Bulut Yedekleri (AWS S3)</h2>
-                            <p className="text-sm text-gray-500">Geçmişte dışa aktarılan yedeklemeler</p>
-                        </div>
-                    </div>
-                    <button onClick={() => s3BackupsRefetch()} className="text-sm text-indigo-500 hover:text-indigo-600 transition-colors">Yenile</button>
-                </div>
-
-                <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mt-6">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800 text-left">
-                                <th className="px-5 py-3 font-semibold text-gray-500">Dosya Adı</th>
-                                <th className="px-5 py-3 font-semibold text-gray-500">Yedek Türü</th>
-                                <th className="px-5 py-3 font-semibold text-gray-500">Boyut</th>
-                                <th className="px-5 py-3 font-semibold text-gray-500">Tarih</th>
-                                <th className="px-5 py-3 font-semibold text-gray-500 text-right">İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                            {isLoadingS3 ? (
-                                <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400">Yedekler yükleniyor...</td></tr>
-                            ) : paginatedBackups.length > 0 ? (
-                                paginatedBackups.map((backup, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                                        <td className="px-5 py-4 font-medium text-gray-900 dark:text-gray-300 flex items-center gap-2">
-                                            <Database size={14} className="text-gray-400" />
-                                            {backup.name.replace('_auto_', '_')}
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            {backup.type === 'Otomatik' ? (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                    Otomatik
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400">
-                                                    Manuel
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-5 py-4 text-gray-500">{(backup.size / 1024).toFixed(2)} KB</td>
-                                        <td className="px-5 py-4 text-gray-500">{new Date(backup.last_modified * 1000).toLocaleString('tr-TR')}</td>
-                                        <td className="px-5 py-4 text-right">
-                                            <button
-                                                onClick={() => handleS3Download(backup.name)}
-                                                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
-                                            >
-                                                İndir
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="4" className="px-5 py-8 text-center text-gray-500">
-                                        Herhangi bir bulut yedeği bulunamadı. AWS S3 ayarlarınız eksik olabilir veya hiç yedek almamış olabilirsiniz.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                Toplam <strong>{s3Backups.length}</strong> yedekten <strong>{(currentPage - 1) * itemsPerPage + 1}</strong>-<strong>{Math.min(currentPage * itemsPerPage, s3Backups.length)}</strong> arası gösteriliyor
-                            </span>
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-1.5 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronLeft size={16} />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-1.5 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronRight size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
             {/* Password Modal for Import */}
             {passwordModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in duration-200">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Yedek Şifresi Gerekli</h3>
                         <p className="text-sm text-gray-500 mb-4">Bu yedek dosyası şifrelenmiş. Lütfen devam etmek için şifreyi girin.</p>
-                        
+
                         <div className="space-y-4">
-                            <input 
+                            <input
                                 type="password"
                                 value={tempImportPassword}
                                 onChange={(e) => setTempImportPassword(e.target.value)}
@@ -395,15 +334,15 @@ export default function BackupPage() {
                                 autoFocus
                                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white"
                             />
-                            
+
                             <div className="flex gap-3">
-                                <button 
-                                    onClick={() => { setPasswordModalOpen(false); setImporting(false); }} 
+                                <button
+                                    onClick={() => { setPasswordModalOpen(false); setImporting(false); }}
                                     className="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
                                 >
                                     İptal
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleImport(null, tempImportPassword)}
                                     className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
                                 >

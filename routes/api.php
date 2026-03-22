@@ -44,6 +44,11 @@ Route::group(['prefix' => 'public', 'middleware' => 'throttle:30,1'], function (
     Route::get('/proposals/{uuid}', [App\Http\Controllers\Api\PublicProposalController::class, 'show']);
     Route::get('/proposals/{uuid}/pdf', [App\Http\Controllers\Api\PublicProposalController::class, 'downloadPdf']);
     Route::post('/proposals/{uuid}/respond', [App\Http\Controllers\Api\PublicProposalController::class, 'respond']);
+
+    // Signed backup download
+    Route::get('/backup/download/{id}', [App\Http\Controllers\Api\BackupController::class, 'downloadPublicBackup'])
+        ->name('backup.download.public')
+        ->middleware('signed');
 });
 
 // Protected routes
@@ -139,10 +144,13 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
         Route::middleware('role.admin')->group(function () {
             // Backup
             Route::get('/backup/export', [BackupController::class, 'export'])->middleware('check.plan:backup');
+            Route::post('/backup/request', [BackupController::class, 'requestBackup'])->middleware('check.plan:backup');
+            Route::post('/backup/cancel-request', [BackupController::class, 'cancelRequest'])->middleware('check.plan:backup');
+            Route::get('/backup/list', [BackupController::class, 'listAppBackups'])->middleware('check.plan:backup');
+            Route::get('/backup/{id}/download', [BackupController::class, 'downloadAppBackup'])->middleware('check.plan:backup');
+            Route::get('/backup/{id}/signed-url', [BackupController::class, 'getSignedUrl'])->middleware('check.plan:backup');
             Route::post('/backup/import', [BackupController::class, 'import'])->middleware('check.plan:backup');
             Route::post('/backup/reset', [BackupController::class, 'reset']);
-            Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups'])->middleware('check.plan:backup');
-            Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup'])->middleware('check.plan:backup');
 
             // Activity Logs
             Route::apiResource('api-keys', ApiKeyController::class)->except(['show'])->middleware('check.plan:api_key');
@@ -210,6 +218,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
             Route::put('/{id}/s3-config', [\App\Http\Controllers\Admin\TenantController::class, 'updateS3Config']);
             Route::put('/{id}/status', [\App\Http\Controllers\Admin\TenantController::class, 'updateStatus']);
+            Route::post('/{id}/reject-backup-request', [\App\Http\Controllers\Admin\TenantController::class, 'rejectBackupRequest']);
             Route::get('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'backup']); // Direct download (Keep for compatibility)
             Route::post('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'createBackup']); // Background backup
             Route::get('/{id}/backups', [\App\Http\Controllers\Admin\TenantController::class, 'backups']); // List backups
@@ -217,6 +226,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/backups/{id}/cancel', [\App\Http\Controllers\Admin\TenantController::class, 'cancelBackup']); // Cancel background backup
             Route::delete('/backups/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'deleteBackup']); // Delete backup record and file
             Route::get('/backups/{backupId}/download', [\App\Http\Controllers\Admin\TenantController::class, 'downloadBackup']); // Download local backup
+            Route::get('/backups/{id}/signed-url', [\App\Http\Controllers\Admin\TenantController::class, 'getDownloadSignedUrl']); // Signed download url
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 

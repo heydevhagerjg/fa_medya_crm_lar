@@ -39,8 +39,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use App\Services\ActivityLogService;
 
@@ -48,85 +46,128 @@ class BackupController extends Controller
 {
     use HasTenantCache;
 
-    private static $globalS3Disk = null;
 
+    /**
+     * Request a full backup from the admin
+     */
+    public function requestBackup(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $tenant = Tenant::findOrFail($tenantId);
+        
+        $tenant->update(['backup_requested' => true]);
+        
+        ActivityLogService::log($request->user(), 'BACKUP_REQUEST', 'SYSTEM', null, 'Yedek Talebi', 'Tam yedek alma talebi admin panelinde oluşturuldu.');
+
+        return response()->json(['message' => 'Yedekleme talebiniz alınmıştır. Admin onayından sonra yedeğiniz burada listelenecektir.']);
+    }
+
+    /**
+     * Clear backup request
+     */
+    public function cancelRequest(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $tenant = Tenant::findOrFail($tenantId);
+        $tenant->update(['backup_requested' => false]);
+        return response()->json(['message' => 'Yedekleme talebi iptal edildi.']);
+    }
+
+    /**
+     * List backups created by admin for this tenant
+     */
+    public function listAppBackups(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $backups = \App\Models\TenantBackup::where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->latest()
+            ->get()
+            ->map(function($b) {
+                return [
+                    'id' => $b->id,
+                    'filename' => $b->filename,
+                    'size' => $b->size,
+                    'created_at' => $b->created_at,
+                    'has_file' => $b->path && \Illuminate\Support\Facades\File::exists(storage_path('app/' . $b->path))
+                ];
+            });
+
+        $tenant = \App\Models\Tenant::find($tenantId);
+
+        return response()->json([
+            'backups' => $backups,
+            'backup_requested' => $tenant->backup_requested ?? false
+        ]);
+    }
+
+    /**
+     * Download a specific backup record
+     */
+    public function downloadAppBackup(Request $request, $id)
+    {
+        $tenantId = $request->user()->tenant_id;
+        $backup = \App\Models\TenantBackup::where('tenant_id', $tenantId)->findOrFail($id);
+
+        if ($backup->status !== 'completed') {
+            return response()->json(['params' => 'Yedek henüz tamamlanmadı.'], 400);
+        }
+
+        $filePath = storage_path('app/' . $backup->path);
+
+        if (!\Illuminate\Support\Facades\File::exists($filePath)) {
+            return response()->json(['message' => 'Dosya sistemde bulunamadı.'], 404);
+        }
+
+        return response()->download($filePath, $backup->filename);
+    }
+
+    /**
+     * Generate a temporary signed URL for large file download
+     */
+    public function getSignedUrl(Request $request, $id)
+    {
+        $tenantId = $request->user()->tenant_id;
+        // Verify ownership
+        \App\Models\TenantBackup::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'backup.download.public',
+            now()->addMinutes(15),
+            ['id' => $id]
+        );
+
+        return response()->json(['url' => $url]);
+    }
+
+    /**
+     * Public download via signed URL
+     */
+    public function downloadPublicBackup($id)
+    {
+        $backup = \App\Models\TenantBackup::findOrFail($id);
+
+        if ($backup->status !== 'completed') {
+            abort(400, 'Yedek henüz tamamlanmadı.');
+        }
+
+        $filePath = storage_path('app/' . $backup->path);
+
+        if (!\Illuminate\Support\Facades\File::exists($filePath)) {
+            abort(404, 'Dosya bulunamadı.');
+        }
+
+        return response()->download($filePath, $backup->filename);
+    }
 
     /**
      * Export all tenant data as a full ZIP (JSON + Files)
      */
     public function export(Request $request, \App\Services\TenantBackupService $service)
     {
-        $user = $request->user();
-        $tenantId = $user->tenant_id;
-        $tenant = Tenant::find($tenantId);
-        $password = $request->query('password');
-
-        $zipPath = $service->createBackupZip($tenantId, $password);
-        
-        $filename = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup_' . now()->timestamp . ".zip";
-        
-        ActivityLogService::log($request->user(), 'BACKUP', 'SYSTEM', null, 'Yedek Alındı', 'Sistem tam yedeği (Veri+Dosyalar) oluşturuldu: ' . $filename);
-
-        return response()->download($zipPath, $filename)->deleteFileAfterSend();
+        return $this->requestBackup($request);
     }
 
-    /**
-     * List backups directly from S3.
-     */
-    public function listS3Backups(Request $request): JsonResponse
-    {
-        $tenantId = $request->user()->tenant_id;
-
-        try {
-            $backupDir = "tenants/{$tenantId}/backups";
-            $files = Storage::disk('s3_global')->files($backupDir);
-            $backups = [];
-            foreach ($files as $file) {
-                if (Str::endsWith($file, '.json')) {
-                    $basename = basename($file);
-                    $backups[] = [
-                        'name' => $basename,
-                        'size' => Storage::disk('s3_global')->size($file),
-                        'last_modified' => Storage::disk('s3_global')->lastModified($file),
-                        'type' => Str::contains($basename, '_auto_') ? 'Otomatik' : 'Manuel',
-                    ];
-                }
-            }
-
-            usort($backups, fn($a, $b) => $b['last_modified'] <=> $a['last_modified']);
-
-            return response()->json($backups);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("S3 Backup List error: " . $e->getMessage());
-            return response()->json(['message' => 'Yedekler listelenirken S3 hatası oluştu.'], 500);
-        }
-    }
-
-    /**
-     * Download backup directly from S3
-     */
-    public function downloadS3Backup(Request $request)
-    {
-        $filename = $request->query('filename');
-        if (!$filename) {
-            return response()->json(['message' => 'Geçersiz dosya adı.'], 400);
-        }
-
-        $tenantId = $request->user()->tenant_id;
-
-        try {
-            $path = "tenants/{$tenantId}/backups/" . basename($filename);
-            
-            if (!Storage::disk('s3_global')->exists($path)) {
-                return response()->json(['message' => 'Yedek dosyası S3 üzerinde bulunamadı.'], 404);
-            }
-
-            return Storage::disk('s3_global')->download($path);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("S3 Backup Download error: " . $e->getMessage());
-            return response()->json(['message' => 'Yedek dosyası indirilirken hata oluştu.'], 500);
-        }
-    }
 
     /**
      * Import backup data (restore from ZIP)

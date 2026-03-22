@@ -95,7 +95,7 @@ class Tenant extends Model
 
     protected $fillable = [
         'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at', 'is_gifted',
-        'is_active', 'suspension_message', 'is_restoring',
+        'is_active', 'suspension_message', 'is_restoring', 'backup_requested',
         'plan_personnel_limit', 'plan_customer_limit', 'plan_job_limit',
         'plan_appointment_feature', 'plan_appointment_limit',
         'plan_service_tracking_feature', 'plan_service_tracking_limit', 'plan_service_tracking_category_feature', 'plan_service_tracking_category_limit',
@@ -124,6 +124,7 @@ class Tenant extends Model
         'trial_ends_at' => 'datetime',
         'is_gifted' => 'boolean',
         'is_restoring' => 'boolean',
+        'backup_requested' => 'boolean',
     ];
 
     public function package()

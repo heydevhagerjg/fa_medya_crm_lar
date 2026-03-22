@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload, X } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload, X, AlertCircle } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -162,12 +162,22 @@ export default function TenantsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Yükleme başarısız.'),
     })
 
+    const rejectBackupMutation = useMutation({
+        mutationFn: (tenantId) => api.post(`/admin/tenants/${tenantId}/reject-backup-request`),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('Yedekleme talebi reddedildi.')
+        },
+        onError: () => toast.error('Hata oluştu.')
+    })
+
     const handleExport = async (tenant) => {
         const loadingToast = toast.loading(`${tenant.name} için yedekleme başlatılıyor...`)
         try {
             await api.post(`/admin/tenants/${tenant.id}/backup`)
             toast.success('Yedekleme işlemi arka planda başlatıldı. "Yedekler" modalı üzerinden takip edebilirsiniz.', { id: loadingToast })
             qc.invalidateQueries(['admin-tenant-backups', tenant.id])
+            qc.invalidateQueries(['admin-tenants'])
         } catch (err) {
             toast.error('Yedekleme başlatılırken bir hata oluştu.', { id: loadingToast })
         }
@@ -342,6 +352,24 @@ export default function TenantsPage() {
                                         </td>
                                         <td className="px-5 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
+                                                {tenant.backup_requested && (
+                                                    <div className="flex flex-col items-center gap-1 group/req">
+                                                        <div className="animate-pulse flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm whitespace-nowrap">
+                                                            <AlertCircle size={12} className="animate-bounce" /> YEDEK TALEBİ
+                                                        </div>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                if(window.confirm(`${tenant.name} firmasının yedek talebini reddetmek istediğinize emin misiniz?`)) {
+                                                                    rejectBackupMutation.mutate(tenant.id)
+                                                                }
+                                                            }}
+                                                            className="text-[9px] font-black text-red-500 hover:text-red-700 underline uppercase transition-all opacity-0 group-hover/req:opacity-100"
+                                                        >
+                                                            Talebi Reddet
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <button
                                                     onClick={() => openLimitModal(tenant)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-100 transition-colors"
@@ -786,7 +814,7 @@ export default function TenantsPage() {
                 <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4">
                     <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
                         <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                            Bu işlem, yüklediğiniz <b>ZIP</b> yedeğindeki tüm verileri ve dosyaları sisteme aktararak <b>yeni bir firma</b> oluşturur.
+                            Bu işlem, seçtiğiniz <b>ZIP</b> yedeğindeki tüm verileri ve dosyaları sisteme aktararak <b>yeni bir firma</b> oluşturur.
                         </p>
                     </div>
                     <div>
@@ -998,8 +1026,17 @@ function TenantBackupsModal({ open, tenant, onClose }) {
         }
     }
 
-    const handleDownload = (backup) => {
-        window.open(`${api.defaults.baseURL}/admin/tenants/backups/${backup.id}/download`, '_blank')
+    const handleDownload = async (backup) => {
+        const toastId = toast.loading('İndirme hazırlanıyor...');
+        try {
+            const res = await api.get(`/admin/tenants/backups/${backup.id}/signed-url`);
+            if (res.data.url) {
+                window.open(res.data.url, '_blank');
+                toast.success('İndirme başladı.', { id: toastId });
+            }
+        } catch (err) {
+            toast.error('İndirme bağlantısı oluşturulamadı.', { id: toastId });
+        }
     }
 
     const formatSize = (bytes) => {
@@ -1024,30 +1061,28 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                         {backups.map(backup => (
                             <div key={backup.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-2xl flex items-center justify-between group">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                                        backup.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600' :
-                                        backup.status === 'failed' ? 'bg-red-50 dark:bg-red-500/10 text-red-600' :
-                                        'bg-blue-50 dark:bg-blue-500/10 text-blue-600 animate-pulse'
-                                    }`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${backup.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600' :
+                                            backup.status === 'failed' ? 'bg-red-50 dark:bg-red-500/10 text-red-600' :
+                                                'bg-blue-50 dark:bg-blue-500/10 text-blue-600 animate-pulse'
+                                        }`}>
                                         <Database size={18} />
                                     </div>
                                     <div>
-                                         <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                             {backup.filename || 'Hazırlanıyor...'}
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
-                                                backup.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600' :
-                                                backup.status === 'failed' ? 'bg-red-100 dark:bg-red-500/20 text-red-600' :
-                                                'bg-blue-100 dark:bg-blue-500/20 text-blue-600'
-                                            }`}>
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${backup.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600' :
+                                                    backup.status === 'failed' ? 'bg-red-100 dark:bg-red-500/20 text-red-600' :
+                                                        'bg-blue-100 dark:bg-blue-500/20 text-blue-600'
+                                                }`}>
                                                 {backup.status === 'completed' ? 'TAMAMLANDI' :
-                                                 backup.status === 'failed' ? 'HATA' :
-                                                 backup.status === 'processing' ? `İŞLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
+                                                    backup.status === 'failed' ? 'HATA' :
+                                                        backup.status === 'processing' ? `İŞLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
                                             </span>
                                         </div>
                                         <div className="text-[11px] text-gray-500 dark:text-gray-400">
                                             {new Date(backup.created_at).toLocaleString('tr-TR')} • {formatSize(backup.size)}
                                         </div>
-                                         {(backup.status === 'processing' || (backup.status === 'pending' && backup.progress > 0)) && (
+                                        {(backup.status === 'processing' || (backup.status === 'pending' && backup.progress > 0)) && (
                                             <div className="space-y-1.5 mt-2">
                                                 {backup.real_time_message && (
                                                     <div className="text-[10px] text-blue-500 font-mono italic truncate" title={backup.real_time_message}>
@@ -1055,13 +1090,13 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                                                     </div>
                                                 )}
                                                 <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className="h-full bg-blue-500 transition-all duration-500" 
+                                                    <div
+                                                        className="h-full bg-blue-500 transition-all duration-500"
                                                         style={{ width: `${backup.progress}%` }}
                                                     />
                                                 </div>
                                             </div>
-                                         )}
+                                        )}
                                         {backup.error && (
                                             <div className="text-[10px] text-red-500 mt-1 font-mono italic">
                                                 {backup.error}

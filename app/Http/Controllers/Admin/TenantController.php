@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\TenantBackup;
 use App\Jobs\CreateTenantBackupJob;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 
 class TenantController extends Controller
 {
@@ -361,6 +362,9 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
 
+        // Yedekleme talebini sıfırla
+        $tenant->update(['backup_requested' => false]);
+
         $backup = TenantBackup::create([
             'tenant_id' => $tenant->id,
             'filename' => Str::slug($tenant->name, '_') . '_backup.zip',
@@ -374,6 +378,14 @@ class TenantController extends Controller
             'message' => 'Yedekleme işlemi arka planda başlatıldı.',
             'backup' => $backup
         ]);
+    }
+
+    public function rejectBackupRequest($id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $tenant->update(['backup_requested' => false]);
+
+        return response()->json(['message' => 'Yedekleme talebi reddedildi.']);
     }
 
     public function backups($id)
@@ -452,6 +464,20 @@ class TenantController extends Controller
         $backup->delete();
 
         return response()->json(['message' => 'Yedek ve ilgili kayıt başarıyla silindi.']);
+    }
+
+    public function getDownloadSignedUrl($id)
+    {
+        // Admin can download any backup
+        TenantBackup::findOrFail($id);
+
+        $url = URL::temporarySignedRoute(
+            'backup.download.public',
+            now()->addMinutes(15),
+            ['id' => $id]
+        );
+
+        return response()->json(['url' => $url]);
     }
 
     public function cancelBackup($id)
