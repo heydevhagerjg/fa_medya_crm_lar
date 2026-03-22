@@ -17,18 +17,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            PermissionSeeder::class,
-            PackageSeeder::class,
+            PermissionSeeder::class ,
+            PackageSeeder::class ,
         ]);
 
         Admin::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Admin',
+            'email' => 'iletisim@famedya.com',
             'password' => 'admin123',
         ]);
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+    /*User::factory()->create([
+     'name' => 'Test User',
+     'email' => 'test@example.com',
+     ]);*/
     }
 }

@@ -28,6 +28,7 @@ import AdminTenantsPage from './pages/admin/dashboard/TenantsPage.jsx'
 import AdminPackagesPage from './pages/admin/dashboard/PackagesPage.jsx'
 import AdminSettingsPage from './pages/admin/dashboard/SettingsPage.jsx'
 import AdminBackupPage from './pages/admin/dashboard/SystemBackupPage.jsx'
+import AdminTenantBackupPage from './pages/admin/dashboard/TenantBackupPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
 import RefundPolicyPage from './pages/RefundPolicyPage.jsx'
@@ -160,6 +161,7 @@ export default function App() {
                 <Route path="/admin/packages" element={<AdminPackagesPage />} />
                 <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 <Route path="/admin/backups" element={<AdminBackupPage />} />
+                <Route path="/admin/tenant-backups" element={<AdminTenantBackupPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

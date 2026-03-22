@@ -10,6 +10,10 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use App\Models\TenantBackup;
+use App\Jobs\CreateTenantBackupJob;
+use Illuminate\Support\Facades\File;
 
 class TenantController extends Controller
 {
@@ -351,6 +355,138 @@ class TenantController extends Controller
         $fileName = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup.zip';
         
         return response()->download($zipPath, $fileName)->deleteFileAfterSend();
+    }
+
+    public function createBackup($id)
+    {
+        $tenant = Tenant::findOrFail($id);
+
+        $backup = TenantBackup::create([
+            'tenant_id' => $tenant->id,
+            'filename' => Str::slug($tenant->name, '_') . '_backup.zip',
+            'path' => '',
+            'status' => 'pending',
+        ]);
+
+        CreateTenantBackupJob::dispatch($backup);
+
+        return response()->json([
+            'message' => 'Yedekleme işlemi arka planda başlatıldı.',
+            'backup' => $backup
+        ]);
+    }
+
+    public function backups($id)
+    {
+        $backups = TenantBackup::where('tenant_id', $id)
+            ->latest()
+            ->get()
+            ->map(function($backup) {
+                if ($backup->status === 'processing') {
+                    $cached = Cache::get("backup_status_{$backup->id}");
+                    if ($cached) {
+                        $backup->progress = $cached['progress'] ?? $backup->progress;
+                        $backup->real_time_message = $cached['message'] ?? null;
+                    }
+                }
+                
+                // Dosyanın gerçekten var olup olmadığını kontrol et
+                $backup->has_file = $backup->status === 'completed' && $backup->path && File::exists(storage_path('app/' . $backup->path));
+                
+                return $backup;
+            });
+
+        return response()->json($backups);
+    }
+
+    public function allBackups()
+    {
+        $backups = TenantBackup::with('tenant:id,name')
+            ->latest()
+            ->get()
+            ->map(function($backup) {
+                if ($backup->status === 'processing') {
+                    $cached = Cache::get("backup_status_{$backup->id}");
+                    if ($cached) {
+                        $backup->progress = $cached['progress'] ?? $backup->progress;
+                        $backup->real_time_message = $cached['message'] ?? null;
+                    }
+                }
+                
+                $backup->has_file = $backup->status === 'completed' && $backup->path && File::exists(storage_path('app/' . $backup->path));
+                
+                return $backup;
+            });
+
+        return response()->json($backups);
+    }
+
+    public function deleteBackup($id)
+    {
+        $backup = TenantBackup::findOrFail($id);
+        
+        if ($backup->status === 'processing' || $backup->status === 'pending') {
+            return response()->json(['message' => 'İşlem devam ettiği için silinemez. Önce iptal edin.'], 400);
+        }
+
+        // Fiziksel dosyayı sil
+        if ($backup->path) {
+            $filePath = storage_path('app/' . $backup->path);
+            if (File::exists($filePath)) {
+                File::delete($filePath);
+                
+                // Klasörü temizle
+                $directory = dirname($filePath);
+                if (File::isDirectory($directory) && count(File::files($directory)) === 0 && count(File::directories($directory)) === 0) {
+                    File::deleteDirectory($directory);
+                }
+
+                // Eger backups/tenants/ klasörü de boşsa orayı da temizleyebiliriz
+                $parentDir = dirname($directory);
+                if (basename($parentDir) === 'tenants' && File::isDirectory($parentDir) && count(File::files($parentDir)) === 0 && count(File::directories($parentDir)) === 0) {
+                    File::deleteDirectory($parentDir);
+                }
+            }
+        }
+
+        $backup->delete();
+
+        return response()->json(['message' => 'Yedek ve ilgili kayıt başarıyla silindi.']);
+    }
+
+    public function cancelBackup($id)
+    {
+        $backup = TenantBackup::findOrFail($id);
+        
+        if ($backup->status === 'processing' || $backup->status === 'pending') {
+            Cache::put("backup_cancelled_{$id}", true, now()->addMinutes(10));
+            
+            $backup->update([
+                'status' => 'failed',
+                'error' => 'Kullanıcı tarafından iptal edildi.'
+            ]);
+
+            return response()->json(['message' => 'Yedekleme iptal edildi.']);
+        }
+
+        return response()->json(['message' => 'İşlem iptal edilemez durumdadır.'], 400);
+    }
+
+    public function downloadBackup($backupId)
+    {
+        $backup = TenantBackup::findOrFail($backupId);
+
+        if ($backup->status !== 'completed') {
+            return response()->json(['message' => 'Yedek henüz tamamlanmadı.'], 400);
+        }
+
+        $filePath = storage_path('app/' . $backup->path);
+
+        if (!File::exists($filePath)) {
+            return response()->json(['message' => 'Dosya sistemde bulunamadı.'], 404);
+        }
+
+        return response()->download($filePath, $backup->filename);
     }
 
     public function import(Request $request, \App\Services\TenantBackupService $service)

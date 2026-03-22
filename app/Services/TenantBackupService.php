@@ -18,17 +18,21 @@ use App\Models\AppointmentTitle;
 use App\Models\Tenant;
 use App\Models\Role;
 use App\Models\Proposal;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
 use App\Models\ServiceTrackingLog;
 use App\Models\User;
-use Illuminate\Support\Str;
 
 class TenantBackupService
 {
     use \App\Traits\S3GlobalConfigTrait;
 
-    public function generateBackupData($tenantId)
+    public function generateBackupData($tenantId, $includeUsers = true)
     {
         $services = Service::where('tenant_id', $tenantId)
             ->with('customFields')
@@ -245,7 +249,7 @@ class TenantBackupService
                 'service_trackings' => $serviceTrackings,
                 'service_tracking_logs' => $serviceTrackingLogs,
                 'roles'             => $roles,
-                'users'             => User::where('tenant_id', $tenantId)->get()->map(fn($u) => $u->makeVisible(['password'])->toArray()),
+                'users'             => $includeUsers ? User::where('tenant_id', $tenantId)->get()->map(fn($u) => $u->makeVisible(['password'])->toArray()) : [],
             ],
             'tenant_settings' => [],
             'exported_from' => 'famedya_crm',
@@ -255,75 +259,142 @@ class TenantBackupService
     /**
      * Create a ZIP containing data.json and all tenant files
      */
-    public function createBackupZip($tenantId, $password = null)
+    public function createBackupZip($tenantId, $password = null, $includeUsers = true, $progressCallback = null, $backupId = null)
     {
         $tenant = Tenant::findOrFail($tenantId);
-        $data = $this->generateBackupData($tenantId);
+        if ($progressCallback) $progressCallback(5, 'Veriler hazırlanıyor...');
         
-        $tempDir = storage_path('app/backup-temp/' . Str::random(10));
-        if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
+        $data = $this->generateBackupData($tenantId, $includeUsers);
         
-        $jsonPath = $tempDir . '/data.json';
-        file_put_contents($jsonPath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        
-        $zipName = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup_' . now()->format('Y-m-d_H-i') . '.zip';
-        $zipPath = storage_path('app/backup-temp/' . $zipName);
-        $tempFilesToCleanup = [];
-        
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+        $tempDir = null;
+        $zipPath = null;
+        try {
+            $tempDir = storage_path('app/backup-temp/' . Str::random(10));
+            if (!file_exists($tempDir)) File::makeDirectory($tempDir, 0777, true);
+            
+            $jsonPath = $tempDir . '/data.json';
+            file_put_contents($jsonPath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            
+            $zipName = Str::slug($tenant->name, '_') . '_full_backup_' . now()->format('Y-m-d_H-i') . '.zip';
+            $zipPath = storage_path('app/backup-temp/' . $zipName);
+            $tempFilesToCleanup = [];
+            
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
             if ($password) {
                 $zip->setPassword($password);
             }
 
+            if ($progressCallback) $progressCallback(10, 'JSON veritabanı pakete ekleniyor...');
+
             // Add data.json
             $zip->addFile($jsonPath, 'data.json');
+            $zip->setCompressionName('data.json', \ZipArchive::CM_STORE);
             if ($password) {
                 $zip->setEncryptionName('data.json', \ZipArchive::EM_AES_256);
             }
             
             // Configure S3 for this tenant
             if ($this->setGlobalS3Config($tenantId)) {
-                // Add files from S3
-                $s3 = \Illuminate\Support\Facades\Storage::disk('s3_global');
+                if ($progressCallback) $progressCallback(15, 'S3 üzerinden dosya listesi alınıyor...');
+                
+                $s3 = Storage::disk('s3_global');
                 $files = $s3->allFiles("tenants/{$tenantId}");
                 
-                foreach ($files as $file) {
-                    // Stream from S3 to a temp local file
-                    $tempFile = tempnam(sys_get_temp_dir(), 's3_zip_');
-                    $readStream = $s3->readStream($file);
-                    $writeStream = fopen($tempFile, 'w');
-                    stream_copy_to_stream($readStream, $writeStream);
-                    fclose($readStream);
-                    fclose($writeStream);
+                $totalFiles = count($files);
+                $processedFiles = 0;
 
-                    // Strip the 'tenants/{id}/' part from the path inside zip
-                    $relativePath = str_replace("tenants/{$tenantId}/", "", $file);
-                    
-                    // Add file to ZIP
-                    $zip->addFile($tempFile, 'files/' . $relativePath);
-                    
-                    if ($password) {
-                        $zip->setEncryptionName('files/' . $relativePath, \ZipArchive::EM_AES_256);
+                if ($totalFiles > 0) {
+                    $chunks = array_chunk($files, 15);
+                    foreach ($chunks as $batch) {
+                        if ($backupId && Cache::has("backup_cancelled_{$backupId}")) {
+                            throw new \Exception("Yedekleme kullanıcı tarafından iptal edildi.");
+                        }
+                        $batchItems = [];
+                        foreach ($batch as $f) {
+                            $tempF = $tempDir . '/' . Str::random(16);
+                            $relP = str_replace("tenants/{$tenantId}/", "", $f);
+                            $batchItems = array_merge($batchItems, [[
+                                'temp' => $tempF,
+                                'relative' => $relP,
+                                'original' => $f
+                            ]]);
+                        }
+
+                        if ($progressCallback) {
+                            $p = 15 + round(($processedFiles / max(1, $totalFiles)) * 80);
+                            $progressCallback($p, "Dosyalar indiriliyor: ".($processedFiles + 1)."/$totalFiles");
+                        }
+
+                        // Parallel Download
+                        try {
+                            Http::pool(fn($pool) => 
+                                collect($batchItems)->map(function($item) use ($pool, $s3) {
+                                    try {
+                                        $url = $s3->temporaryUrl($item['original'], now()->addMinutes(20));
+                                        return $pool->sink($item['temp'])->get($url);
+                                    } catch (\Exception $e) {
+                                        return null;
+                                    }
+                                })
+                            );
+                        } catch (\Exception $e) {
+                            // Pool failed, fallback to sequential
+                        }
+
+                        // Process batch results
+                        foreach ($batchItems as $item) {
+                            if (!File::exists($item['temp']) || filesize($item['temp']) === 0) {
+                                try {
+                                    $readStream = $s3->readStream($item['original']);
+                                    $writeStream = fopen($item['temp'], 'w');
+                                    stream_copy_to_stream($readStream, $writeStream);
+                                    fclose($readStream);
+                                    fclose($writeStream);
+                                } catch (\Exception $e) {
+                                    continue;
+                                }
+                            }
+
+                            if (File::exists($item['temp'])) {
+                                $zip->addFile($item['temp'], 'files/' . $item['relative']);
+                                $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
+                                if ($password) {
+                                    $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
+                                }
+                                $tempFilesToCleanup[] = $item['temp'];
+                            }
+                            $processedFiles++;
+                        }
                     }
-
-                    // We cannot unlink now because zip->close() needs the files. 
-                    // We'll track them and unlink after closing the zip.
-                    $tempFilesToCleanup[] = $tempFile;
                 }
             }
             
+            if ($progressCallback) $progressCallback(95, 'Paket kapatılıyor...');
             $zip->close();
+        }
+        } catch (\Exception $e) {
+            if ($zipPath && File::exists($zipPath)) {
+                File::delete($zipPath);
+            }
+            throw $e;
+        } finally {
+            if ($tempDir && File::exists($tempDir)) {
+                File::deleteDirectory($tempDir);
+            }
 
-            // Cleanup temp files after zip is closed
-            foreach ($tempFilesToCleanup as $tf) {
-                @unlink($tf);
+            // Temizlik: backup-temp klasörü boşsa sil
+            $baseTemp = storage_path('app/backup-temp');
+            if (File::isDirectory($baseTemp)) {
+                $files = File::files($baseTemp);
+                $dirs = File::directories($baseTemp);
+                if (count($files) === 0 && count($dirs) === 0) {
+                    File::deleteDirectory($baseTemp);
+                }
             }
         }
         
-        // Cleanup temp folder
-        @unlink($jsonPath);
-        @rmdir($tempDir);
+        if ($progressCallback) $progressCallback(100, 'Tamamlandı!');
         
         return $zipPath;
     }

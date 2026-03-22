@@ -34,6 +34,15 @@ class ImportBackupJob implements ShouldQueue
             if (file_exists($this->zipPath)) {
                 unlink($this->zipPath);
             }
+            
+            // Clean up the parent directory if empty
+            $parentDir = dirname($this->zipPath);
+            if (is_dir($parentDir)) {
+                $files = array_diff(scandir($parentDir), array('.', '..'));
+                if (empty($files)) {
+                    @rmdir($parentDir);
+                }
+            }
         }
     }
 }

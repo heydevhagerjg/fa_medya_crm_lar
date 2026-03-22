@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload, X } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -18,6 +18,7 @@ export default function TenantsPage() {
     const [pkgModal, setPkgModal] = useState({ open: false, tenant: null })
     const [s3Modal, setS3Modal] = useState({ open: false, tenant: null })
     const [statusModal, setStatusModal] = useState({ open: false, tenant: null })
+    const [backupsModal, setBackupsModal] = useState({ open: false, tenant: null })
     const [statusForm, setStatusForm] = useState({ is_active: true, suspension_message: '' })
     const [form, setForm] = useState(emptyForm)
     const [limitForm, setLimitForm] = useState({})
@@ -162,24 +163,13 @@ export default function TenantsPage() {
     })
 
     const handleExport = async (tenant) => {
-        const loadingToast = toast.loading(`${tenant.name} için yedek hazırlanıyor...`)
+        const loadingToast = toast.loading(`${tenant.name} için yedekleme başlatılıyor...`)
         try {
-            const response = await api.get(`/admin/tenants/${tenant.id}/backup`, {
-                responseType: 'blob'
-            })
-
-            const url = window.URL.createObjectURL(new Blob([response.data]))
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', `${tenant.name.replace(/\s+/g, '_')}_full_backup.zip`)
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-            window.URL.revokeObjectURL(url)
-
-            toast.success('Yedek başarıyla indirildi.', { id: loadingToast })
+            await api.post(`/admin/tenants/${tenant.id}/backup`)
+            toast.success('Yedekleme işlemi arka planda başlatıldı. "Yedekler" modalı üzerinden takip edebilirsiniz.', { id: loadingToast })
+            qc.invalidateQueries(['admin-tenant-backups', tenant.id])
         } catch (err) {
-            toast.error('Yedek oluşturulurken bir hata oluştu.', { id: loadingToast })
+            toast.error('Yedekleme başlatılırken bir hata oluştu.', { id: loadingToast })
         }
     }
 
@@ -365,6 +355,12 @@ export default function TenantsPage() {
                                                     <Users size={14} /> {tenant.users_count || 0}
                                                 </button>
                                                 <button
+                                                    onClick={() => setBackupsModal({ open: true, tenant })}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold hover:bg-purple-100 transition-colors"
+                                                >
+                                                    <Database size={14} /> Yedekler
+                                                </button>
+                                                <button
                                                     onClick={() => setS3Modal({ open: true, tenant })}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
                                                 >
@@ -404,7 +400,6 @@ export default function TenantsPage() {
                     </div>
                 )}
             </div>
-
             {/* Add Tenant Modal */}
             <Modal open={modal.open} onClose={closeModal} title={'Yeni Firma (Tenant) Ekle'}>
                 <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-4">
@@ -554,7 +549,7 @@ export default function TenantsPage() {
                     </div>
 
                     <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-4 flex gap-3 border-t dark:border-gray-800 pb-2">
-                        <button type="button" onClick={() => setLimitModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium">İptal</button>
+                        <button type="button" onClick={() => setLimitModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={limitMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
                             {limitMutation.isPending ? 'Kaydediliyor...' : 'Limitleri Kaydet'}
                         </button>
@@ -868,49 +863,80 @@ export default function TenantsPage() {
                     </div>
                 </div>
             </Modal>
+            <TenantBackupsModal
+                open={backupsModal.open}
+                tenant={backupsModal.tenant}
+                onClose={() => setBackupsModal({ open: false, tenant: null })}
+            />
+        </div>
+    )
+}
+
+function LimitInput({ label, value, onChange }) {
+    return (
+        <div className="space-y-1">
+            <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</label>
+            <div className="relative">
+                <input
+                    type="number"
+                    value={value || 0}
+                    onChange={e => onChange(parseInt(e.target.value) || 0)}
+                    className="w-full pl-3 pr-8 py-2 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-xl text-sm font-bold text-gray-900 dark:text-white transition-all focus:border-red-500/30"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {value === 0 ? <span className="text-blue-500 text-[10px] font-bold">Limit Yok</span> : <Shield size={12} className="text-gray-400" />}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function FeatureToggle({ label, checked, onChange }) {
+    return (
+        <div className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-gray-800/50 border-2 border-gray-100 dark:border-gray-800 rounded-2xl transition-all hover:bg-gray-100 dark:hover:bg-gray-800">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
+            <button
+                type="button"
+                onClick={() => onChange(!checked)}
+                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${checked ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+            >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5.5' : 'translate-x-1'}`} />
+            </button>
         </div>
     )
 }
 
 function UserListModal({ open, tenant, onClose }) {
-    const { data: details, isLoading } = useQuery({
+    const { data: users = [], isLoading } = useQuery({
         queryKey: ['admin-tenant-details', tenant?.id],
-        queryFn: () => api.get(`/admin/tenants/${tenant.id}`).then(r => r.data),
-        enabled: !!tenant?.id && open
+        queryFn: () => api.get(`/admin/tenants/${tenant.id}`).then(r => r.data.users),
+        enabled: !!tenant?.id && open,
     })
 
     return (
-        <Modal open={open} onClose={onClose} title={`${tenant?.name} - Kullanıcı Listesi`}>
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <Modal open={open} onClose={onClose} title={`${tenant?.name} - Kullanıcı Listesi`} size="lg">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {isLoading ? (
                     <div className="py-8 text-center text-gray-400">Yükleniyor...</div>
-                ) : details?.users?.length === 0 ? (
+                ) : users.length === 0 ? (
                     <div className="py-12 text-center text-gray-500">
-                        Bu firmaya ait henüz kullanıcı yok.
+                        Bu firmaya ait henüz kullanıcı bulunmuyor.
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        {details?.users?.map(user => (
-                            <div key={user.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-2xl flex items-center justify-between group">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 text-sm font-bold">
-                                        {user.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                            {user.name}
-                                            {user.role === 'ADMIN' && <ShieldCheck size={14} className="text-red-500" title="Yönetici" />}
-                                        </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
-                                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {users.map(user => (
+                            <div key={user.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-2xl flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600 font-bold text-sm">
+                                    {user.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${user.role === 'ADMIN'
-                                        ? 'bg-red-50 dark:bg-red-500/10 text-red-600'
-                                        : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'
-                                        }`}>
-                                        {user.role}
-                                    </span>
+                                <div className="overflow-hidden">
+                                    <div className="text-sm font-bold text-gray-900 dark:text-white truncate" title={user.name}>{user.name}</div>
+                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate" title={user.email}>{user.email}</div>
+                                    <div className="mt-1">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${user.role === 'ADMIN' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                            {user.role}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -929,31 +955,150 @@ function UserListModal({ open, tenant, onClose }) {
     )
 }
 
-function LimitInput({ label, value, onChange }) {
-    return (
-        <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-            <input
-                type="number"
-                value={value || 0}
-                onChange={e => onChange(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
-            />
-        </div>
-    )
-}
+function TenantBackupsModal({ open, tenant, onClose }) {
+    const qc = useQueryClient()
+    const { data: backups = [], isLoading } = useQuery({
+        queryKey: ['admin-tenant-backups', tenant?.id],
+        queryFn: () => api.get(`/admin/tenants/${tenant.id}/backups`).then(r => r.data),
+        enabled: !!tenant?.id && open,
+        refetchInterval: (query) => {
+            const data = query?.state?.data;
+            const isProcessing = Array.isArray(data) && data.some(b => b.status === 'processing' || b.status === 'pending');
+            return isProcessing ? 2000 : 5000;
+        }
+    })
 
-function FeatureToggle({ label, checked, onChange }) {
+    const { mutate: cancelBackup } = useMutation({
+        mutationFn: (id) => api.post(`/admin/tenants/backups/${id}/cancel`),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenant-backups', tenant?.id])
+            toast.success('Yedekleme iptal edildi.')
+        },
+        onError: () => toast.error('İptal işlemi başarısız.')
+    })
+
+    const { mutate: deleteBackup } = useMutation({
+        mutationFn: (id) => api.delete(`/admin/tenants/backups/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenant-backups', tenant?.id])
+            toast.success('Yedek kaydı silindi.')
+        },
+        onError: () => toast.error('Silme işlemi başarısız.')
+    })
+
+    const handleDelete = (id) => {
+        if (window.confirm('Bu yedek kaydını (varsa dosyasını da) silmek istediğinize emin misiniz?')) {
+            deleteBackup(id)
+        }
+    }
+
+    const handleCancel = (id) => {
+        if (window.confirm('Bu yedekleme işlemini iptal etmek istediğinize emin misiniz?')) {
+            cancelBackup(id)
+        }
+    }
+
+    const handleDownload = (backup) => {
+        window.open(`${api.defaults.baseURL}/admin/tenants/backups/${backup.id}/download`, '_blank')
+    }
+
+    const formatSize = (bytes) => {
+        if (!bytes) return '0 B'
+        const k = 1024
+        const sizes = ['B', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+
     return (
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
-            <button
-                type="button"
-                onClick={() => onChange(!checked)}
-                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${checked ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'}`}
-            >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5.5' : 'translate-x-1'}`} />
-            </button>
-        </div>
+        <Modal open={open} onClose={onClose} title={`${tenant?.name} - Yedek Listesi`} size="lg">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {isLoading ? (
+                    <div className="py-8 text-center text-gray-400">Yükleniyor...</div>
+                ) : backups.length === 0 ? (
+                    <div className="py-12 text-center text-gray-500">
+                        Bu firmaya ait henüz yerel yedek bulunmuyor.
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {backups.map(backup => (
+                            <div key={backup.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-2xl flex items-center justify-between group">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                                        backup.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600' :
+                                        backup.status === 'failed' ? 'bg-red-50 dark:bg-red-500/10 text-red-600' :
+                                        'bg-blue-50 dark:bg-blue-500/10 text-blue-600 animate-pulse'
+                                    }`}>
+                                        <Database size={18} />
+                                    </div>
+                                    <div>
+                                         <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                            {backup.filename || 'Hazırlanıyor...'}
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
+                                                backup.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600' :
+                                                backup.status === 'failed' ? 'bg-red-100 dark:bg-red-500/20 text-red-600' :
+                                                'bg-blue-100 dark:bg-blue-500/20 text-blue-600'
+                                            }`}>
+                                                {backup.status === 'completed' ? 'TAMAMLANDI' :
+                                                 backup.status === 'failed' ? 'HATA' :
+                                                 backup.status === 'processing' ? `İŞLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
+                                            </span>
+                                        </div>
+                                        <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            {new Date(backup.created_at).toLocaleString('tr-TR')} • {formatSize(backup.size)}
+                                        </div>
+                                         {(backup.status === 'processing' || (backup.status === 'pending' && backup.progress > 0)) && (
+                                            <div className="space-y-1.5 mt-2">
+                                                {backup.real_time_message && (
+                                                    <div className="text-[10px] text-blue-500 font-mono italic truncate" title={backup.real_time_message}>
+                                                        Anlık: {backup.real_time_message}
+                                                    </div>
+                                                )}
+                                                <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-blue-500 transition-all duration-500" 
+                                                        style={{ width: `${backup.progress}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                         )}
+                                        {backup.error && (
+                                            <div className="text-[10px] text-red-500 mt-1 font-mono italic">
+                                                {backup.error}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    {(backup.status === 'processing' || backup.status === 'pending') && (
+                                        <button onClick={() => handleCancel(backup.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="İptal">
+                                            <X size={18} />
+                                        </button>
+                                    )}
+                                    {backup.status === 'completed' && backup.has_file && (
+                                        <button onClick={() => handleDownload(backup)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all" title="İndir">
+                                            <Download size={18} />
+                                        </button>
+                                    )}
+                                    {backup.status !== 'processing' && backup.status !== 'pending' && (
+                                        <button onClick={() => handleDelete(backup.id)} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                    Kapat
+                </button>
+            </div>
+        </Modal>
     )
 }

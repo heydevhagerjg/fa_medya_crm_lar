@@ -210,7 +210,13 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}/gift-package', [\App\Http\Controllers\Admin\TenantController::class, 'giftPackage']);
             Route::put('/{id}/s3-config', [\App\Http\Controllers\Admin\TenantController::class, 'updateS3Config']);
             Route::put('/{id}/status', [\App\Http\Controllers\Admin\TenantController::class, 'updateStatus']);
-            Route::get('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'backup']);
+            Route::get('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'backup']); // Direct download (Keep for compatibility)
+            Route::post('/{id}/backup', [\App\Http\Controllers\Admin\TenantController::class, 'createBackup']); // Background backup
+            Route::get('/{id}/backups', [\App\Http\Controllers\Admin\TenantController::class, 'backups']); // List backups
+            Route::get('/backups', [\App\Http\Controllers\Admin\TenantController::class, 'allBackups']); // List all backups
+            Route::post('/backups/{id}/cancel', [\App\Http\Controllers\Admin\TenantController::class, 'cancelBackup']); // Cancel background backup
+            Route::delete('/backups/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'deleteBackup']); // Delete backup record and file
+            Route::get('/backups/{backupId}/download', [\App\Http\Controllers\Admin\TenantController::class, 'downloadBackup']); // Download local backup
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 
