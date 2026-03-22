@@ -15,86 +15,122 @@ import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 export default function SettingsPage() {
     const location = useLocation()
     const { user } = useAuthStore()
+
     const hasPermission = (p) => {
         if (!p) return true;
-        if (user?.role === "ADMIN") return true;
+        if (p === 'admin_only') return user?.role === 'ADMIN';
+        if (user?.role === 'ADMIN') return true;
         return user?.permissions?.includes(p) || false;
     }
 
-    const tabs = [
-        // Core CRM / Jobs
-        { path: '/settings', label: 'Hizmetler', icon: Layers, exact: true, permission: 'settings.view' },
-        { path: '/settings/statuses', label: 'Durumlar', icon: Tag, permission: 'settings.view' },
-        { path: '/settings/templates', label: 'Adım Şablonları', icon: List, permission: 'settings.view' },
-        { path: '/settings/users', label: 'Kullanıcı Yönetimi', icon: Users, permission: 'users.manage' },
-        { path: '/settings/roles', label: 'Rol Yönetimi', icon: Shield, permission: 'settings.manage' },
-        { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type, permission: 'settings.view' },
-
-        // Service Tracking
-        { path: '/settings/service-tracking-categories', label: 'Hizmet Takip Kategorileri', icon: FolderOpen, permission: 'settings.view' },
-
-        // Finance
-        { path: '/settings/cash-registers', label: 'Kasalar', icon: Wallet, permission: 'settings.manage' },
-        { path: '/settings/expense-categories', label: 'Masraf Kategorileri', icon: FolderOpen, permission: 'settings.view' },
-
-        // Tech / System
-        { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key, permission: 'settings.manage' },
-        { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock, permission: 'settings.manage' },
-        { path: '/settings/subscription', label: 'Abonelik', icon: Wallet, permission: 'settings.manage' },
-        { path: '/settings/plan-usage', label: 'Paket Kullanımları', icon: Activity, permission: 'settings.view' },
+    const sections = [
+        {
+            title: 'Operasyonel Ayarlar',
+            tabs: [
+                { path: '/settings', label: 'Hizmetler', icon: Layers, exact: true, permission: 'settings.view' },
+                { path: '/settings/statuses', label: 'İş Akış Durumları', icon: Tag, permission: 'settings.view' },
+                { path: '/settings/templates', label: 'Adım Şablonları', icon: List, permission: 'settings.view' },
+                { path: '/settings/appointment-titles', label: 'Randevu Başlıkları', icon: Type, permission: 'settings.view' },
+                { path: '/settings/service-tracking-categories', label: 'Takip Kategorileri', icon: FolderOpen, permission: 'settings.view' },
+            ]
+        },
+        {
+            title: 'Ekip ve Yetki',
+            tabs: [
+                { path: '/settings/users', label: 'Personel Yönetimi', icon: Users, permission: 'users.manage' },
+                { path: '/settings/roles', label: 'Rol ve İzinler', icon: Shield, permission: 'settings.manage' },
+            ]
+        },
+        {
+            title: 'Finansal Yönetim',
+            tabs: [
+                { path: '/settings/cash-registers', label: 'Kasa Tanımları', icon: Wallet, permission: 'settings.manage' },
+                { path: '/settings/expense-categories', label: 'Gider Kategorileri', icon: FolderOpen, permission: 'settings.view' },
+            ]
+        },
+        {
+            title: 'Sistem ve Plan',
+            tabs: [
+                { path: '/settings/api-keys', label: 'API Entegrasyonu', icon: Key, permission: 'settings.manage' },
+                { path: '/settings/import-keys', label: 'Özel Veri Keyleri', icon: Lock, permission: 'settings.manage' },
+                { path: '/settings/plan-usage', label: 'Paket Kullanımı', icon: Activity, permission: 'settings.view' },
+                { path: '/settings/subscription', label: 'Abonelik & Ödeme', icon: CreditCard, permission: 'settings.manage' },
+            ]
+        }
     ]
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Settings size={24} className="text-indigo-500" />
-                    Ayarlar
-                </h1>
-            </div>
+            <header className="px-4 segment sm:px-0">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Genel Ayarlar</h1>
+                <p className="text-sm text-gray-500 mt-1">Sistem bileşenlerini ve hesap detaylarını buradan yönetebilirsiniz.</p>
+            </header>
 
-            <div className="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
-                {tabs.filter(t => hasPermission(t.permission)).map(({ path, label, icon: Icon, exact }) => {
-                    const isActive = exact ? location.pathname === path : location.pathname.startsWith(path) && path !== '/settings'
-                    const isExactActive = location.pathname === '/settings' && exact
-                    return (
-                        <NavLink key={path} to={path} end={exact}
-                            className={({ isActive: navIsActive }) => `
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
-                                ${(exact ? isExactActive || (navIsActive && location.pathname === '/settings') : navIsActive)
-                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}
-                            `}
-                        >
-                            <Icon size={14} />
-                            {label}
-                        </NavLink>
-                    )
-                })}
-            </div>
+            <div className="flex flex-col lg:flex-row gap-8">
+                {/* Lateral Navigation */}
+                <aside className="lg:w-64 flex-shrink-0">
+                    <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
+                        {sections.map((section, sidx) => {
+                            const availableTabs = section.tabs.filter(t => hasPermission(t.permission))
+                            if (availableTabs.length === 0) return null
 
-            <Routes>
-                <Route index element={<ServicesTab />} />
-                <Route path="statuses" element={<StatusesTab />} />
-                <Route path="templates" element={<TemplatesTab />} />
-                <Route path="users" element={<UsersTab />} />
-                <Route path="roles" element={<RolesTab />} />
-                <Route path="cash-registers" element={<CashRegistersTab />} />
-                <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
-                <Route path="appointment-titles" element={<AppointmentTitlesTab />} />
-                <Route path="api-keys" element={<ApiKeysTab />} />
-                <Route path="s3" element={<div className="p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
-                    <Cloud size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Depolama Ayarları Taşındı</h3>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                        Sistem depolama ayarları artık merkezi olarak yönetilmektedir. Kişisel S3 ayarlarınızı yapmanıza gerek yoktur.
-                    </p>
-                </div>} />
-                <Route path="import-keys" element={<BackupKeysTab />} />
-                <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
-                <Route path="plan-usage" element={<PackageUsageTab />} />
-                <Route path="subscription" element={<SubscriptionTab />} />
-            </Routes>
+                            return (
+                                <div key={sidx} className="flex-shrink-0 lg:flex-shrink flex flex-row lg:flex-col gap-1 lg:mb-6">
+                                    <div className="hidden lg:block px-4 py-2">
+                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.2em]">{section.title}</span>
+                                    </div>
+                                    {availableTabs.map(({ path, label, icon: Icon, exact }) => {
+                                        const active = exact ? (location.pathname === path) : location.pathname.startsWith(path) && path !== '/settings'
+                                        const isExactActive = location.pathname === '/settings' && exact
+                                        const isTabActive = exact ? isExactActive : active
+
+                                        return (
+                                            <NavLink
+                                                key={path}
+                                                to={path}
+                                                end={exact}
+                                                className={`
+                                                    flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap lg:whitespace-normal
+                                                    ${isTabActive
+                                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
+                                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}
+                                                `}
+                                            >
+                                                <Icon size={18} />
+                                                <span className="lg:inline">{label}</span>
+                                            </NavLink>
+                                        )
+                                    })}
+                                </div>
+                            )
+                        })}
+                    </nav>
+                </aside>
+
+                {/* Main Content */}
+                <main className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 lg:p-10 shadow-sm min-h-[600px]">
+                    <Routes>
+                        <Route index element={<ServicesTab />} />
+                        <Route path="statuses" element={<StatusesTab />} />
+                        <Route path="templates" element={<TemplatesTab />} />
+                        <Route path="users" element={<UsersTab />} />
+                        <Route path="roles" element={<RolesTab />} />
+                        <Route path="cash-registers" element={<CashRegistersTab />} />
+                        <Route path="expense-categories" element={<ExpenseCategoriesTab />} />
+                        <Route path="appointment-titles" element={<AppointmentTitlesTab />} />
+                        <Route path="api-keys" element={<ApiKeysTab />} />
+                        <Route path="s3" element={<div className="py-20 text-center">
+                            <Cloud size={48} className="mx-auto text-gray-300 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Bulut Depolama</h3>
+                            <p className="text-gray-500 mt-2">Bu özellik şu anda otomatik olarak yapılandırılmıştır.</p>
+                        </div>} />
+                        <Route path="import-keys" element={<BackupKeysTab />} />
+                        <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
+                        <Route path="plan-usage" element={<PackageUsageTab />} />
+                        <Route path="subscription" element={<SubscriptionTab />} />
+                    </Routes>
+                </main>
+            </div>
         </div>
     )
 }
@@ -135,27 +171,54 @@ function ServicesTab() {
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-end">
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
-                    <Plus size={16} /> Hizmet Ekle
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Hizmet Tanımları</h2>
+                    <p className="text-sm text-gray-500">Müşterilerinize sunduğunuz hizmetleri ve özel alanları yönetin.</p>
+                </div>
+                <button
+                    onClick={() => openModal()}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                >
+                    <Plus size={18} />
+                    Hizmet Ekle
                 </button>
             </div>
-            {isLoading ? <div className="text-center py-8 text-gray-400">Yükleniyor...</div> : (
-                <div className="space-y-3">
+
+            {isLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {services.map(s => (
-                        <div key={s.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between">
-                            <div>
-                                <div className="font-medium text-gray-900 dark:text-white">{s.name}</div>
-                                <div className="text-xs text-gray-400 mt-0.5">{(s.customfield || []).length} özel alan</div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
-                                <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                        <div key={s.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 transition-all hover:border-indigo-500/30 hover:shadow-md relative">
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-3">
+                                    <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-600">
+                                        <Layers size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white">{s.name}</h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[11px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md font-bold uppercase tracking-wider transition-colors group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/15 group-hover:text-indigo-600">
+                                                {(s.customfield || []).length} Özel Alan
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"><Edit2 size={16} /></button>
+                                    <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                                </div>
                             </div>
                         </div>
                     ))}
-                    {services.length === 0 && <p className="text-center text-gray-400 py-8">Henüz hizmet yok.</p>}
+                    {services.length === 0 && (
+                        <div className="col-span-full border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl py-12 text-center">
+                            <Layers size={40} className="mx-auto text-gray-300 mb-3" />
+                            <p className="text-gray-400 font-medium italic">Henüz hizmet tanımlanmamış.</p>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -225,31 +288,40 @@ function StatusItem({ s, openModal, setDeleteConfirm, isLocked = false }) {
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : 'auto',
-        opacity: isDragging ? 0.5 : 1,
     }
 
     return (
         <div
             ref={setNodeRef}
             style={style}
-            className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-3 ${isDragging ? 'shadow-xl border-indigo-500' : ''}`}
+            className={`
+                group bg-white dark:bg-gray-800 border transition-all rounded-xl p-4 flex items-center gap-4
+                ${isDragging ? 'shadow-lg border-indigo-500 z-50' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-500/30'}
+                ${isLocked ? 'bg-gray-50 dark:bg-gray-800/50' : ''}
+            `}
         >
             {!isLocked ? (
-                <button {...attributes} {...listeners} className="p-1 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing">
-                    <GripVertical size={16} />
+                <button {...attributes} {...listeners} className="p-1 text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing">
+                    <GripVertical size={20} />
                 </button>
             ) : (
-                <div className="w-6 flex items-center justify-center text-gray-300">
-                    <Lock size={14} />
+                <div className="w-8 flex items-center justify-center text-gray-300">
+                    <Lock size={16} />
                 </div>
             )}
-            <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: s.color }} />
-            <span className="flex-1 font-medium text-gray-900 dark:text-white">
-                {s.name} <span className="text-gray-400 dark:text-gray-500 font-normal">| ID: {s.id}</span>
-                {isLocked && <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full font-normal italic">Varsayılan</span>}
-            </span>
+
+            <div className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm border border-white dark:border-gray-700" style={{ background: s.color }} />
+
+            <div className="flex-1">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-tight">{s.name}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">ID: #{s.id}</span>
+                </div>
+                {isLocked && <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">Sistem Varsayılanı</span>}
+            </div>
+
             <div className="flex gap-1">
-                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
+                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"><Edit2 size={16} /></button>
                 {!isLocked && (
                     <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
                 )}
@@ -294,18 +366,10 @@ function StatusesTab() {
     const handleDragEnd = (event) => {
         const { active, over } = event
         if (!over || active.id === over.id) return
-
-        const defaultStatus = statuses.find(s => s.name === 'Varsayılan')
-        const otherStatuses = statuses.filter(s => s.name !== 'Varsayılan')
-
-        const oldIndex = otherStatuses.findIndex(i => i.id === active.id)
-        const newIndex = otherStatuses.findIndex(i => i.id === over.id)
-
-        const reorderedOthers = arrayMove(otherStatuses, oldIndex, newIndex)
-
-        // Final array: Varsayılan (order 0) + others (starting from order 1)
-        const finalArr = [defaultStatus, ...reorderedOthers]
-        const payload = finalArr.map((s, idx) => ({ id: s.id, order: idx }))
+        const oldIndex = statuses.findIndex(x => x.id === active.id)
+        const newIndex = statuses.findIndex(x => x.id === over.id)
+        const newOrder = arrayMove(statuses, oldIndex, newIndex)
+        const payload = newOrder.map((s, idx) => ({ id: s.id, order: idx }))
         reorderMutation.mutate(payload)
     }
 
@@ -318,27 +382,39 @@ function StatusesTab() {
     const otherStatuses = statuses.filter(s => s.name !== 'Varsayılan')
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-end">
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
-                    <Plus size={16} /> Durum Ekle
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">İş Akış Durumları</h2>
+                    <p className="text-sm text-gray-500">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
+                </div>
+                <button
+                    onClick={() => openModal()}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                >
+                    <Plus size={18} />
+                    Durum Ekle
                 </button>
             </div>
 
-            <div className="space-y-3">
-                {/* Always render Varsayılan at the top, outside of DndContext for movement but inside for visual consistency if needed, 
-                    actually best to just render it static and move context below it */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3">
+                <AlertCircle className="text-blue-600 dark:text-blue-400" size={18} />
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                    Sürükle-bırak yöntemini kullanarak durumların uygulama içindeki öncelik sırasını değiştirebilirsiniz.
+                </p>
+            </div>
+
+            <div className="space-y-2">
                 {defaultStatus && (
                     <StatusItem s={defaultStatus} openModal={openModal} setDeleteConfirm={setDeleteConfirm} isLocked={true} />
                 )}
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={otherStatuses.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             {otherStatuses.map(s => (
                                 <StatusItem key={s.id} s={s} openModal={openModal} setDeleteConfirm={setDeleteConfirm} />
                             ))}
-                            {statuses.length === 0 && <p className="text-center text-gray-400 py-8">Henüz durum yok.</p>}
                         </div>
                     </SortableContext>
                 </DndContext>
@@ -382,13 +458,13 @@ function StatusesTab() {
 }
 
 // ---- Generic CRUD list for simple entities ----
-function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formToPayload = f => f }) {
+function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formToPayload = f => f, icon: Icon = Settings }) {
     const qc = useQueryClient()
     const [modal, setModal] = useState({ open: false, item: null })
     const [form, setForm] = useState(emptyForm)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-    const { data: items = [] } = useQuery({ queryKey: [queryKey], queryFn: () => api.get(apiPath).then(r => r.data) })
+    const { data: items = [], isLoading } = useQuery({ queryKey: [queryKey], queryFn: () => api.get(apiPath).then(r => r.data) })
 
     const saveMutation = useMutation({
         mutationFn: () => modal.item ? api.put(`${apiPath}/${modal.item.id}`, formToPayload(form)) : api.post(apiPath, formToPayload(form)),
@@ -406,27 +482,57 @@ function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formT
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-end">
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
-                    <Plus size={16} /> {label} Ekle
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{label}</h2>
+                    <p className="text-sm text-gray-500">Mevcut tanımlamaları yönetin veya yenisini ekleyin.</p>
+                </div>
+                <button
+                    onClick={() => openModal()}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                >
+                    <Plus size={18} />
+                    {label} Ekle
                 </button>
             </div>
-            <div className="space-y-3">
-                {items.map(item => (
-                    <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between">
-                        <div>
-                            <div className="font-medium text-gray-900 dark:text-white">{item.name}</div>
-                            {item.is_default && <span className="text-xs text-indigo-500">Varsayılan</span>}
+
+            {isLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {items.map(item => (
+                        <div key={item.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center justify-between transition-all hover:border-indigo-500/30 hover:shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors">
+                                    <Icon size={18} />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-tight">{item.name}</div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] text-gray-400 font-medium">ID: #{item.id}</span>
+                                        {item.is_default && (
+                                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-[9px] font-bold uppercase tracking-wider">
+                                                Varsayılan
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-1">
+                                <button onClick={() => openModal(item)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"><Edit2 size={16} /></button>
+                                <button onClick={() => setDeleteConfirm(item)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => openModal(item)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Edit2 size={16} /></button>
-                            <button onClick={() => setDeleteConfirm(item)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                    ))}
+                    {items.length === 0 && (
+                        <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl py-12 text-center">
+                            <Icon size={40} className="mx-auto text-gray-300 mb-3" />
+                            <p className="text-gray-400 font-medium italic">Henüz kayıt bulunamadı.</p>
                         </div>
-                    </div>
-                ))}
-                {items.length === 0 && <p className="text-center text-gray-400 py-8">Henüz {label.toLowerCase()} yok.</p>}
-            </div>
+                    )}
+                </div>
+            )}
 
             <Modal open={modal.open} onClose={() => setModal({ open: false, item: null })} title={`${label} ${modal.item ? 'Düzenle' : 'Ekle'}`}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
@@ -2011,42 +2117,40 @@ function PackageUsageTab() {
     if (isLoading) return <div className="text-center py-8 text-gray-400 font-medium">Yükleniyor...</div>
 
     return (
-        <div className="max-w-4xl space-y-6">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-                <div className="p-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex items-center justify-between">
-                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                        <Activity size={18} className="text-indigo-500" />
-                        Paket Özellikleri & Kullanım Oranları
-                    </h3>
-                    <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Anlık Güncel Veriler</div>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Paket Kullanımları</h2>
+                    <p className="text-sm text-gray-500">Paket özellikleriniz ve güncel kullanım limitleriniz.</p>
                 </div>
-                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                     {sub.usage && Object.entries(sub.usage).map(([key, data]) => {
                         const isUnlimited = data.limit === 0;
                         const percentage = isUnlimited ? 0 : Math.min(100, (data.used / data.limit) * 100);
                         const isHigh = percentage > 85;
 
                         return (
-                            <div key={key} className="group relative">
-                                <div className="flex justify-between items-end mb-3">
-                                    <div className="space-y-1">
-                                        <div className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest group-hover:text-indigo-500 transition-colors uppercase">{data.label}</div>
-                                        <div className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
-                                            {isUnlimited ? 'Sınırsız' : `${data.limit} Limit`}
-                                            <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
-                                            <span className={isHigh ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}>{data.used} Kullanılan</span>
+                            <div key={key} className="space-y-3">
+                                <div className="flex justify-between items-end">
+                                    <div className="space-y-0.5">
+                                        <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{data.label}</div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                            {isUnlimited ? 'Sınırsız' : `${data.used} / ${data.limit}`}
                                         </div>
                                     </div>
                                     {!isUnlimited && (
-                                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isHigh ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded ${isHigh ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400' : 'bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                             %{Math.round(percentage)}
                                         </div>
                                     )}
                                 </div>
                                 {!isUnlimited && (
-                                    <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+                                    <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${isHigh ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                                            className={`h-full rounded-full transition-all duration-700 ease-out ${isHigh ? 'bg-red-500' : 'bg-indigo-600'}`}
                                             style={{ width: `${percentage}%` }}
                                         />
                                     </div>

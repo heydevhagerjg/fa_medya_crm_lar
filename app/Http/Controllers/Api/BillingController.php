@@ -12,28 +12,31 @@ class BillingController extends Controller
     {
         $tenant = $request->user()->tenant;
         $subscription = $tenant->subscription();
-        
+
         $nextBilledAt = null;
         if ($subscription && $subscription->active()) {
             try {
                 $paddleSub = $subscription->asPaddleSubscription();
                 $nextBilledAt = $paddleSub->nextBilledAt ? $paddleSub->nextBilledAt->format('Y-m-d H:i:s') : null;
-                
+
                 // If nextBilledAt is null, it might be in scheduled_change or billing cycle
                 if (!$nextBilledAt) {
                     if (!empty($paddleSub->scheduledChange)) {
                         $nextBilledAt = $paddleSub->scheduledChange['effective_at'] ?? null;
-                    } elseif (!empty($paddleSub->billingCycle)) {
+                    }
+                    elseif (!empty($paddleSub->billingCycle)) {
                         $nextBilledAt = $paddleSub->billingCycle['next_step_at'] ?? null;
-                    } elseif (!empty($paddleSub->currentBillingPeriod)) {
+                    }
+                    elseif (!empty($paddleSub->currentBillingPeriod)) {
                         $nextBilledAt = $paddleSub->currentBillingPeriod['ends_at'] ?? null;
                     }
                 }
-            } catch (\Exception $e) {
-                // If API fails, log it or ignore
+            }
+            catch (\Exception $e) {
+            // If API fails, log it or ignore
             }
         }
-        
+
         return response()->json([
             'is_on_trial' => $tenant->onTrial(),
             'is_gifted' => $tenant->is_gifted,
@@ -54,7 +57,7 @@ class BillingController extends Controller
                 'step_template' => ['label' => 'Adım Şablonları', 'limit' => $tenant->plan_step_template_limit, 'used' => $tenant->getResourceCount('step_template')],
                 'cash_register' => ['label' => 'Kasa', 'limit' => $tenant->plan_cash_register_limit, 'used' => $tenant->getResourceCount('cash_register')],
                 'proposal' => ['label' => 'Teklif', 'limit' => $tenant->plan_proposal_limit, 'used' => $tenant->getResourceCount('proposal')],
-                'disk_usage' => ['label' => 'Disk Kullanımı (MB)', 'limit' => $tenant->plan_disk_usage_limit, 'used' => round(($tenant->storage_used ?? 0) / (1024 * 1024), 2)],
+                'disk_usage' => ['label' => 'Disk Kullanımı (MB)', 'limit' => $tenant->plan_disk_usage_limit . ' MB', 'used' => round(($tenant->storage_used ?? 0) / (1024 * 1024), 2) . ' MB'],
             ]
         ]);
     }
@@ -75,16 +78,17 @@ class BillingController extends Controller
                 if ($tenant->subscribed()) {
                     $tenant->subscription()->cancel();
                 }
-                
+
                 $tenant->applyPackage($package);
                 return response()->json(['message' => 'Ücretsiz pakete başarıyla geçildi. Mevcut ücretli aboneliğiniz varsa dönem sonunda sona erecektir.']);
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
             }
         }
 
         if (!$package->paddle_price_id) {
-             return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
+            return response()->json(['message' => 'Bu paket için ödeme bilgisi tanımlanmamış.'], 400);
         }
 
         if (!$tenant->subscribed()) {
@@ -93,12 +97,13 @@ class BillingController extends Controller
 
         try {
             $tenant->subscription()->swap($package->paddle_price_id);
-            
+
             // Limitleri anında güncellemek için
             $tenant->applyPackage($package);
-            
+
             return response()->json(['message' => 'Paketiniz başarıyla değiştirildi. Yeni limitleriniz anında tanımlandı.']);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             if (str_contains(strtolower($e->getMessage()), 'pending scheduled changes')) {
                 return response()->json(['message' => 'Abonelik üzerinde bekleyen bir işlem olduğu için şu an değiştirilemiyor.'], 422);
             }
@@ -109,17 +114,18 @@ class BillingController extends Controller
     public function cancel(Request $request)
     {
         $tenant = $request->user()->tenant;
-        
+
         if ($tenant->subscribed()) {
             try {
                 $tenant->subscription()->cancel();
                 return response()->json(['message' => 'Aboneliğiniz dönem sonunda sona erecek şekilde iptal edildi.']);
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 // Handle Paddle API error 'cannot update subscription, pending scheduled changes'
                 if (str_contains(strtolower($e->getMessage()), 'pending scheduled changes')) {
                     return response()->json(['message' => 'Abonelik üzerinde bekleyen bir işlem (ödeme hazırlığı vb.) olduğu için şu an iptal edilemiyor. Lütfen kısa bir süre sonra tekrar deneyin.'], 422);
                 }
-                
+
                 return response()->json(['message' => 'Paddle hatası: ' . $e->getMessage()], 500);
             }
         }
@@ -130,9 +136,9 @@ class BillingController extends Controller
     public function checkout(Request $request)
     {
         $tenant = $request->user()->tenant;
-        
+
         $packageId = $request->get('package_id');
-        $package = $packageId ? \App\Models\Package::find($packageId) : $tenant->package;
+        $package = $packageId ?\App\Models\Package::find($packageId) : $tenant->package;
 
         if (!$package) {
             return response()->json(['message' => 'Paket bulunamadı.'], 404);
@@ -166,19 +172,20 @@ class BillingController extends Controller
     public function receipt(Request $request, $id)
     {
         $tenant = $request->user()->tenant;
-        
+
         // Find the transaction by ID and ensure it belongs to the tenant
         $transaction = $tenant->transactions()->where('id', $id)->firstOrFail();
-        
+
         try {
             $paddleTransaction = $transaction->asPaddleTransaction();
-            
+
             if ($paddleTransaction && $paddleTransaction->receipt_url) {
                 return response()->json(['url' => $paddleTransaction->receipt_url]);
             }
-            
+
             return response()->json(['message' => 'Fatura bağlantısı bulunamadı.'], 404);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return response()->json(['message' => 'Paddle hatası: ' . $e->getMessage()], 500);
         }
     }
