@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Users, Briefcase, CreditCard, TrendingDown,
     Settings, FileText, Database, LogOut, Menu, X, Sun, Moon,
-    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar, Clock, AlertCircle
+    ChevronRight, Bell, User, FolderOpen, FileCode, LayoutList, Calendar, Clock, AlertCircle, Lock
 } from 'lucide-react'
 
 const navItems = [
@@ -14,15 +14,15 @@ const navItems = [
     { to: '/customers', icon: Users, label: 'Müşteriler', permission: 'customers.view' },
     { to: '/jobs', icon: Briefcase, label: 'İşler', permission: 'jobs.view' },
     { to: '/kanban', icon: LayoutList, label: 'İş Takip (Kanban)', permission: 'jobs.view' },
-    { to: '/appointments', icon: Calendar, label: 'Randevular', permission: 'appointments.view' },
-    { to: '/proposals', icon: FileText, label: 'Teklifler' },
-    { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi' }, // Base permission if needed
+    { to: '/appointments', icon: Calendar, label: 'Randevular', permission: 'appointments.view', feature: 'appointment' },
+    { to: '/proposals', icon: FileText, label: 'Teklifler', feature: 'proposal' },
+    { to: '/service-trackings', icon: Clock, label: 'Hizmet Takibi', feature: 'service_tracking' },
     { to: '/payments', icon: CreditCard, label: 'Tahsilatlar', permission: 'payments.view' },
     { to: '/expenses', icon: TrendingDown, label: 'Masraflar', permission: 'expenses.view' },
     { to: '/files', icon: FolderOpen, label: 'Dosyalar', permission: 'files.view' },
     { to: '/logs', icon: FileText, label: 'Aktivite Logları', permission: 'logs.view' },
-    { to: '/backup', icon: Database, label: 'Yedek', permission: 'settings.manage' },
-    { to: '/api-docs', icon: FileCode, label: 'API Dokümanı', permission: 'admin_only' },
+    { to: '/backup', icon: Database, label: 'Yedek', permission: 'settings.manage', feature: 'backup' },
+    { to: '/api-docs', icon: FileCode, label: 'API Dokümanı', permission: 'admin_only', feature: 'api_key' },
     { to: '/settings', icon: Settings, label: 'Ayarlar', permission: 'settings.view' },
 ]
 
@@ -46,6 +46,12 @@ export default function DashboardLayout() {
         if (p === 'admin_only') return user?.role === 'ADMIN';
         if (user?.role === 'ADMIN') return true;
         return user?.permissions?.includes(p) || false;
+    }
+
+    const isFeatureDisabled = (f) => {
+        if (!f || !user?.tenant) return false;
+        // Check if plan_X_feature is explicitly false (0)
+        return user.tenant[`plan_${f}_feature`] === false || user.tenant[`plan_${f}_feature`] === 0;
     }
 
     const handleLogout = async () => {
@@ -100,23 +106,32 @@ export default function DashboardLayout() {
                 <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                     {navItems
                         .filter(item => hasPermission(item.permission))
-                        .map(({ to, icon: Icon, label }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            onClick={() => setSidebarOpen(false)}
-                            className={({ isActive }) => `
-                                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                                ${isActive
-                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                                }
-                            `}
-                        >
-                            <Icon size={18} />
-                            <span>{label}</span>
-                        </NavLink>
-                    ))}
+                        .map((item) => {
+                            const Icon = item.icon;
+                            const isDisabled = isFeatureDisabled(item.feature);
+                            return (
+                                <NavLink
+                                    key={item.to}
+                                    to={item.to}
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={({ isActive }) => `
+                                        flex items-center justify-between group px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                                        ${isActive
+                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                                        }
+                                    `}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Icon size={18} />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    {isDisabled && (
+                                        <Lock size={14} className="text-gray-400 dark:text-gray-500" />
+                                    )}
+                                </NavLink>
+                            )
+                        })}
                 </nav>
 
                 {/* Bottom user section */}

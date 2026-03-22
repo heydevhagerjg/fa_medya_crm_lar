@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import { useAuthStore } from '../stores/index.js'
 import toast from 'react-hot-toast'
-import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Database, Download, Upload, CheckCircle, AlertCircle, Cloud, ChevronLeft, ChevronRight, XCircle } from 'lucide-react'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 export default function BackupPage() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_backup_feature === false || user?.tenant?.plan_backup_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Yedekleme" />
+    }
+
     const [importing, setImporting] = useState(false)
     const [exporting, setExporting] = useState(false)
     const [resetting, setResetting] = useState(false)
@@ -100,7 +108,7 @@ export default function BackupPage() {
         }
     }
 
-    const { data: s3Backups = [], isLoading: isLoadingS3, refetch: s3BackupsRefetch } = useQuery({
+    const { data: s3Backups = [], isLoading: isLoadingS3, error, isError, refetch: s3BackupsRefetch } = useQuery({
         queryKey: ['s3-backups'],
         queryFn: () => api.get('/settings/backup/s3/list').then(r => r.data),
         retry: false, // In case S3 isn't set up, it will just fail gracefully
@@ -127,6 +135,24 @@ export default function BackupPage() {
     const itemsPerPage = 5
     const totalPages = Math.ceil((s3Backups?.length || 0) / itemsPerPage)
     const paginatedBackups = s3Backups?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) || []
+
+    if (isError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] p-6 text-center bg-white dark:bg-transparent rounded-3xl border border-gray-100 dark:border-gray-800">
+                <XCircle size={48} className="text-red-500 mb-4 opacity-20" />
+                <h3 className="text-gray-900 dark:text-white font-bold text-lg mb-2">Erişim Kısıtlandı</h3>
+                <p className="text-gray-600 dark:text-gray-400 max-w-xs mx-auto">
+                    {error.response?.data?.message || 'Yedekleme özelliği paketinizde bulunmamaktadır.'}
+                </p>
+                <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none"
+                >
+                    Ana Sayfaya Dön
+                </button>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">

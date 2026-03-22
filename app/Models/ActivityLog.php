@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $table = 'activity_logs';
     public $incrementing = true;
     protected $keyType = 'int';
     public $timestamps = false;
 
     protected $fillable = [
-        'tenant_id', 'user_id', 'action', 'entity_type', 'entity_id', 'entity_name', 'details', 'created_at',
+        'user_id', 'action', 'entity_type', 'entity_id', 'entity_name', 'details', 'created_at',
     ];
 
     protected $casts = [

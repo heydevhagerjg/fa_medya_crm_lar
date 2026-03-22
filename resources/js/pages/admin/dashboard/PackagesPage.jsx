@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save, CreditCard } from 'lucide-react'
+import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save, CreditCard, Star } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -33,7 +33,8 @@ const emptyPackage = {
     api_key_feature: false,
     disk_usage_limit: 0,
     single_file_limit: 50,
-    is_active: true
+    is_active: true,
+    is_popular: false
 }
 
 export default function PackagesPage() {
@@ -150,7 +151,10 @@ export default function PackagesPage() {
                                 {paginatedData.map(pkg => (
                                     <tr key={pkg.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
                                         <td className="px-5 py-4">
-                                            <div className="text-sm font-bold text-gray-900 dark:text-white">{pkg.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{pkg.name}</div>
+                                                {pkg.is_popular && <Star size={14} className="text-amber-500 fill-amber-500" strokeWidth={0} />}
+                                            </div>
                                             <div className="text-[10px] text-gray-400 mt-0.5">ID: {pkg.id}</div>
                                         </td>
                                         <td className="px-5 py-4">
@@ -249,9 +253,18 @@ export default function PackagesPage() {
                                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm"
                                     />
                                 </div>
-                                <div className="md:col-span-2 flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-white dark:border-gray-700">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satışa çıkar (Aktif)</span>
-                                    <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
+                                <div className="md:col-span-2 space-y-3">
+                                    <div className="flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-white dark:border-gray-700">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satışa çıkar (Aktif)</span>
+                                        <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
+                                    </div>
+                                    <div className="flex items-center justify-between bg-amber-50/50 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-100/50 dark:border-amber-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Star size={16} className="text-amber-500" />
+                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Popüler Şerit Göster</span>
+                                        </div>
+                                        <Switch checked={form.is_popular} onChange={v => setForm({ ...form, is_popular: v })} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -329,7 +342,8 @@ export default function PackagesPage() {
                                     { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
-                                    const limitKey = `${mod.key === 'services_section' ? 'service' : mod.key}_limit`;
+                                    const limitKey = mod.key === 'services_section' ? 'service_limit' : 
+                                                   (mod.key === 'step_templates' ? 'step_template_limit' : `${mod.key}_limit`);
                                     const active = form[featureKey];
 
                                     return (

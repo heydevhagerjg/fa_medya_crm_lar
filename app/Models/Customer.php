@@ -6,8 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'customers';
+    protected $relatedCacheModules = ['jobs'];
+
     protected $fillable = [
-        'tenant_id', 'name', 'phone', 'email', 'notes',
+        'name', 'phone', 'email', 'notes',
     ];
 
     protected $appends = ['formatted_phone'];

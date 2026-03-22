@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class CashRegister extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $table = 'cash_registers';
 
     protected $fillable = [
-        'tenant_id', 'name', 'is_default',
+        'name', 'is_default',
     ];
 
     protected $casts = [

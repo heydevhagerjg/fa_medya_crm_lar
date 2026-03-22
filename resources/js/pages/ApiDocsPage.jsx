@@ -1,12 +1,22 @@
-import { FileCode, Shield, Users, Briefcase, CreditCard, Settings, Calendar, ListChecks, FileText, Database, Activity, Code, Terminal, Key, Info, LayoutDashboard, Share2, AlertTriangle, ExternalLink } from 'lucide-react'
+import { FileCode, Shield, Users, Briefcase, CreditCard, Settings, Calendar, ListChecks, FileText, Database, Activity, Code, Terminal, Key, Info, LayoutDashboard, Share2, AlertTriangle, ExternalLink, XCircle } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/index.js'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 export default function ApiDocsPage() {
     const { user } = useAuthStore()
+    const isApiKeyDisabled = user?.tenant?.plan_api_key_feature === false || user?.tenant?.plan_api_key_feature === 0
 
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/" replace />
+    }
+
+    if (isApiKeyDisabled) {
+        return (
+            <div className="p-10">
+                <PlanRestrictionView featureName="API" />
+            </div>
+        )
     }
 
     return (

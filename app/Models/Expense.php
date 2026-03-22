@@ -6,8 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class Expense extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'jobs';
+
+    protected static function booted()
+    {
+        static::deleted(function ($expense) {
+            if ($expense->receipt_path && $disk = Tenant::getS3DiskForTenant($expense->tenant_id)) {
+                $disk->delete($expense->receipt_path);
+            }
+        });
+    }
+
+
     protected $fillable = [
-        'tenant_id', 'job_id', 'category_id', 'title', 'amount', 'date', 'description', 'cash_register_id', 'receipt_path'
+        'job_id', 'category_id', 'title', 'amount', 'date', 'description', 'cash_register_id', 'receipt_path'
     ];
 
     protected $casts = [

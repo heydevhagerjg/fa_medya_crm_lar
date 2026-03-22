@@ -7,8 +7,13 @@ use Illuminate\Support\Str;
 
 class Proposal extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'proposals';
+    protected $relatedCacheModules = ['jobs'];
+
     protected $fillable = [
-        'uuid', 'tenant_id', 'customer_id', 'service_id', 'title', 'description', 
+        'uuid', 'customer_id', 'service_id', 'title', 'description', 
         'total_price', 'status', 'notes', 'customer_notes', 'sent_at', 'valid_until',
         'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount'
     ];

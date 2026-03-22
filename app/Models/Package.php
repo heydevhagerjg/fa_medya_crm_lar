@@ -35,6 +35,7 @@ class Package extends Model
         'disk_usage_limit',
         'single_file_limit',
         'is_active',
+        'is_popular',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class Package extends Model
         'step_templates_feature' => 'boolean',
         'api_key_feature' => 'boolean',
         'is_active' => 'boolean',
+        'is_popular' => 'boolean',
         'disk_usage_limit' => 'integer',
         'single_file_limit' => 'integer',
     ];

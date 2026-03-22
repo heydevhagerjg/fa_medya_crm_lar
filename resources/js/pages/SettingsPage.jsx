@@ -3,13 +3,14 @@ import { Routes, Route, NavLink, useNavigate, useLocation, Link } from 'react-ro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download, CreditCard, Clock } from 'lucide-react'
+import { Settings, Layers, Tag, List, Wallet, FolderOpen, Key, Plus, Trash2, Edit2, GripVertical, ChevronRight, Cloud, Save, CheckCircle, AlertCircle, Loader2, Play, Lock, GripHorizontal, Type, FileCode, Activity, ChevronDown, ChevronUp, Users, Mail, Shield, ShieldCheck, User, XCircle, Download, CreditCard, Clock, Star } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useAuthStore } from '../stores/index.js'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 export default function SettingsPage() {
     const location = useLocation()
@@ -40,6 +41,7 @@ export default function SettingsPage() {
         { path: '/settings/api-keys', label: 'API Anahtarları', icon: Key, permission: 'settings.manage' },
         { path: '/settings/import-keys', label: 'Özel İmport Keyler', icon: Lock, permission: 'settings.manage' },
         { path: '/settings/subscription', label: 'Abonelik', icon: Wallet, permission: 'settings.manage' },
+        { path: '/settings/plan-usage', label: 'Paket Kullanımları', icon: Activity, permission: 'settings.view' },
     ]
 
     return (
@@ -90,6 +92,7 @@ export default function SettingsPage() {
                 </div>} />
                 <Route path="import-keys" element={<BackupKeysTab />} />
                 <Route path="service-tracking-categories" element={<ServiceTrackingCategoriesTab />} />
+                <Route path="plan-usage" element={<PackageUsageTab />} />
                 <Route path="subscription" element={<SubscriptionTab />} />
             </Routes>
         </div>
@@ -98,6 +101,12 @@ export default function SettingsPage() {
 
 // ---- Services Tab ----
 function ServicesTab() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_services_section_feature === false || user?.tenant?.plan_services_section_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Hizmetler" />
+    }
     const qc = useQueryClient()
     const [modal, setModal] = useState({ open: false, service: null })
     const [form, setForm] = useState({ name: '', customFields: [] })
@@ -268,6 +277,7 @@ function StatusesTab() {
     const saveMutation = useMutation({
         mutationFn: () => modal.status ? api.put(`/settings/statuses/${modal.status.id}`, form) : api.post('/settings/statuses', form),
         onSuccess: () => { qc.invalidateQueries(['job-statuses']); toast.success('Durum kaydedildi.'); setModal({ open: false, status: null }) },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/settings/statuses/${id}`),
@@ -444,6 +454,12 @@ function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formT
 }
 
 function TemplatesTab() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_step_templates_feature === false || user?.tenant?.plan_step_templates_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Adım Şablonları" />
+    }
     const qc = useQueryClient()
     const [modal, setModal] = useState({ open: false, template: null })
     const [form, setForm] = useState({ name: '', steps: [''] })
@@ -461,6 +477,7 @@ function TemplatesTab() {
             return modal.template ? api.put(`/settings/templates/${modal.template.id}`, payload) : api.post('/settings/templates', payload)
         },
         onSuccess: () => { qc.invalidateQueries(['step-templates']); toast.success('Şablon kaydedildi.'); setModal({ open: false, template: null }) },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/settings/templates/${id}`),
@@ -574,6 +591,12 @@ function ExpenseCategoriesTab() {
 
 function ApiKeysTab() {
     const { user } = useAuthStore()
+    const isApiKeyDisabled = user?.tenant?.plan_api_key_feature === false || user?.tenant?.plan_api_key_feature === 0
+
+    if (isApiKeyDisabled) {
+        return <PlanRestrictionView featureName="API" />
+    }
+
     const qc = useQueryClient()
     const [name, setName] = useState('')
     const [expiresAt, setExpiresAt] = useState('')
@@ -613,6 +636,7 @@ function ApiKeysTab() {
             toast.success(editingKey ? 'API anahtarı güncellendi.' : 'API anahtarı oluşturuldu.')
             resetForm()
         },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const resetForm = () => {
@@ -1110,6 +1134,10 @@ function BackupKeysTab() {
 }
 
 function AppointmentTitlesTab() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_appointment_feature === false || user?.tenant?.plan_appointment_feature === 0
+    if (isFeatureDisabled) return <PlanRestrictionView featureName="Randevu" />
+
     const qc = useQueryClient()
     const [name, setName] = useState('')
     const [editing, setEditing] = useState(null)
@@ -1126,7 +1154,8 @@ function AppointmentTitlesTab() {
             toast.success('Başlık kaydedildi.')
             setName('')
             setEditing(null)
-        }
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const deleteMutation = useMutation({
@@ -1197,6 +1226,10 @@ function AppointmentTitlesTab() {
     )
 }
 function ServiceTrackingCategoriesTab() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_service_tracking_feature === false || user?.tenant?.plan_service_tracking_feature === 0
+    if (isFeatureDisabled) return <PlanRestrictionView featureName="Hizmet Takibi" />
+
     return <GenericCrudTab
         queryKey="service-tracking-categories" apiPath="/settings/service-tracking-categories" label="Hizmet Takip Kategorisi"
         emptyForm={{ name: '' }}
@@ -1965,6 +1998,64 @@ function SubscriptionTab() {
                     </button>
                 </div>
             </Modal>
+        </div>
+    )
+}
+
+function PackageUsageTab() {
+    const { data: sub, isLoading } = useQuery({
+        queryKey: ['subscription'],
+        queryFn: () => api.get('/billing/subscription').then(r => r.data)
+    })
+
+    if (isLoading) return <div className="text-center py-8 text-gray-400 font-medium">Yükleniyor...</div>
+
+    return (
+        <div className="max-w-4xl space-y-6">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="p-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex items-center justify-between">
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Activity size={18} className="text-indigo-500" />
+                        Paket Özellikleri & Kullanım Oranları
+                    </h3>
+                    <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Anlık Güncel Veriler</div>
+                </div>
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                    {sub.usage && Object.entries(sub.usage).map(([key, data]) => {
+                        const isUnlimited = data.limit === 0;
+                        const percentage = isUnlimited ? 0 : Math.min(100, (data.used / data.limit) * 100);
+                        const isHigh = percentage > 85;
+
+                        return (
+                            <div key={key} className="group relative">
+                                <div className="flex justify-between items-end mb-3">
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest group-hover:text-indigo-500 transition-colors uppercase">{data.label}</div>
+                                        <div className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+                                            {isUnlimited ? 'Sınırsız' : `${data.limit} Limit`}
+                                            <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                                            <span className={isHigh ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}>{data.used} Kullanılan</span>
+                                        </div>
+                                    </div>
+                                    {!isUnlimited && (
+                                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isHigh ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            %{Math.round(percentage)}
+                                        </div>
+                                    )}
+                                </div>
+                                {!isUnlimited && (
+                                    <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${isHigh ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     )
 }

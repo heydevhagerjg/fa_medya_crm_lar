@@ -39,15 +39,15 @@ Route::group(['prefix' => 'auth'], function () {
     Route::get('/packages', [\App\Http\Controllers\Admin\PackageController::class, 'index']);
 });
 
-// Public Proposal Routes
-Route::group(['prefix' => 'public'], function () {
+// Public Proposal Routes (Rate Limited)
+Route::group(['prefix' => 'public', 'middleware' => 'throttle:30,1'], function () {
     Route::get('/proposals/{uuid}', [App\Http\Controllers\Api\PublicProposalController::class, 'show']);
     Route::get('/proposals/{uuid}/pdf', [App\Http\Controllers\Api\PublicProposalController::class, 'downloadPdf']);
     Route::post('/proposals/{uuid}/respond', [App\Http\Controllers\Api\PublicProposalController::class, 'respond']);
 });
 
 // Protected routes
-Route::middleware(['auth:sanctum', 'check.tenant', 'check.restoring', 'check.plan'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan'])->group(function () {
 
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -141,8 +141,8 @@ Route::middleware(['auth:sanctum', 'check.tenant', 'check.restoring', 'check.pla
             Route::get('/backup/export', [BackupController::class, 'export'])->middleware('check.plan:backup');
             Route::post('/backup/import', [BackupController::class, 'import'])->middleware('check.plan:backup');
             Route::post('/backup/reset', [BackupController::class, 'reset']);
-            Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups']);
-            Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup']);
+            Route::get('/backup/s3/list', [BackupController::class, 'listS3Backups'])->middleware('check.plan:backup');
+            Route::get('/backup/s3/download', [BackupController::class, 'downloadS3Backup'])->middleware('check.plan:backup');
 
             // Activity Logs
             Route::apiResource('api-keys', ApiKeyController::class)->except(['show'])->middleware('check.plan:api_key');

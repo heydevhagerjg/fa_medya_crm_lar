@@ -86,7 +86,9 @@ class TenantBackupService
                 'subtotal'         => $j->subtotal,
                 'vat'              => $j->is_vat_included,
                 'vatAmount'        => $j->vat_amount,
+                'vatRate'          => $j->vat_rate,
                 'proposalId'       => $j->proposal_id,
+                'userId'           => $j->user_id,
                 'order'            => $j->order,
                 'createdAt'        => $j->created_at,
                 'updatedAt'        => $j->updated_at,
@@ -136,7 +138,6 @@ class TenantBackupService
 
         $activityLogs = ActivityLog::where('tenant_id', $tenantId)
             ->orderByDesc('created_at')
-            ->limit(300)
             ->get()
             ->map(fn($l) => [
                 'id' => $l->id, 
@@ -244,6 +245,7 @@ class TenantBackupService
                 'service_trackings' => $serviceTrackings,
                 'service_tracking_logs' => $serviceTrackingLogs,
                 'roles'             => $roles,
+                'users'             => User::where('tenant_id', $tenantId)->get()->map(fn($u) => $u->makeVisible(['password'])->toArray()),
             ],
             'tenant_settings' => [],
             'exported_from' => 'famedya_crm',
@@ -266,6 +268,7 @@ class TenantBackupService
         
         $zipName = \Illuminate\Support\Str::slug($tenant->name, '_') . '_full_backup_' . now()->format('Y-m-d_H-i') . '.zip';
         $zipPath = storage_path('app/backup-temp/' . $zipName);
+        $tempFilesToCleanup = [];
         
         $zip = new \ZipArchive();
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
@@ -286,18 +289,36 @@ class TenantBackupService
                 $files = $s3->allFiles("tenants/{$tenantId}");
                 
                 foreach ($files as $file) {
-                    $content = $s3->get($file);
+                    // Stream from S3 to a temp local file
+                    $tempFile = tempnam(sys_get_temp_dir(), 's3_zip_');
+                    $readStream = $s3->readStream($file);
+                    $writeStream = fopen($tempFile, 'w');
+                    stream_copy_to_stream($readStream, $writeStream);
+                    fclose($readStream);
+                    fclose($writeStream);
+
                     // Strip the 'tenants/{id}/' part from the path inside zip
                     $relativePath = str_replace("tenants/{$tenantId}/", "", $file);
-                    $zip->addFromString('files/' . $relativePath, $content);
+                    
+                    // Add file to ZIP
+                    $zip->addFile($tempFile, 'files/' . $relativePath);
                     
                     if ($password) {
                         $zip->setEncryptionName('files/' . $relativePath, \ZipArchive::EM_AES_256);
                     }
+
+                    // We cannot unlink now because zip->close() needs the files. 
+                    // We'll track them and unlink after closing the zip.
+                    $tempFilesToCleanup[] = $tempFile;
                 }
             }
             
             $zip->close();
+
+            // Cleanup temp files after zip is closed
+            foreach ($tempFilesToCleanup as $tf) {
+                @unlink($tf);
+            }
         }
         
         // Cleanup temp folder
@@ -310,7 +331,7 @@ class TenantBackupService
     /**
      * Import a full ZIP backup into a target tenant
      */
-    public function importBackupZip($zipPath, $targetTenantId, $password = null, $invokerUserId = null)
+    public function importBackupZip($zipPath, $targetTenantId, $password = null, $invokerUserId = null, $progressCallback = null)
     {
         // 0. Set restoring state
         $tenant = Tenant::findOrFail($targetTenantId);
@@ -349,11 +370,26 @@ class TenantBackupService
             
             $data = $backup['data'];
             
+            if ($progressCallback) $progressCallback(5, 'Veritabanı temizleniyor...');
+
             // 2. Clear old data before import
             $deleteUsers = isset($data['users']);
             $this->resetTenantData($targetTenantId, $invokerUserId, $deleteUsers);
 
-            // 3. ID Mapping maps
+            // DB progress tracking
+            $totalDbItems = 0;
+            foreach ($data as $items) if (is_array($items)) $totalDbItems += count($items);
+            $processedDbItems = 0;
+
+            $tick = function($msg) use ($progressCallback, $totalDbItems, &$processedDbItems) {
+                $processedDbItems++;
+                if ($progressCallback && ($processedDbItems % 10 == 0 || $processedDbItems == $totalDbItems)) {
+                    $percent = 10 + round(($processedDbItems / max(1, $totalDbItems)) * 20); // %10 -> %30 arası
+                    $progressCallback($percent, $msg);
+                }
+            };
+
+            // ID Mapping maps
             $serviceMap = [];
             $cfMap = [];
             $statusMap = [];
@@ -364,15 +400,13 @@ class TenantBackupService
             $cashMap = [];
             $stCatMap = [];
             $stMap = [];
+            $userMap = [];
 
-            \Illuminate\Database\Eloquent\Model::unguard();
-            
-            \Illuminate\Support\Facades\DB::transaction(function () use ($data, $targetTenantId, &$serviceMap, &$cfMap, &$statusMap, &$customerMap, &$proposalMap, &$jobMap, &$expenseCatMap, &$cashMap, &$stCatMap, &$stMap) {
-                // ... same import logic as before ...
-                
+            // Model::unguard() removed for security. Using explicit creation logic
+            \Illuminate\Support\Facades\DB::transaction(function () use ($data, $targetTenantId, &$serviceMap, &$cfMap, &$statusMap, &$customerMap, &$proposalMap, &$jobMap, &$userMap, &$expenseCatMap, &$cashMap, &$stCatMap, &$stMap, $tick) {
                 // Services & Custom Fields
                 foreach (($data['services'] ?? []) as $s) {
-                    $service = \App\Models\Service::create([
+                    $service = \App\Models\Service::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'name' => $s['name'],
                         'config' => $s['config'] ?? '{}',
@@ -380,7 +414,7 @@ class TenantBackupService
                     $serviceMap[$s['id']] = $service->id;
                     
                     foreach (($s['customfield'] ?? []) as $cf) {
-                        $newCf = $service->customFields()->create([
+                        $newCf = $service->customFields()->forceCreate([
                             'label' => $cf['label'],
                             'type' => $cf['type'],
                             'required' => $cf['required'] ?? false,
@@ -388,6 +422,22 @@ class TenantBackupService
                         ]);
                         $cfMap[$cf['id']] = $newCf->id;
                     }
+                    $tick("Servisler içe aktarılıyor...");
+                }
+
+                // Users (Personnel)
+                foreach (($data['users'] ?? []) as $u) {
+                    $newUser = \App\Models\User::firstOrCreate(
+                        ['tenant_id' => $targetTenantId, 'email' => $u['email']],
+                        [
+                            'id' => \Illuminate\Support\Str::uuid()->toString(),
+                            'name' => $u['name'],
+                            'password' => $u['password'],
+                            'role' => $u['role'] ?? 'USER',
+                        ]
+                    );
+                    $userMap[$u['id']] = $newUser->id;
+                    $tick("Personeller...");
                 }
 
                 // Roles
@@ -396,30 +446,33 @@ class TenantBackupService
                     if (!empty($r['permissions'])) {
                         $role->syncPermissions($r['permissions']);
                     }
+                    $tick("Yetkiler işleniyor...");
                 }
 
                 // Job Statuses
                 foreach (($data['jobstatuses'] ?? []) as $s) {
-                    $status = \App\Models\JobStatus::create([
+                    $status = \App\Models\JobStatus::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'name' => $s['name'],
                         'color' => $s['color'],
                         'order' => $s['order'] ?? 0,
                     ]);
                     $statusMap[$s['id']] = $status->id;
+                    $tick("İş durumları işleniyor...");
                 }
 
                 // Step Templates
                 foreach (($data['steptemplates'] ?? []) as $t) {
-                    $template = \App\Models\StepTemplate::create(['tenant_id' => $targetTenantId, 'name' => $t['name']]);
+                    $template = \App\Models\StepTemplate::forceCreate(['tenant_id' => $targetTenantId, 'name' => $t['name']]);
                     foreach (($t['defaultstep'] ?? []) as $ds) {
-                        $template->defaultSteps()->create(['tenant_id' => $targetTenantId, 'title' => $ds['title'], 'order' => $ds['order'] ?? 0]);
+                        $template->defaultSteps()->forceCreate(['tenant_id' => $targetTenantId, 'title' => $ds['title'], 'order' => $ds['order'] ?? 0]);
                     }
+                    $tick("Adım şablonları işleniyor...");
                 }
 
                 // Customers
                 foreach (($data['customers'] ?? []) as $c) {
-                    $customer = \App\Models\Customer::create([
+                    $customer = \App\Models\Customer::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'name' => $c['name'],
                         'phone' => $c['phone'],
@@ -427,11 +480,12 @@ class TenantBackupService
                         'notes' => $c['notes'],
                     ]);
                     $customerMap[$c['id']] = $customer->id;
+                    $tick("Müşteriler işleniyor...");
                 }
 
                 // Proposals
                 foreach (($data['proposals'] ?? []) as $p) {
-                    $prop = \App\Models\Proposal::create([
+                    $prop = \App\Models\Proposal::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'customer_id' => $customerMap[$p['customerId']] ?? null,
                         'service_id' => $serviceMap[$p['serviceId']] ?? null,
@@ -452,31 +506,34 @@ class TenantBackupService
                     $proposalMap[$p['id']] = $prop->id;
                     
                     foreach (($p['items'] ?? []) as $item) {
-                        $prop->items()->create(['description' => $item['description'], 'quantity' => $item['quantity'], 'unit_price' => $item['unitPrice'], 'total_price' => $item['totalPrice']]);
+                        $prop->items()->forceCreate(['description' => $item['description'], 'quantity' => $item['quantity'], 'unit_price' => $item['unitPrice'], 'total_price' => $item['totalPrice']]);
                     }
                     foreach (($p['installments'] ?? []) as $inst) {
-                        $prop->installments()->create(['amount' => $inst['amount'], 'percentage' => $inst['percentage'], 'payment_date' => $inst['paymentDate'], 'description' => $inst['description'], 'is_paid' => $inst['isPaid'], 'paid_at' => $inst['paidAt']]);
+                        $prop->installments()->forceCreate(['amount' => $inst['amount'], 'percentage' => $inst['percentage'], 'payment_date' => $inst['paymentDate'], 'description' => $inst['description'], 'is_paid' => $inst['isPaid'], 'paid_at' => $inst['paidAt']]);
                     }
                     foreach (($p['revisionRequests'] ?? []) as $rev) {
-                        $prop->revisionRequests()->create(['notes' => $rev['notes'], 'status' => $rev['status']]);
+                        $prop->revisionRequests()->forceCreate(['notes' => $rev['notes'], 'status' => $rev['status']]);
                     }
+                    $tick("Teklifler işleniyor...");
                 }
 
                 // Cash Registers
                 foreach (($data['cash_registers'] ?? []) as $cr) {
-                    $reg = \App\Models\CashRegister::create(['tenant_id' => $targetTenantId, 'name' => $cr['name'], 'is_default' => $cr['is_default']]);
+                    $reg = \App\Models\CashRegister::forceCreate(['tenant_id' => $targetTenantId, 'name' => $cr['name'], 'is_default' => $cr['is_default']]);
                     $cashMap[$cr['id']] = $reg->id;
+                    $tick("Kasalar işleniyor...");
                 }
 
                 // Expense Categories
                 foreach (($data['expensecategories'] ?? []) as $ec) {
-                    $cat = \App\Models\ExpenseCategory::create(['tenant_id' => $targetTenantId, 'name' => $ec['name']]);
+                    $cat = \App\Models\ExpenseCategory::forceCreate(['tenant_id' => $targetTenantId, 'name' => $ec['name']]);
                     $expenseCatMap[$ec['id']] = $cat->id;
+                    $tick("Gider kategorileri işleniyor...");
                 }
 
                 // Jobs
                 foreach (($data['jobs'] ?? []) as $j) {
-                    $job = \App\Models\JobCrm::create([
+                    $job = \App\Models\JobCrm::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'customer_id' => $customerMap[$j['customerId']] ?? null,
                         'service_id' => $serviceMap[$j['serviceId']] ?? null,
@@ -490,22 +547,24 @@ class TenantBackupService
                         'subtotal' => $j['subtotal'] ?? 0,
                         'is_vat_included' => $j['vat'] ?? false,
                         'vat_amount' => $j['vatAmount'] ?? 0,
-                        'proposal_id' => $proposalMap[$j['proposalId']] ?? null,
+                        'vat_rate' => $j['vatRate'] ?? 0,
+                        'proposal_id' => $proposalMap[$j['proposalId'] ?? ''] ?? null,
+                        'user_id' => $userMap[$j['userId'] ?? ''] ?? null,
                         'order' => $j['order'] ?? 0,
                     ]);
                     $jobMap[$j['id']] = $job->id;
                     
                     if ($j['jobdetail']) {
-                        $job->jobDetail()->create(['customer_requests' => $j['jobdetail']['customer_requests'], 'notes' => $j['jobdetail']['notes']]);
+                        $job->jobDetail()->forceCreate(['customer_requests' => $j['jobdetail']['customer_requests'], 'notes' => $j['jobdetail']['notes']]);
                     }
                     foreach (($j['jobstep'] ?? []) as $step) {
-                        $job->jobSteps()->create(['title' => $step['title'], 'is_completed' => $step['isCompleted'], 'order' => $step['order']]);
+                        $job->jobSteps()->forceCreate(['title' => $step['title'], 'is_completed' => $step['isCompleted'], 'order' => $step['order']]);
                     }
                     foreach (($j['customfieldvalue'] ?? []) as $val) {
-                        $job->customFieldValues()->create(['custom_field_id' => $cfMap[$val['customFieldId']] ?? null, 'value' => $val['value']]);
+                        $job->customFieldValues()->forceCreate(['custom_field_id' => $cfMap[$val['customFieldId']] ?? null, 'value' => $val['value']]);
                     }
                     foreach (($j['payment'] ?? []) as $p) {
-                        $job->payments()->create([
+                        $job->payments()->forceCreate([
                             'tenant_id' => $targetTenantId,
                             'cash_register_id' => $cashMap[$p['cashRegisterId']] ?? null,
                             'amount' => $p['amount'],
@@ -516,18 +575,19 @@ class TenantBackupService
                         ]);
                     }
                     foreach (($j['jobfile'] ?? []) as $f) {
-                        $job->jobFiles()->create([
+                        $job->jobFiles()->forceCreate([
                             'file_name' => $f['fileName'],
                             'file_path' => $f['filePath'], 
                             'file_type' => $f['fileType'],
                             'file_size' => $f['fileSize'],
                         ]);
                     }
+                    $tick("İşler ve kayıtlar işleniyor...");
                 }
 
                 // Expenses
                 foreach (($data['expenses'] ?? []) as $e) {
-                    \App\Models\Expense::create([
+                    \App\Models\Expense::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'job_id' => $jobMap[$e['jobId']] ?? null,
                         'category_id' => $expenseCatMap[$e['categoryId']] ?? null,
@@ -538,14 +598,16 @@ class TenantBackupService
                         'description' => $e['description'],
                         'receipt_path' => $e['receiptPath'],
                     ]);
+                    $tick("Giderler işleniyor...");
                 }
 
                 // Appointments & Titles
                 foreach (($data['appointment_titles'] ?? []) as $at) {
-                    \App\Models\AppointmentTitle::create(['tenant_id' => $targetTenantId, 'name' => $at['name']]);
+                    \App\Models\AppointmentTitle::forceCreate(['tenant_id' => $targetTenantId, 'name' => $at['name']]);
+                    $tick("Randevu başlıkları...");
                 }
                 foreach (($data['appointments'] ?? []) as $a) {
-                    \App\Models\Appointment::create([
+                    \App\Models\Appointment::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'customer_id' => $customerMap[$a['customerId']] ?? null,
                         'title' => $a['title'],
@@ -554,15 +616,17 @@ class TenantBackupService
                         'end_time' => $a['endTime'],
                         'status' => $a['status'],
                     ]);
+                    $tick("Randevular...");
                 }
 
                 // Service Tracking
                 foreach (($data['service_tracking_categories'] ?? []) as $stc) {
-                    $cat = \App\Models\ServiceTrackingCategory::create(['tenant_id' => $targetTenantId, 'name' => $stc['name']]);
+                    $cat = \App\Models\ServiceTrackingCategory::forceCreate(['tenant_id' => $targetTenantId, 'name' => $stc['name']]);
                     $stCatMap[$stc['id']] = $cat->id;
+                    $tick("Takip kategorileri...");
                 }
                 foreach (($data['service_trackings'] ?? []) as $st) {
-                    $track = \App\Models\ServiceTracking::create([
+                    $track = \App\Models\ServiceTracking::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'category_id' => $stCatMap[$st['categoryId']] ?? null,
                         'customer_id' => $customerMap[$st['customerId']] ?? null,
@@ -576,9 +640,10 @@ class TenantBackupService
                         'status' => $st['status'],
                     ]);
                     $stMap[$st['id']] = $track->id;
+                    $tick("Servis takipleri...");
                 }
                 foreach (($data['service_tracking_logs'] ?? []) as $sl) {
-                    \App\Models\ServiceTrackingLog::create([
+                    \App\Models\ServiceTrackingLog::forceCreate([
                         'tenant_id' => $targetTenantId,
                         'service_tracking_id' => $stMap[$sl['serviceTrackingId']] ?? null,
                         'planned_date' => $sl['plannedDate'],
@@ -586,21 +651,61 @@ class TenantBackupService
                         'status' => $sl['status'],
                         'notes' => $sl['notes']
                     ]);
+                    $tick("Takip kayıtları...");
+                }
+
+                // Activity Logs
+                foreach (($data['activitylogs'] ?? []) as $log) {
+                    \App\Models\ActivityLog::forceCreate([
+                        'tenant_id' => $targetTenantId,
+                        'user_id' => $userMap[$log['userId'] ?? ''] ?? null,
+                        'action' => $log['action'] ?? 'UPDATE',
+                        'entity_type' => $log['entityType'] ?? 'SYSTEM',
+                        'entity_id' => $log['entityId'] ?? null,
+                        'entity_name' => $log['entityName'] ?? null,
+                        'details' => $log['details'] ?? null,
+                        'created_at' => $log['createdAt'] ?? now(),
+                    ]);
                 }
             });
+
+            if ($progressCallback) {
+                $progressCallback(30, "Veritabanı verileri içe aktarıldı.");
+            }
 
             // 4. Handle Files
             $totalSize = 0;
             if ($this->setGlobalS3Config($targetTenantId)) {
                 $s3 = \Illuminate\Support\Facades\Storage::disk('s3_global');
                 
+                $fileIndices = [];
                 for ($i = 0; $i < $zip->numFiles; $i++) {
                     $filename = $zip->getNameIndex($i);
                     if (str_starts_with($filename, 'files/')) {
-                        $content = $zip->getFromIndex($i);
-                        $totalSize += strlen($content);
+                        $fileIndices[] = $i;
+                    }
+                }
+
+                $totalFiles = count($fileIndices);
+                $processedFiles = 0;
+
+                foreach ($fileIndices as $index) {
+                    $filename = $zip->getNameIndex($index);
+                    $fileStat = $zip->statIndex($index);
+                    $totalSize += $fileStat['size'] ?? 0;
+                    
+                    $stream = $zip->getStream($filename);
+                    if ($stream) {
                         $s3Path = "tenants/{$targetTenantId}/" . str_replace('files/', '', $filename);
-                        $s3->put($s3Path, $content);
+                        $s3->writeStream($s3Path, $stream);
+                    }
+                    
+                    $processedFiles++;
+                    if ($progressCallback) {
+                        // DB is first 30%, files are the remaining 70%
+                        $progress = 30 + round(($processedFiles / max(1, $totalFiles)) * 70);
+                        if ($progress > 99) $progress = 99; // 100 is reserved for absolute finish
+                        $progressCallback($progress, "Dosyalar S3'e yükleniyor: {$processedFiles}/{$totalFiles}");
                     }
                 }
 
@@ -624,9 +729,9 @@ class TenantBackupService
             $tenant->update(['storage_used' => $totalSize]);
             
             $zip->close();
-            \Illuminate\Database\Eloquent\Model::reguard();
             
             $tenant->update(['is_restoring' => false]);
+            if ($progressCallback) $progressCallback(100, "Tamamlandı");
             return true;
         } catch (\Exception $e) {
             $tenant->update(['is_restoring' => false]);
@@ -671,6 +776,11 @@ class TenantBackupService
             \App\Models\StepTemplate::where('tenant_id', $tenantId)->delete();
 
             \App\Models\ActivityLog::where('tenant_id', $tenantId)->delete();
+
+            // Clear cache versions for this tenant
+            foreach (['customers', 'jobs', 'payments', 'expenses', 'appointments', 'proposals'] as $mod) {
+                \Illuminate\Support\Facades\Cache::forget("tenant_{$tenantId}_{$mod}_version");
+            }
             \App\Models\ApiKey::where('tenant_id', $tenantId)->delete();
             \App\Models\Appointment::where('tenant_id', $tenantId)->delete();
             \App\Models\AppointmentTitle::where('tenant_id', $tenantId)->delete();
@@ -688,6 +798,25 @@ class TenantBackupService
                 $query->delete();
             }
         });
+    }
+
+    /**
+     * Helper to create an initial admin user for the tenant.
+     * Bypasses mass-assignment for tenant_id.
+     */
+    public function createAdminForTenant($tenantId, $name, $email, $password)
+    {
+        $user = new \App\Models\User([
+            'id'          => \Illuminate\Support\Str::uuid()->toString(),
+            'name'        => $name,
+            'email'       => $email,
+            'password'    => \Illuminate\Support\Facades\Hash::make($password),
+            'role'        => 'ADMIN',
+            'is_approved' => true,
+        ]);
+        $user->tenant_id = $tenantId;
+        $user->save();
+        return $user;
     }
 
     /**

@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AppointmentTitle extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'appointment_titles';
+    protected $relatedCacheModules = ['appointments'];
+
 
     protected $fillable = [
-        'tenant_id',
         'name',
     ];
 

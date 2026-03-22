@@ -6,8 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Service extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'services';
+    protected $relatedCacheModules = ['jobs', 'proposals'];
+
     protected $fillable = [
-        'tenant_id', 'name', 'config',
+        'name', 'config',
     ];
 
     public function tenant()

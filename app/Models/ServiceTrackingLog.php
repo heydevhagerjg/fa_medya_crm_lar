@@ -6,8 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class ServiceTrackingLog extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'service_trackings';
+
     protected $fillable = [
-        'tenant_id',
         'service_tracking_id',
         'planned_date',
         'completed_at',

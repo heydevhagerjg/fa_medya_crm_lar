@@ -74,22 +74,22 @@ export default function PricingPage() {
                     <div className="relative bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-[32px] overflow-hidden shadow-2xl">
                         {/* Comparison Table */}
                         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
-                            <table className="w-full table-fixed border-collapse">
+                            <table className="w-full border-collapse">
                                 <thead>
                                     <tr>
                                         {/* Sticky Top-Left Corner */}
-                                        <th className="sticky left-0 z-20 w-64 p-8 bg-gray-50 dark:bg-gray-900 border-r border-b border-gray-100 dark:border-gray-800 text-left">
+                                        <th className="sticky left-0 z-30 w-[280px] min-w-[220px] p-8 bg-white dark:bg-[#0b0f1a] border-r border-b border-gray-100 dark:border-gray-800 text-left shadow-[4px_0_12px_rgba(0,0,0,0.05)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.2)]">
                                             <div className="text-sm font-black text-gray-400 uppercase tracking-widest">ÖZELLİKLER</div>
                                         </th>
 
                                         {packages.map((pkg, idx) => (
-                                            <th key={pkg.id} className={`min-w-[260px] p-8 border-b border-gray-100 dark:border-gray-800 text-center relative ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
-                                                {idx === 1 && (
-                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black uppercase rounded-b-xl">
+                                            <th key={pkg.id} className={`w-[280px] min-w-[220px] p-8 border-b border-gray-100 dark:border-gray-800 text-center relative ${pkg.is_popular ? 'bg-indigo-600/5' : ''}`}>
+                                                {pkg.is_popular && (
+                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black uppercase rounded-b-xl shadow-lg">
                                                         Popüler
                                                     </div>
                                                 )}
-                                                <div className="text-2xl font-black text-gray-900 dark:text-white mb-2">{pkg.name}</div>
+                                                <div className="text-2xl font-black text-gray-900 dark:text-white mb-2 truncate px-2">{pkg.name}</div>
                                                 <div className="flex items-baseline justify-center gap-1 mb-4">
                                                     {Number(pkg.price) > 0 ? (
                                                         <>
@@ -102,7 +102,7 @@ export default function PricingPage() {
                                                 </div>
                                                 <Link
                                                     to={`/register?package=${pkg.id}`}
-                                                    className={`inline-flex items-center gap-2 w-full justify-center py-3 px-4 rounded-xl text-xs font-black transition-all active:scale-95 ${idx === 1 ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                                                    className={`inline-flex items-center gap-2 w-full justify-center py-3 px-4 rounded-xl text-xs font-black transition-all active:scale-95 ${pkg.is_popular ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                                                 >
                                                     HEMEN BAŞLAT <ChevronRight size={14} />
                                                 </Link>
@@ -114,14 +114,14 @@ export default function PricingPage() {
                                     {features.map((feature, fIdx) => (
                                         <tr key={feature.key} className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
                                             {/* Sticky Left Column with Feature Name */}
-                                            <td className="sticky left-0 z-10 p-5 px-8 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                            <td className="sticky left-0 z-20 p-5 px-8 bg-white dark:bg-[#0b0f1a] border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-[4px_0_12px_rgba(0,0,0,0.03)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.15)] opacity-100">
                                                 {feature.label}
                                             </td>
 
                                             {packages.map((pkg, idx) => {
                                                 const value = pkg[feature.key];
                                                 return (
-                                                    <td key={`${pkg.id}-${feature.key}`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
+                                                    <td key={`${pkg.id}-${feature.key}`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
                                                         {feature.type === 'boolean' ? (
                                                             value ? (
                                                                 <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500">
@@ -144,11 +144,11 @@ export default function PricingPage() {
                                     ))}
                                     {/* Additional Trial Row */}
                                     <tr className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                                        <td className="sticky left-0 z-10 p-5 px-8 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        <td className="sticky left-0 z-20 p-5 px-8 bg-white dark:bg-[#0b0f1a] border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-[4px_0_12px_rgba(0,0,0,0.03)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.15)] opacity-100">
                                             Deneme Süresi
                                         </td>
                                         {packages.map((pkg, idx) => (
-                                            <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx === 1 ? 'bg-indigo-600/5' : ''}`}>
+                                            <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
                                                 {pkg.trial_days} Gün Ücretsiz
                                             </td>
                                         ))}
@@ -157,6 +157,7 @@ export default function PricingPage() {
                             </table>
                         </div>
                     </div>
+
                 )}
 
                 <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-12 text-center border-t border-gray-200 dark:border-gray-800 pt-20">

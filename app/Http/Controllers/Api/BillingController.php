@@ -44,6 +44,18 @@ class BillingController extends Controller
             'package' => $tenant->package,
             'receipts' => $tenant->transactions()->latest()->get(),
             'all_packages' => \App\Models\Package::where('is_active', true)->get(),
+            'usage' => [
+                'personnel' => ['label' => 'Personel', 'limit' => $tenant->plan_personnel_limit, 'used' => $tenant->getResourceCount('personnel')],
+                'customer' => ['label' => 'Müşteri', 'limit' => $tenant->plan_customer_limit, 'used' => $tenant->getResourceCount('customer')],
+                'job' => ['label' => 'İş Takibi', 'limit' => $tenant->plan_job_limit, 'used' => $tenant->getResourceCount('job')],
+                'appointment' => ['label' => 'Randevu', 'limit' => $tenant->plan_appointment_limit, 'used' => $tenant->getResourceCount('appointment')],
+                'service_tracking' => ['label' => 'Hizmet Takibi', 'limit' => $tenant->plan_service_tracking_limit, 'used' => $tenant->getResourceCount('service_tracking')],
+                'service' => ['label' => 'Tanımlı Hizmetler', 'limit' => $tenant->plan_service_limit, 'used' => $tenant->getResourceCount('service')],
+                'step_template' => ['label' => 'Adım Şablonları', 'limit' => $tenant->plan_step_template_limit, 'used' => $tenant->getResourceCount('step_template')],
+                'cash_register' => ['label' => 'Kasa', 'limit' => $tenant->plan_cash_register_limit, 'used' => $tenant->getResourceCount('cash_register')],
+                'proposal' => ['label' => 'Teklif', 'limit' => $tenant->plan_proposal_limit, 'used' => $tenant->getResourceCount('proposal')],
+                'disk_usage' => ['label' => 'Disk Kullanımı (MB)', 'limit' => $tenant->plan_disk_usage_limit, 'used' => round(($tenant->storage_used ?? 0) / (1024 * 1024), 2)],
+            ]
         ]);
     }
 

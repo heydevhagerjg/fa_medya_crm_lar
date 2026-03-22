@@ -8,6 +8,39 @@ use Illuminate\Support\Facades\Request;
 trait HasTenantCache
 {
     /**
+     * Boot the trait to clear cache on model events
+     */
+    protected static function bootHasTenantCache()
+    {
+        static::saved(function ($model) {
+            $model->clearModelCache();
+        });
+
+        static::deleted(function ($model) {
+            $model->clearModelCache();
+        });
+    }
+
+    /**
+     * Internal helper to clear model-specific cache
+     */
+    protected function clearModelCache()
+    {
+        $module = property_exists($this, 'cacheModule') ? $this->cacheModule : $this->getTable();
+        $tenantId = $this->tenant_id ?? (auth()->check() ? auth()->user()->tenant_id : null);
+        
+        if ($tenantId) {
+            $this->clearTenantCache($module, $tenantId);
+            
+            if (property_exists($this, 'relatedCacheModules')) {
+                foreach ($this->relatedCacheModules as $relModule) {
+                    $this->clearTenantCache($relModule, $tenantId);
+                }
+            }
+        }
+    }
+
+    /**
      * Get the cache TTL in seconds from .env
      */
     protected function getCacheTTL(): int

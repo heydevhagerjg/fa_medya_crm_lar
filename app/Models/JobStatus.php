@@ -6,10 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobStatus extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'jobs'; // Status changes affect job lists
+
     protected $table = 'job_statuses';
 
     protected $fillable = [
-        'tenant_id', 'name', 'color', 'order',
+        'name', 'color', 'order',
     ];
 
     public function tenant()

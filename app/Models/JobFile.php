@@ -7,7 +7,22 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class JobFile extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'files';
+    protected $relatedCacheModules = ['jobs'];
+
+    protected static function booted()
+    {
+        static::deleted(function ($file) {
+            $tenantId = $file->job?->tenant_id;
+            if ($tenantId && $file->file_path && $disk = Tenant::getS3DiskForTenant($tenantId)) {
+                $disk->delete($file->file_path);
+            }
+        });
+    }
+
+
     protected $table = 'job_files';
     public $timestamps = false;
 

@@ -6,7 +6,7 @@ import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCh
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
-const emptyForm = { name: '', package_id: '', s3_config_id: '' }
+const emptyForm = { name: '', package_id: '', s3_config_id: '', admin_name: '', admin_email: '', admin_password: '' }
 const emptyUserForm = { name: '', email: '', password: 'password123', role: 'USER' }
 
 export default function TenantsPage() {
@@ -303,9 +303,9 @@ export default function TenantsPage() {
                                             }}
                                         />
                                     </th>
-                                    <th className="px-5 py-4">Firma Adı / S3</th>
-                                    <th className="px-5 py-4">Mevcut Paket</th>
-                                    <th className="px-5 py-4 text-center">Limitler/Kullanıcılar</th>
+                                    <th className="px-5 py-4">Firma Adı</th>
+                                    <th className="px-5 py-4">Paket</th>
+                                    <th className="px-5 py-4 text-center">Özellikler</th>
                                     <th className="px-5 py-4 text-right">İşlem</th>
                                 </tr>
                             </thead>
@@ -444,6 +444,47 @@ export default function TenantsPage() {
                                 <option key={s3.id} value={s3.id}>{s3.name} {!s3.is_active && '(Pasif)'}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="h-px bg-gray-100 dark:bg-gray-800 my-2"></div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Yönetici Bilgileri</div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Ad Soyad *</label>
+                            <input
+                                type="text"
+                                value={form.admin_name}
+                                onChange={e => setForm({ ...form, admin_name: e.target.value })}
+                                required
+                                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                placeholder="Örn: Ahmet Yılmaz"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici E-posta *</label>
+                                <input
+                                    type="email"
+                                    value={form.admin_email}
+                                    onChange={e => setForm({ ...form, admin_email: e.target.value })}
+                                    required
+                                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    placeholder="admin@firma.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Şifre *</label>
+                                <input
+                                    type="password"
+                                    value={form.admin_password}
+                                    onChange={e => setForm({ ...form, admin_password: e.target.value })}
+                                    required
+                                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>

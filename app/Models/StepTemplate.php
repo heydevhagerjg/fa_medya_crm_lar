@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class StepTemplate extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $table = 'step_templates';
 
     protected $fillable = [
-        'tenant_id', 'name',
+        'name',
     ];
 
     public function tenant()

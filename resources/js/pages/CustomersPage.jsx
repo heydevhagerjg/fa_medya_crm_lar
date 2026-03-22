@@ -5,14 +5,22 @@ import api from '../lib/api.js'
 import { formatPhoneNumber } from '../lib/utils'
 
 import toast from 'react-hot-toast'
-import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, ChevronRight, X, Check } from 'lucide-react'
+import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, ChevronRight, X, Check, XCircle } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useEffect } from 'react'
+import { useAuthStore } from '../stores/index.js'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const emptyForm = { name: '', phone: '', email: '', notes: '' }
 
 export default function CustomersPage() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_customer_feature === false || user?.tenant?.plan_customer_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Müşteri" />
+    }
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, customer: null })
     const [form, setForm] = useState(emptyForm)
@@ -25,9 +33,10 @@ export default function CustomersPage() {
         setCurrentPage(1)
     }, [search])
 
-    const { data: customers = [], isLoading } = useQuery({
+    const { data: customers = [], isLoading, error, isError } = useQuery({
         queryKey: ['customers'],
         queryFn: () => api.get('/customers').then(r => r.data),
+        retry: false
     })
 
     const saveMutation = useMutation({
@@ -109,6 +118,8 @@ export default function CustomersPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                ) : isError ? (
+                    <PlanRestrictionView featureName="Müşteri" />
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Users size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />

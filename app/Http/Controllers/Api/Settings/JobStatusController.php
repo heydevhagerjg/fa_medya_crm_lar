@@ -90,8 +90,6 @@ class JobStatusController extends Controller
 
         $status->delete();
         
-        $this->clearTenantCache('jobs');
-
         return response()->json(['message' => 'Durum silindi. Varsa içindeki işler Varsayılan kategoriye taşındı.']);
     }
 }

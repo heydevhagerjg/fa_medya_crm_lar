@@ -113,8 +113,6 @@ class CustomerController extends Controller
         $tenantId = $request->user()->tenant_id;
         $customer = Customer::create(array_merge($validated, ['tenant_id' => $tenantId]));
 
-        $this->clearTenantCache('customers');
-
         ActivityLogService::log($request->user(), 'CREATE', 'CUSTOMER', $customer->id, $customer->name,
             "{$customer->name} isimli müşteri oluşturuldu.");
 
@@ -134,7 +132,6 @@ class CustomerController extends Controller
         ]);
 
         $customer->update($validated);
-        $this->clearTenantCache('customers');
 
         ActivityLogService::log($request->user(), 'UPDATE', 'CUSTOMER', $customer->id, $customer->name,
             "{$customer->name} isimli müşteri güncellendi.");
@@ -151,7 +148,6 @@ class CustomerController extends Controller
             "{$customer->name} isimli müşteri silindi.");
 
         $customer->delete();
-        $this->clearTenantCache('customers');
 
         return response()->json(['message' => 'Müşteri silindi.']);
     }

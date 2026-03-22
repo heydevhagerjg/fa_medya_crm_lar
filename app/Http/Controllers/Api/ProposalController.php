@@ -228,7 +228,7 @@ class ProposalController extends Controller
 
             // Clear job cache to reflect changes in installments
             if ($proposal->job) {
-                $this->clearTenantCache('jobs', $tenantId);
+                // Automated via model
             }
 
             return response()->json($proposal->load(['items', 'installments']));
@@ -418,9 +418,6 @@ class ProposalController extends Controller
                     'description'      => $installment->description ?: "Taksit ödemesi (" . $installment->amount . " TL)",
                     'cash_register_id' => $defaultCash ? $defaultCash->id : null,
                 ]);
-
-                $this->clearTenantCache('payments', $tenantId);
-                $this->clearTenantCache('jobs', $tenantId);
             }
         });
 

@@ -10,13 +10,13 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, \App\Traits\BelongsToTenant;
 
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'name', 'email', 'password', 'role', 'is_approved', 'tenant_id',
+        'id', 'name', 'email', 'password', 'role', 'is_approved',
     ];
 
     protected $hidden = [

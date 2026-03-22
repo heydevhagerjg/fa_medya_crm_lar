@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
@@ -8,8 +8,10 @@ import {
     MoreHorizontal, Check, X, Clock, PlusCircle, Link,
     RotateCcw, MessageSquare, CheckCircle, XCircle, Download, Briefcase
 } from 'lucide-react'
+import { useAuthStore } from '../stores/index.js'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const statuses = {
     'DRAFT': { label: 'Taslak', color: 'bg-gray-100 text-gray-600 border-gray-200' },
@@ -25,6 +27,12 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
 export default function ProposalsPage() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_proposal_feature === false || user?.tenant?.plan_proposal_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Teklif" />
+    }
     const [searchParams, setSearchParams] = useSearchParams()
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
@@ -46,9 +54,10 @@ export default function ProposalsPage() {
     const itemsPerPage = 10
     const qc = useQueryClient()
 
-    const { data: proposals = [], isLoading } = useQuery({
+    const { data: proposals = [], isLoading, error, isError } = useQuery({
         queryKey: ['proposals'],
         queryFn: () => api.get('/proposals').then(r => r.data),
+        retry: false
     })
 
     useEffect(() => {
@@ -327,6 +336,8 @@ export default function ProposalsPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                ) : isError ? (
+                    <PlanRestrictionView featureName="Teklif" />
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <FileText size={48} className="mx-auto text-gray-200 dark:text-gray-800 mb-4" />

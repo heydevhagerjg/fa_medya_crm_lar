@@ -233,6 +233,20 @@ class AuthController extends Controller
                 'storage_limit' => $user->tenant->plan_disk_usage_limit,
                 'single_file_limit' => $user->tenant->plan_single_file_limit ?: 50,
                 'is_restoring' => $user->tenant->is_restoring,
+
+                // Feature Flags
+                'plan_appointment_feature'      => $user->tenant->plan_appointment_feature,
+                'plan_service_tracking_feature' => $user->tenant->plan_service_tracking_feature,
+                'plan_proposal_feature'         => $user->tenant->plan_proposal_feature,
+                'plan_backup_feature'           => $user->tenant->plan_backup_feature,
+                'plan_api_key_feature'          => $user->tenant->plan_api_key_feature,
+                'plan_services_section_feature' => $user->tenant->plan_services_section_feature,
+                'plan_step_templates_feature'   => $user->tenant->plan_step_templates_feature,
+                
+                // Limits (Optional but useful)
+                'plan_customer_limit'  => $user->tenant->plan_customer_limit,
+                'plan_job_limit'       => $user->tenant->plan_job_limit,
+                'plan_personnel_limit' => $user->tenant->plan_personnel_limit,
             ];
         }
 

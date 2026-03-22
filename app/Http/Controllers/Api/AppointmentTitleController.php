@@ -37,8 +37,6 @@ class AppointmentTitleController extends Controller
             'name' => $validated['name'],
         ]);
 
-        $this->clearTenantCache('appointment_titles');
-
         return response()->json($title, 201);
     }
 
@@ -52,8 +50,6 @@ class AppointmentTitleController extends Controller
 
         $title->update($validated);
 
-        $this->clearTenantCache('appointment_titles');
-
         return response()->json($title);
     }
 
@@ -61,8 +57,6 @@ class AppointmentTitleController extends Controller
     {
         $title = AppointmentTitle::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
         $title->delete();
-
-        $this->clearTenantCache('appointment_titles');
 
         return response()->json(['message' => 'Başlık silindi.']);
     }

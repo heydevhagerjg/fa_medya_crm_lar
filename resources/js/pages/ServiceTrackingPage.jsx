@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { Clock, Plus, Trash2, Edit2, Search, Calendar, User, FolderOpen, History, CheckCircle2, XCircle, Ban, Play } from 'lucide-react'
+import { useAuthStore } from '../stores/index.js'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 const formatDateTime = (val) => val ? new Date(val).toLocaleString('tr-TR') : '-'
@@ -22,6 +24,12 @@ const emptyForm = {
 }
 
 export default function ServiceTrackingPage() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_service_tracking_feature === false || user?.tenant?.plan_service_tracking_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Hizmet Takibi" />
+    }
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, tracking: null })
     const [historyModal, setHistoryModal] = useState({ open: false, tracking: null, logs: [] })
@@ -37,9 +45,10 @@ export default function ServiceTrackingPage() {
         setCurrentPage(1)
     }, [search, statusFilter])
 
-    const { data: trackings = [], isLoading } = useQuery({
+    const { data: trackings = [], isLoading, error, isError } = useQuery({
         queryKey: ['service-trackings', statusFilter],
         queryFn: () => api.get('/service-trackings', { params: { status: statusFilter } }).then(r => r.data),
+        retry: false
     })
 
     const { data: categories = [] } = useQuery({
@@ -235,6 +244,8 @@ export default function ServiceTrackingPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                ) : isError ? (
+                    <PlanRestrictionView featureName="Hizmet Takibi" />
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Clock size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />

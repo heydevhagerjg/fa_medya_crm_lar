@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobCrm extends Model
 {
+    use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
+
+    protected $cacheModule = 'jobs';
+    protected $relatedCacheModules = ['customers', 'files'];
+
     protected $table = 'jobs_crm';
 
     protected static function booted()
@@ -21,7 +26,7 @@ class JobCrm extends Model
     }
 
     protected $fillable = [
-        'tenant_id', 'user_id', 'customer_id', 'proposal_id', 'service_id', 'job_status_id',
+        'user_id', 'customer_id', 'proposal_id', 'service_id', 'job_status_id',
         'title', 'description', 'status', 'start_date', 'end_date', 'total_price', 'order',
         'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount',
     ];

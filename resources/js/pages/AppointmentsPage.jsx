@@ -13,14 +13,23 @@ import {
     X,
     CheckCircle2,
     CalendarDays,
-    ChevronDown
+    ChevronDown,
+    XCircle
 } from 'lucide-react'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday, addHours, addWeeks, subWeeks, addDays, subDays } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { useAuthStore } from '../stores/index.js'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 export default function AppointmentsPage() {
+    const { user } = useAuthStore()
+    const isFeatureDisabled = user?.tenant?.plan_appointment_feature === false || user?.tenant?.plan_appointment_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="Randevu" />
+    }
     const qc = useQueryClient()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
@@ -41,9 +50,10 @@ export default function AppointmentsPage() {
     })
 
     // Fetch appointments
-    const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
+    const { data: appointments = [], isLoading: appointmentsLoading, error, isError } = useQuery({
         queryKey: ['appointments'],
-        queryFn: () => api.get('/appointments').then(r => r.data)
+        queryFn: () => api.get('/appointments').then(r => r.data),
+        retry: false
     })
 
     // Fetch customers for dropdown
@@ -211,105 +221,115 @@ export default function AppointmentsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Calendar Detail / List View */}
                 <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col min-h-[600px]">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30 rounded-t-3xl">
-                        <div className="flex items-center gap-4">
-                            <h2 className="text-lg font-black text-gray-900 dark:text-white capitalize">
-                                {viewMode === 'day' ? format(currentDate, 'd MMMM yyyy', { locale: tr }) : format(currentDate, 'MMMM yyyy', { locale: tr })}
-                            </h2>
-                            <div className="flex items-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-0.5">
-                                <button onClick={prev} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
+                    {appointmentsLoading ? (
+                        <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
+                    ) : isError ? (
+                        <div className="my-auto">
+                            <PlanRestrictionView featureName="Randevu" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30 rounded-t-3xl">
+                                <div className="flex items-center gap-4">
+                                    <h2 className="text-lg font-black text-gray-900 dark:text-white capitalize">
+                                        {viewMode === 'day' ? format(currentDate, 'd MMMM yyyy', { locale: tr }) : format(currentDate, 'MMMM yyyy', { locale: tr })}
+                                    </h2>
+                                    <div className="flex items-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-0.5">
+                                        <button onClick={prev} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
 
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowViewDropdown(!showViewDropdown)}
-                                        className="px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-x border-gray-100 dark:border-gray-700 flex items-center gap-1"
-                                    >
-                                        {viewMode === 'day' ? 'Bugün' : viewMode === 'week' ? 'Bu Hafta' : 'Bu Ay'}
-                                        <ChevronDown size={14} className={`transition-transform ${showViewDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setShowViewDropdown(!showViewDropdown)}
+                                                className="px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-x border-gray-100 dark:border-gray-700 flex items-center gap-1"
+                                            >
+                                                {viewMode === 'day' ? 'Bugün' : viewMode === 'week' ? 'Bu Hafta' : 'Bu Ay'}
+                                                <ChevronDown size={14} className={`transition-transform ${showViewDropdown ? 'rotate-180' : ''}`} />
+                                            </button>
 
-                                    {showViewDropdown && (
-                                        <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowViewDropdown(false)}></div>
-                                            <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
-                                                <button onClick={() => handleViewChange('day')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'day' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bugün</button>
-                                                <button onClick={() => handleViewChange('week')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'week' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Hafta</button>
-                                                <button onClick={() => handleViewChange('month')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'month' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Ay</button>
+                                            {showViewDropdown && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => setShowViewDropdown(false)}></div>
+                                                    <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
+                                                        <button onClick={() => handleViewChange('day')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'day' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bugün</button>
+                                                        <button onClick={() => handleViewChange('week')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'week' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Hafta</button>
+                                                        <button onClick={() => handleViewChange('month')} className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${viewMode === 'month' ? 'text-indigo-600 bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-gray-600 dark:text-gray-400'}`}>Bu Ay</button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <button onClick={next} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronRight size={18} /></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-auto">
+                                <div className={`grid border-b border-gray-100 dark:border-gray-800 ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
+                                    {viewMode === 'day' ? (
+                                        <div className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
+                                            {format(currentDate, 'EEEE', { locale: tr })}
+                                        </div>
+                                    ) : (
+                                        ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
+                                            <div key={day} className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
+                                                {day}
                                             </div>
-                                        </>
+                                        ))
                                     )}
                                 </div>
-
-                                <button onClick={next} className="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors"><ChevronRight size={18} /></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-auto">
-                        <div className={`grid border-b border-gray-100 dark:border-gray-800 ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
-                            {viewMode === 'day' ? (
-                                <div className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
-                                    {format(currentDate, 'EEEE', { locale: tr })}
-                                </div>
-                            ) : (
-                                ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
-                                    <div key={day} className="py-3 text-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/30 dark:bg-gray-900/50">
-                                        {day}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                        <div className={`grid ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
-                            {days.map((day, idx) => {
-                                const dayAppointments = appointments.filter(apt => isSameDay(parseISO(apt.startTime), day))
-                                const isCurrentMonth = isSameMonth(day, currentDate)
-                                const isTodayDay = isToday(day)
+                                <div className={`grid ${viewMode === 'month' ? 'grid-cols-7' : viewMode === 'week' ? 'grid-cols-7' : 'grid-cols-1'}`}>
+                                    {days.map((day, idx) => {
+                                        const dayAppointments = appointments.filter(apt => isSameDay(parseISO(apt.startTime), day))
+                                        const isCurrentMonth = isSameMonth(day, currentDate)
+                                        const isTodayDay = isToday(day)
 
 
-                                return (
-                                    <div
-                                        key={day.toISOString()}
-                                        className={`min-h-[120px] p-2 border-r border-b border-gray-100 dark:border-gray-800 transition-colors group ${!isCurrentMonth ? 'bg-gray-50/30 dark:bg-gray-900/20' : ''} ${isTodayDay ? 'bg-indigo-50/20 dark:bg-indigo-500/5' : ''}`}
-                                    >
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${isTodayDay ? 'bg-indigo-600 text-white shadow-sm' : isCurrentMonth ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'}`}>
-                                                {format(day, 'd')}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            {dayAppointments.map(apt => (
-                                                <button
-                                                    key={apt.id}
-                                                    onClick={() => handleEdit(apt)}
-                                                    className={`w-full text-left p-1.5 rounded-lg text-[10px] font-bold border truncate transition-all ${apt.status === 'COMPLETED'
-                                                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20'
-                                                        : apt.status === 'CANCELLED'
-                                                            ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100 dark:border-red-500/20'
-                                                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400 border-yellow-100 dark:border-yellow-700 shadow-sm hover:border-yellow-300 dark:hover:border-yellow-500'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-1">
-                                                        <Clock size={10} className="flex-shrink-0" />
-                                                        <span>{format(parseISO(apt.startTime), 'HH:mm')}</span>
-                                                    </div>
-                                                    <div className="group mt-1">
-                                                        <Link
-                                                            to={`/customers/${apt.customerId}`}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="text-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors inline-block max-w-full truncate"
+                                        return (
+                                            <div
+                                                key={day.toISOString()}
+                                                className={`min-h-[120px] p-2 border-r border-b border-gray-100 dark:border-gray-800 transition-colors group ${!isCurrentMonth ? 'bg-gray-50/30 dark:bg-gray-900/20' : ''} ${isTodayDay ? 'bg-indigo-50/20 dark:bg-indigo-500/5' : ''}`}
+                                            >
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${isTodayDay ? 'bg-indigo-600 text-white shadow-sm' : isCurrentMonth ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'}`}>
+                                                        {format(day, 'd')}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {dayAppointments.map(apt => (
+                                                        <button
+                                                            key={apt.id}
+                                                            onClick={() => handleEdit(apt)}
+                                                            className={`w-full text-left p-1.5 rounded-lg text-[10px] font-bold border truncate transition-all ${apt.status === 'COMPLETED'
+                                                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20'
+                                                                : apt.status === 'CANCELLED'
+                                                                    ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100 dark:border-red-500/20'
+                                                                    : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400 border-yellow-100 dark:border-yellow-700 shadow-sm hover:border-yellow-300 dark:hover:border-yellow-500'
+                                                                }`}
                                                         >
-                                                            {apt.customer?.name}
-                                                        </Link>
-                                                    </div>
-                                                    <div className="truncate mt-0.5 opacity-80">{apt.title}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock size={10} className="flex-shrink-0" />
+                                                                <span>{format(parseISO(apt.startTime), 'HH:mm')}</span>
+                                                            </div>
+                                                            <div className="group mt-1">
+                                                                <Link
+                                                                    to={`/customers/${apt.customerId}`}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="text-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors inline-block max-w-full truncate"
+                                                                >
+                                                                    {apt.customer?.name}
+                                                                </Link>
+                                                            </div>
+                                                            <div className="truncate mt-0.5 opacity-80">{apt.title}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Sidebar / Stats */}

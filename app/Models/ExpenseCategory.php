@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExpenseCategory extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $table = 'expense_categories';
 
     protected $fillable = [
-        'tenant_id', 'name',
+        'name',
     ];
 
     public function tenant()

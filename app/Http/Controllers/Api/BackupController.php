@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use App\Services\ActivityLogService;
 
 class BackupController extends Controller
@@ -49,42 +50,6 @@ class BackupController extends Controller
 
     private static $globalS3Disk = null;
 
-    private function setGlobalS3Config()
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $tenant = request()->user()->tenant ?? null;
-        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
-            return false;
-        }
-        $config = $tenant->s3Config;
-
-        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
-
-        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
-
-        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($config->aws_access_key_id),
-            'secret' => trim($config->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($config->aws_bucket_name),
-            'endpoint' => $config->aws_endpoint ? trim($config->aws_endpoint) : null,
-            'use_path_style_endpoint' => (bool)($config->use_path_style_endpoint ?? false),
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = 's3_global';
-        return true;
-    }
 
     /**
      * Export all tenant data as a full ZIP (JSON + Files)
@@ -111,10 +76,6 @@ class BackupController extends Controller
     public function listS3Backups(Request $request): JsonResponse
     {
         $tenantId = $request->user()->tenant_id;
-
-        if (!$this->setGlobalS3Config()) {
-            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
-        }
 
         try {
             $backupDir = "tenants/{$tenantId}/backups";
@@ -152,10 +113,6 @@ class BackupController extends Controller
         }
 
         $tenantId = $request->user()->tenant_id;
-
-        if (!$this->setGlobalS3Config()) {
-            return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
-        }
 
         try {
             $path = "tenants/{$tenantId}/backups/" . basename($filename);
@@ -219,16 +176,10 @@ class BackupController extends Controller
 
         $service->resetTenantData($tenantId, $request->user()->id);
 
-        // Clear all tenant caches after reset
-        $this->clearTenantCache('jobs');
-        $this->clearTenantCache('customers');
-        $this->clearTenantCache('services');
-        $this->clearTenantCache('statuses');
-        $this->clearTenantCache('expenses');
-        $this->clearTenantCache('payments');
-        $this->clearTenantCache('appointments');
-        $this->clearTenantCache('cash_registers');
-        $this->clearTenantCache('service_trackings');
+        // Cache will be cleared by models if resetTenantData uses models, 
+        // but since it probably uses direct DB deletes, we might need a manual clear.
+        // Let's keep a global clear here for safety if resetTenantData is "deep".
+        Cache::flush(); // Or more granularly increment all versions
 
         return response()->json(['message' => 'Tüm verileriniz başarıyla sıfırlandı.']);
     }

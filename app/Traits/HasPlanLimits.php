@@ -13,13 +13,26 @@ trait HasPlanLimits
     public function hasFeature(string $feature): bool
     {
         // Core features that are always enabled but have limits
-        $coreFeatures = ['personnel', 'customer', 'job', 'cash_register', 'service', 'step_template'];
+        $coreFeatures = ['personnel', 'customer', 'job', 'cash_register'];
         if (in_array($feature, $coreFeatures)) {
             return true;
         }
 
-        $field = 'plan_' . $feature . '_feature';
+        $field = $this->getFeatureField($feature);
         return (bool) ($this->{$field} ?? false);
+    }
+
+    /**
+     * Get the actual database field name for a given feature key.
+     */
+    protected function getFeatureField(string $feature): string
+    {
+        return match ($feature) {
+            'step_template', 'templates', 'step_templates' => 'plan_step_templates_feature',
+            'service', 'services' => 'plan_services_section_feature',
+            'service_tracking_category' => 'plan_service_tracking_category_feature',
+            default => 'plan_' . $feature . '_feature',
+        };
     }
 
     /**
@@ -27,7 +40,7 @@ trait HasPlanLimits
      */
     public function reachedLimit(string $resource): bool
     {
-        $limitField = 'plan_' . $resource . '_limit';
+        $limitField = $this->getLimitField($resource);
         
         // If the limit field doesn't exist on the model (e.g. binary features), it's not limited by count
         if (!isset($this->attributes[$limitField]) && !isset($this->{$limitField})) {
@@ -46,6 +59,15 @@ trait HasPlanLimits
         return $count >= $limit;
     }
 
+    protected function getLimitField(string $resource): string
+    {
+        return match ($resource) {
+            'template', 'step_template', 'templates' => 'plan_step_template_limit',
+            'service', 'services' => 'plan_service_limit',
+            default => 'plan_' . $resource . '_limit',
+        };
+    }
+
     /**
      * Get the current count of a resource.
      */
@@ -57,8 +79,8 @@ trait HasPlanLimits
             'job' => $this->jobs()->count(),
             'appointment' => DB::table('appointments')->where('tenant_id', $this->id)->count(),
             'service_tracking' => DB::table('service_trackings')->where('tenant_id', $this->id)->count(),
-            'service' => $this->services()->count(),
-            'step_template' => $this->stepTemplates()->count(),
+            'service', 'services' => $this->services()->count(),
+            'step_template', 'templates', 'step_templates' => $this->stepTemplates()->count(),
             'cash_register' => $this->cashRegisters()->count(),
             'proposal' => DB::table('proposals')->where('tenant_id', $this->id)->count(),
             'backup' => DB::table('backup_keys')->where('tenant_id', $this->id)->count(),
@@ -101,8 +123,8 @@ trait HasPlanLimits
             'job' => 'İş',
             'appointment' => 'Randevu',
             'service_tracking' => 'Hizmet Takibi',
-            'service' => 'Hizmet',
-            'step_template' => 'Adım Şablonu',
+            'service', 'services' => 'Hizmet',
+            'step_template', 'templates' => 'Adım Şablonu',
             'cash_register' => 'Kasa',
             'proposal' => 'Teklif',
             'backup' => 'Yedekleme',
@@ -114,6 +136,7 @@ trait HasPlanLimits
 
     public function getLimitValue(string $resource): int
     {
-        return (int) ($this->{'plan_' . $resource . '_limit'} ?? 0);
+        $field = $this->getLimitField($resource);
+        return (int) ($this->{$field} ?? 0);
     }
 }

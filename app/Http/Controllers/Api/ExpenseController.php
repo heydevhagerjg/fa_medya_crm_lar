@@ -20,41 +20,6 @@ class ExpenseController extends Controller
 
     private static $globalS3Disk = null;
 
-    private function setGlobalS3Config()
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $tenant = request()->user()->tenant ?? null;
-        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
-            return false;
-        }
-        $config = $tenant->s3Config;
-
-        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
-
-        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
-
-        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($config->aws_access_key_id),
-            'secret' => trim($config->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = 's3_global';
-        return true;
-    }
 
     public function index(Request $request): JsonResponse
     {
@@ -63,6 +28,7 @@ class ExpenseController extends Controller
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
             $user = $request->user();
             $tenantId = $user->tenant_id;
+            $limit = $request->input('limit', 15);
 
             $query = Expense::where('tenant_id', $tenantId)
                 ->with(['job', 'category', 'cashRegister'])
@@ -78,7 +44,9 @@ class ExpenseController extends Controller
                 $query->where('job_id', $request->jobId);
             }
 
-            return $query->get()->toArray();
+            $expenses = $query->get();
+
+            return $expenses;
         });
 
         return response()->json($data);
@@ -115,10 +83,22 @@ class ExpenseController extends Controller
 
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
-            if (!$this->setGlobalS3Config()) {
-                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
+            $file = $request->file('receipt');
+            $extension = strtolower($file->getClientOriginalExtension());
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json(['message' => 'Geçersiz dosya uzantısı.'], 422);
             }
-            $receiptPath = $request->file('receipt')->store('tenants/' . $tenantId . '/expense_receipts', 's3_global');
+
+            // Secure MIME check
+            $mimeType = $file->getMimeType();
+            $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                return response()->json(['message' => 'Geçersiz dosya türü.'], 422);
+            }
+
+            $receiptPath = $file->store('tenants/' . $tenantId . '/expense_receipts', 's3_global');
         }
 
         $expense = Expense::create([
@@ -133,8 +113,7 @@ class ExpenseController extends Controller
             'receipt_path'     => $receiptPath,
         ]);
 
-        $this->clearTenantCache('expenses');
-        $this->clearTenantCache('jobs'); // Expenses affect job profit
+        // Automated cache clear via Model (HasTenantCache)
 
         ActivityLogService::log($request->user(), 'CREATE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->amount} TL tutarında {$expense->title} masrafı eklendi.");
@@ -170,10 +149,6 @@ class ExpenseController extends Controller
         ]);
 
         if ($request->hasFile('receipt')) {
-            if (!$this->setGlobalS3Config()) {
-                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
-            }
-
             if ($expense->receipt_path) {
                 Storage::disk('s3_global')->delete($expense->receipt_path);
             }
@@ -191,8 +166,7 @@ class ExpenseController extends Controller
             'cash_register_id' => array_key_exists('cashRegisterId', $validated) ? $validated['cashRegisterId'] : $expense->cash_register_id,
         ]);
 
-        $this->clearTenantCache('expenses');
-        $this->clearTenantCache('jobs');
+        // Automated cache clear via Model (HasTenantCache)
 
         ActivityLogService::log($request->user(), 'UPDATE', 'EXPENSE', $expense->id, $expense->title,
             "{$expense->title} masrafı güncellendi.");
@@ -220,14 +194,10 @@ class ExpenseController extends Controller
             "{$expense->amount} TL tutarındaki {$expense->title} masrafı silindi.");
 
         if ($expense->receipt_path) {
-            if ($this->setGlobalS3Config()) {
-                Storage::disk('s3_global')->delete($expense->receipt_path);
-            }
+            Storage::disk('s3_global')->delete($expense->receipt_path);
         }
 
         $expense->delete();
-        $this->clearTenantCache('expenses');
-        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Masraf silindi.']);
     }
@@ -247,10 +217,6 @@ class ExpenseController extends Controller
 
         if (!$expense->receipt_path) {
             abort(404);
-        }
-
-        if (!$this->setGlobalS3Config()) {
-            abort(400, 'S3 Configuration missing');
         }
 
         $s3 = Storage::disk('s3_global');

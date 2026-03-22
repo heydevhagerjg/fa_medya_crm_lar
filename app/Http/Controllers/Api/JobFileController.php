@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Config;
 
 class JobFileController extends Controller
 {
-    use HasTenantCache, S3GlobalConfigTrait;
+    use HasTenantCache;
 
     private static $globalS3Disk = null;
 
@@ -70,12 +70,7 @@ class JobFileController extends Controller
             return response()->json(['message' => 'Dosya bulunamadı'], 400);
         }
 
-        $tenant = Tenant::find($user->tenant_id);
-
-        if (!$this->setGlobalS3Config()) {
-            return response()->json(['message' => 'S3 Yapılandırması hatası.'], 400);
-        }
-
+        $tenant = $user->tenant;
         $uploadedCount = 0;
 
         foreach ($files as $file) {
@@ -84,7 +79,10 @@ class JobFileController extends Controller
 
             // Dynamic limit check from tenant
             $maxLimit = ($tenant->plan_single_file_limit ?: 50) * 1024 * 1024;
-            if ($fileSize > $maxLimit) {
+            // Strict extension whitelist
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar'];
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, $allowedExtensions)) {
                 continue;
             }
 
@@ -103,7 +101,7 @@ class JobFileController extends Controller
                     'job_id' => $job->id,
                     'file_name' => $fileName,
                     'file_path' => $url,
-                    'file_type' => $file->getClientMimeType(),
+                    'file_type' => $file->getMimeType(),
                     'file_size' => $fileSize,
                 ]);
 
@@ -156,8 +154,6 @@ class JobFileController extends Controller
             "{$job->title} işinden \"{$jobFile->file_name}\" isimli dosya çöp kutusuna taşındı.");
 
         $jobFile->delete(); // Soft Delete
-        $this->clearTenantCache('files');
-        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Dosya çöp kutusuna taşındı.']);
     }
@@ -241,7 +237,6 @@ class JobFileController extends Controller
         })->findOrFail($id);
 
         $jobFile->restore();
-        $this->clearTenantCache('files');
 
         return response()->json(['message' => 'Dosya geri yüklendi.']);
     }
@@ -258,6 +253,8 @@ class JobFileController extends Controller
 
         $tenant = Tenant::find($user->tenant_id);
 
+        $tenant = $user->tenant;
+
         $jobFile = JobFile::withTrashed()->whereHas('job', function ($q) use ($tenant, $user) {
             $q->where('tenant_id', $tenant->id);
             if ($user->role !== 'ADMIN') {
@@ -269,7 +266,7 @@ class JobFileController extends Controller
 
         $job = $jobFile->job;
 
-        if ($this->setGlobalS3Config()) {
+        if (true) { // disk configured via middleware
             $path = $jobFile->file_path;
 
             if (filter_var($path, FILTER_VALIDATE_URL)) {
@@ -288,9 +285,6 @@ class JobFileController extends Controller
         $tenant->decrement('storage_used', $jobFile->file_size);
         $jobFile->forceDelete();
 
-        $this->clearTenantCache('files');
-        $this->clearTenantCache('jobs');
-
         return response()->json(['message' => 'Dosya kalıcı olarak silindi.']);
     }
 
@@ -306,6 +300,8 @@ class JobFileController extends Controller
 
         $tenant = Tenant::find($user->tenant_id);
 
+        $tenant = $user->tenant;
+
         $files = JobFile::onlyTrashed()->whereHas('job', function ($q) use ($tenant, $user) {
             $q->where('tenant_id', $tenant->id);
             if ($user->role !== 'ADMIN' && !$user->can('files.view_all')) {
@@ -320,7 +316,7 @@ class JobFileController extends Controller
         $totalBytes = 0;
         $fileIds = [];
 
-        if ($this->setGlobalS3Config()) {
+        if (true) { // disk configured via middleware
             $s3 = Storage::disk('s3_global');
             foreach ($files as $file) {
                 $path = $file->file_path;
@@ -350,9 +346,6 @@ class JobFileController extends Controller
 
         JobFile::onlyTrashed()->whereIn('id', $fileIds)->forceDelete();
 
-        $this->clearTenantCache('files');
-        $this->clearTenantCache('jobs');
-
         return response()->json(['message' => 'Çöp kutusu başarıyla temizlendi.', 'count' => count($fileIds)]);
     }
 
@@ -370,10 +363,6 @@ class JobFileController extends Controller
         $jobFile = JobFile::whereHas('job', function ($q) use ($tenantId) {
             $q->where('tenant_id', $tenantId);
         })->findOrFail($fileId);
-
-        if (!$this->setGlobalS3Config()) {
-            abort(400, 'S3 Configuration missing');
-        }
 
         $s3 = Storage::disk('s3_global');
         $path = $jobFile->file_path;

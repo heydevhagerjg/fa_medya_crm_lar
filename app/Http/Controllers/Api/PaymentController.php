@@ -20,41 +20,6 @@ class PaymentController extends Controller
 
     private static $globalS3Disk = null;
 
-    private function setGlobalS3Config()
-    {
-        if (self::$globalS3Disk !== null) {
-            return true;
-        }
-
-        $tenant = request()->user()->tenant ?? null;
-        if (!$tenant || !$tenant->s3Config || !$tenant->s3Config->is_active) {
-            return false;
-        }
-        $config = $tenant->s3Config;
-
-        if (!$config->aws_access_key_id || !$config->aws_secret_access_key || !$config->aws_bucket_name) {
-            return false;
-        }
-
-        $region = strtolower(trim($config->aws_region ?? 'eu-central-1'));
-
-        \Illuminate\Support\Facades\Storage::forgetDisk('s3_global');
-
-        \Illuminate\Support\Facades\Config::set('filesystems.disks.s3_global', [
-            'driver' => 's3',
-            'key'    => trim($config->aws_access_key_id),
-            'secret' => trim($config->aws_secret_access_key),
-            'region' => $region,
-            'bucket' => trim($config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'url_encode_filenames' => true,
-            'throw'  => true,
-            'version' => 'latest'
-        ]);
-
-        self::$globalS3Disk = 's3_global';
-        return true;
-    }
 
     public function index(Request $request): JsonResponse
     {
@@ -63,6 +28,7 @@ class PaymentController extends Controller
         $data = Cache::remember($cacheKey, $this->getCacheTTL(), function () use ($request) {
             $user = $request->user();
             $tenantId = $user->tenant_id;
+            $limit = $request->input('limit', 15);
 
             $query = Payment::where('tenant_id', $tenantId)
                 ->with(['job.customer', 'cashRegister'])
@@ -77,8 +43,9 @@ class PaymentController extends Controller
             if ($request->has('jobId')) {
                 $query->where('job_id', $request->jobId);
             }
+            $payments = $query->get();
 
-            return $query->get()->map(fn($p) => $this->paymentResource($p))->toArray();
+            return $payments->map(fn($p) => $this->paymentResource($p))->toArray();
         });
 
         return response()->json($data);
@@ -114,10 +81,22 @@ class PaymentController extends Controller
 
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
-            if (!$this->setGlobalS3Config()) {
-                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
+            $file = $request->file('receipt');
+            $extension = strtolower($file->getClientOriginalExtension());
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json(['message' => 'Geçersiz dosya uzantısı.'], 422);
             }
-            $receiptPath = $request->file('receipt')->store('tenants/' . $tenantId . '/receipts', 's3_global');
+
+            // Secure MIME check
+            $mimeType = $file->getMimeType();
+            $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                return response()->json(['message' => 'Geçersiz dosya türü.'], 422);
+            }
+
+            $receiptPath = $file->store('tenants/' . $tenantId . '/receipts', 's3_global');
         }
 
         $payment = Payment::create([
@@ -131,8 +110,7 @@ class PaymentController extends Controller
             'receipt_path'     => $receiptPath,
         ]);
 
-        $this->clearTenantCache('payments');
-        $this->clearTenantCache('jobs'); // Total paid amount changes
+        // Automated cache clear via Model (HasTenantCache)
 
         $payment->load('job');
         $jobTitle = $payment->job?->title ?? 'Genel';
@@ -172,9 +150,6 @@ class PaymentController extends Controller
 
         $receiptPath = $payment->receipt_path;
         if ($request->hasFile('receipt')) {
-            if (!$this->setGlobalS3Config()) {
-                return response()->json(['message' => 'Yöneticisin depolama ayarlarını kontrol etmeli (S3 Yapılandırılmamış).'], 400);
-            }
             if ($receiptPath) {
                 Storage::disk('s3_global')->delete($receiptPath);
             }
@@ -191,8 +166,7 @@ class PaymentController extends Controller
             'receipt_path'     => $receiptPath,
         ]);
 
-        $this->clearTenantCache('payments');
-        $this->clearTenantCache('jobs');
+        // Automated cache clear via Model (HasTenantCache)
 
         $payment->load('job');
         $jobTitle = $payment->job?->title ?? 'Genel';
@@ -228,10 +202,6 @@ class PaymentController extends Controller
             abort(404);
         }
 
-        if (!$this->setGlobalS3Config()) {
-            abort(400, 'S3 Configuration missing');
-        }
-
         $s3 = Storage::disk('s3_global');
         if (!$s3->exists($payment->receipt_path)) {
             abort(404);
@@ -264,14 +234,10 @@ class PaymentController extends Controller
             "{$jobTitle} işindeki {$payment->amount} TL'lik ödeme silindi.");
 
         if ($payment->receipt_path) {
-            if ($this->setGlobalS3Config()) {
-                Storage::disk('s3_global')->delete($payment->receipt_path);
-            }
+            Storage::disk('s3_global')->delete($payment->receipt_path);
         }
 
         $payment->delete();
-        $this->clearTenantCache('payments');
-        $this->clearTenantCache('jobs');
 
         return response()->json(['message' => 'Ödeme silindi.']);
     }

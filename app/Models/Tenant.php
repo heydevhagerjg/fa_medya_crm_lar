@@ -66,6 +66,33 @@ class Tenant extends Model
         }
     }
 
+    /**
+     * Safely get a configured S3 disk for a specific tenant ID.
+     * Useful for background/model-event cleanup tasks.
+     */
+    public static function getS3DiskForTenant(string $tenantId)
+    {
+        $tenant = self::with('s3Config')->find($tenantId);
+        if (!$tenant || !$tenant->s3Config) return null;
+
+        $config = $tenant->s3Config;
+        $diskName = "tenant_s3_cleanup_" . str_replace('-', '_', $tenantId);
+        
+        if (!config("filesystems.disks.{$diskName}")) {
+            config(["filesystems.disks.{$diskName}" => [
+                'driver' => 's3',
+                'key' => trim($config->aws_access_key_id),
+                'secret' => trim($config->aws_secret_access_key),
+                'region' => trim($config->aws_region),
+                'bucket' => trim($config->aws_bucket_name),
+                'use_path_style_endpoint' => false,
+                'throw' => false
+            ]]);
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk($diskName);
+    }
+
     protected $fillable = [
         'id', 'name', 'slug', 'storage_used', 'logo', 's3_config_id', 'package_id', 'trial_ends_at', 'is_gifted',
         'is_active', 'suspension_message', 'is_restoring',

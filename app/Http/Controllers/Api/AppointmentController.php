@@ -76,8 +76,6 @@ class AppointmentController extends Controller
             'status'      => $validated['status'] ?? 'PENDING',
         ]);
 
-        $this->clearTenantCache('appointments');
-
         ActivityLogService::log($request->user(), 'CREATE', 'APPOINTMENT', $appointment->id, $appointment->title,
             "{$appointment->title} isimli randevu oluşturuldu.");
 
@@ -124,8 +122,6 @@ class AppointmentController extends Controller
             'status'      => $validated['status'] ?? $appointment->status,
         ]);
 
-        $this->clearTenantCache('appointments');
-
         ActivityLogService::log($request->user(), 'UPDATE', 'APPOINTMENT', $appointment->id, $appointment->title,
             "{$appointment->title} isimli randevu güncellendi.");
 
@@ -141,7 +137,6 @@ class AppointmentController extends Controller
             "{$appointment->title} isimli randevu silindi.");
 
         $appointment->delete();
-        $this->clearTenantCache('appointments');
 
         return response()->json(['message' => 'Randevu silindi.']);
     }

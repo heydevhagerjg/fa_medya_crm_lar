@@ -20,7 +20,7 @@ use App\Models\Admin;
 
 class JobController extends Controller
 {
-    use HasTenantCache, \App\Traits\S3GlobalConfigTrait;
+    use HasTenantCache;
 
     private static $globalS3Disk = null;
 
@@ -56,22 +56,9 @@ class JobController extends Controller
                 $query->where('status', $request->status);
             }
 
-            if ($request->has('page')) {
-                $limit = $request->input('limit', 15);
-                $paginated = $query->paginate($limit);
-                
-                return [
-                    'data' => collect($paginated->items())->map(fn($j) => $this->jobResource($j))->toArray(),
-                    'meta' => [
-                        'current_page' => $paginated->currentPage(),
-                        'last_page' => $paginated->lastPage(),
-                        'total' => $paginated->total(),
-                        'per_page' => $paginated->perPage(),
-                    ]
-                ];
-            }
-
-            return $query->get()->map(fn($j) => $this->jobResource($j))->toArray();
+            $jobs = $query->get();
+            
+            return $jobs->map(fn($j) => $this->jobResource($j))->toArray();
         });
 
         return response()->json($data);
@@ -203,9 +190,6 @@ class JobController extends Controller
             return $job;
         });
 
-        $this->clearTenantCache('jobs');
-        $this->clearTenantCache('customers'); // Jobs count might change
-
         ActivityLogService::log($request->user(), 'CREATE', 'JOB', $job->id, $job->title,
             "{$job->title} isimli iş/proje oluşturuldu.");
 
@@ -292,21 +276,7 @@ class JobController extends Controller
                     );
                 }
             }
-
-            // Sync back to proposal if exists
-            if ($job->proposal_id) {
-                \App\Models\Proposal::where('id', $job->proposal_id)->update([
-                    'is_vat_included' => $job->is_vat_included,
-                    'vat_rate'        => $job->vat_rate,
-                    'subtotal'        => $job->subtotal,
-                    'vat_amount'      => $job->vat_amount,
-                    'total_price'     => $job->total_price,
-                ]);
-                $this->clearTenantCache('proposals');
-            }
         });
-
-        $this->clearTenantCache('jobs');
 
         ActivityLogService::log($request->user(), 'UPDATE', 'JOB', $job->id, $job->title,
             "{$job->title} işinin bilgileri/durumu güncellendi.");
@@ -335,8 +305,6 @@ class JobController extends Controller
         ]);
 
         $job->update(['job_status_id' => $validated['jobStatusId'] ?? null]);
-
-        $this->clearTenantCache('jobs');
 
         ActivityLogService::log($request->user(), 'UPDATE', 'JOB', $job->id, $job->title,
             "{$job->title} işinin durumu güncellendi.");
@@ -371,8 +339,6 @@ class JobController extends Controller
             }
         });
 
-        $this->clearTenantCache('jobs');
-
         return response()->json(['message' => 'Sıralama güncellendi.']);
     }
 
@@ -395,7 +361,7 @@ class JobController extends Controller
         ActivityLogService::log($request->user(), 'DELETE', 'JOB', $job->id, $job->title,
             "{$job->title} işi sistemden silindi.");
 
-        if ($this->setGlobalS3Config()) {
+        if (true) { // disk is now configured via middleware
             $s3 = Storage::disk('s3_global');
             
             // İşin dosyalarını içeren klasörü sil
@@ -410,8 +376,6 @@ class JobController extends Controller
         }
 
         $job->delete();
-        $this->clearTenantCache('jobs');
-        $this->clearTenantCache('customers');
 
         return response()->json(['message' => 'İş silindi.']);
     }

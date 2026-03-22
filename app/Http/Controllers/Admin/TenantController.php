@@ -102,9 +102,12 @@ class TenantController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'package_id' => 'required|exists:packages,id',
-            's3_config_id' => 'nullable|exists:s3_configs,id',
+            'name'           => 'required|string|max:255',
+            'package_id'     => 'required|exists:packages,id',
+            's3_config_id'   => 'nullable|exists:s3_configs,id',
+            'admin_name'     => 'required|string|max:255',
+            'admin_email'    => 'required|email|unique:users,email',
+            'admin_password' => 'required|string|min:8',
         ]);
 
         $s3ConfigId = $validated['s3_config_id'] ?? null;
@@ -112,15 +115,17 @@ class TenantController extends Controller
         if (!$s3ConfigId) {
             $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
             if (!$s3Config) {
-                return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı. Lütfen önce S3 ayarlarını yapılandırın.'], 400);
+                return response()->json(['message' => 'Sistemde aktif S3 bağlantısı bulunamadı.'], 400);
             }
             $s3ConfigId = $s3Config->id;
         }
 
         $package = \App\Models\Package::findOrFail($validated['package_id']);
 
+        // 1. Create Tenant
+        $tenantId = Str::uuid()->toString();
         $tenant = Tenant::create([
-            'id' => Str::uuid()->toString(),
+            'id' => $tenantId,
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']) . '-' . rand(1000, 9999),
             's3_config_id' => $s3ConfigId,
@@ -148,12 +153,30 @@ class TenantController extends Controller
             'plan_single_file_limit' => $package->single_file_limit,
         ]);
 
-        // Create as Paddle customer with trial
-        $tenant->createAsCustomer([
-            'trial_ends_at' => now()->addDays($package->trial_days),
+        // 2. Create Initial Admin User
+        $user = new \App\Models\User([
+            'id'          => Str::uuid()->toString(),
+            'name'        => $validated['admin_name'],
+            'email'       => $validated['admin_email'],
+            'password'    => Hash::make($validated['admin_password']),
+            'role'        => 'ADMIN',
+            'is_approved' => true,
         ]);
+        $user->tenant_id = $tenantId;
+        $user->save();
 
-        return response()->json($tenant, 201);
+        // 3. Create as Paddle customer with trial (Only if it's a paid package)
+        if (!$package->isFree()) {
+            $tenant->createAsCustomer([
+                'email' => $validated['admin_email'],
+                'trial_ends_at' => now()->addDays($package->trial_days),
+            ]);
+        }
+
+        return response()->json([
+            'tenant' => $tenant->load('package'),
+            'admin'  => $user
+        ], 201);
     }
 
     public function show($id)
@@ -225,15 +248,16 @@ class TenantController extends Controller
             'role' => 'required|in:ADMIN,USER',
         ]);
 
-        $user = \App\Models\User::create([
+        $user = new \App\Models\User([
             'id' => Str::uuid()->toString(),
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'is_approved' => true,
-            'tenant_id' => $tenant->id,
         ]);
+        $user->tenant_id = $tenant->id;
+        $user->save();
 
         return response()->json($user, 201);
     }

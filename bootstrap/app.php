@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.plan' => \App\Http\Middleware\CheckPlanLimits::class,
             'check.tenant' => \App\Http\Middleware\CheckTenantStatus::class,
             'check.restoring' => \App\Http\Middleware\CheckRestoringState::class,
+            'tenant.s3' => \App\Http\Middleware\TenantS3Middleware::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

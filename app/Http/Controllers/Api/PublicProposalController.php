@@ -24,6 +24,11 @@ class PublicProposalController extends Controller
             ->with(['customer', 'items', 'tenant', 'installments'])
             ->firstOrFail();
 
+        if (!$proposal->tenant || !$proposal->tenant->is_active) {
+            return response()->json(['message' => 'Bu firmanın hesabı şu anda pasif durumdadır.'], 403);
+        }
+
+
         // Fetch history logs
         $logs = ActivityLog::where('entity_type', 'PROPOSAL')
             ->where('entity_id', $proposal->id)
@@ -45,7 +50,12 @@ class PublicProposalController extends Controller
 
     public function respond(Request $request, string $uuid): JsonResponse
     {
-        $proposal = Proposal::where('uuid', $uuid)->firstOrFail();
+        $proposal = Proposal::where('uuid', $uuid)->with('tenant')->firstOrFail();
+
+        if (!$proposal->tenant || !$proposal->tenant->is_active) {
+            return response()->json(['message' => 'Bu firmanın hesabı şu anda pasif durumdadır.'], 403);
+        }
+
 
         if (!in_array($proposal->status, ['SENT', 'DRAFT'])) {
             return response()->json(['message' => 'Bu teklif şu anki durumuyla yanıtlanamaz.'], 400);
@@ -99,12 +109,6 @@ class PublicProposalController extends Controller
             }
 
             ActivityLogService::log(null, 'UPDATE', 'PROPOSAL', $proposal->id, $proposal->title, $logDetails, $proposal->tenant_id);
-
-            // Clear cache for tenant - all modules to ensure panel is updated
-            $modules = ['jobs', 'customers', 'proposals', 'services', 'expenses', 'payments', 'appointments'];
-            foreach ($modules as $module) {
-                $this->clearTenantCache($module, $proposal->tenant_id);
-            }
 
             return response()->json(['message' => $message, 'status' => $proposal->status]);
         });
@@ -175,12 +179,6 @@ class PublicProposalController extends Controller
                 'is_paid'      => $ins->is_paid,
                 'paid_at'      => $ins->paid_at,
             ]);
-        }
-
-        // Clear cache for tenant - all modules
-        $modules = ['jobs', 'customers', 'proposals', 'services', 'expenses', 'payments', 'appointments'];
-        foreach ($modules as $module) {
-            $this->clearTenantCache($module, $tenantId);
         }
 
         return $job;

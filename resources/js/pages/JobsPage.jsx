@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
-import { Briefcase, Plus, Search, Edit2, Trash2, ChevronRight, Filter, Calendar } from 'lucide-react'
+import { Briefcase, Plus, Search, Edit2, Trash2, ChevronRight, Filter, Calendar, XCircle } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import { useEffect } from 'react'
 import { useAuthStore } from '../stores/index.js'
 import { User } from 'lucide-react'
+import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 // Hook up effects for VAT calculation
 const useJobVatEffect = (form, setForm) => {
@@ -34,6 +35,12 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
 export default function JobsPage() {
+    const { user: currentUser } = useAuthStore()
+    const isFeatureDisabled = currentUser?.tenant?.plan_job_feature === false || currentUser?.tenant?.plan_job_feature === 0
+
+    if (isFeatureDisabled) {
+        return <PlanRestrictionView featureName="İş Takibi" />
+    }
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
     const [modal, setModal] = useState({ open: false, job: null })
@@ -43,7 +50,6 @@ export default function JobsPage() {
     const itemsPerPage = 10
     const qc = useQueryClient()
     const navigate = useNavigate()
-    const { user: currentUser } = useAuthStore()
     const isAdmin = currentUser?.role === 'ADMIN'
 
     useEffect(() => {
@@ -52,9 +58,10 @@ export default function JobsPage() {
 
     useJobVatEffect(form, setForm)
 
-    const { data: jobs = [], isLoading } = useQuery({
+    const { data: jobs = [], isLoading, error, isError } = useQuery({
         queryKey: ['jobs'],
         queryFn: () => api.get('/jobs').then(r => r.data),
+        retry: false
     })
 
     const { data: customers = [] } = useQuery({
@@ -193,6 +200,8 @@ export default function JobsPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                ) : isError ? (
+                    <PlanRestrictionView featureName="İş Takibi" />
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Briefcase size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
