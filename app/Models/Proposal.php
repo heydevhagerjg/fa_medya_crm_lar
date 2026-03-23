@@ -13,7 +13,7 @@ class Proposal extends Model
     protected $relatedCacheModules = ['jobs'];
 
     protected $fillable = [
-        'uuid', 'customer_id', 'service_id', 'title', 'description', 
+        'tenant_id', 'uuid', 'customer_id', 'title', 'description', 
         'total_price', 'status', 'notes', 'customer_notes', 'sent_at', 'valid_until',
         'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount'
     ];
@@ -53,10 +53,7 @@ class Proposal extends Model
         return $this->hasMany(ProposalItem::class);
     }
 
-    public function service()
-    {
-        return $this->belongsTo(Service::class);
-    }
+
 
     public function revisionRequests()
     {

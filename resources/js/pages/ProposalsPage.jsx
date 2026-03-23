@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
 import {
     FileText, Plus, Search, Edit2, Trash2, Send,
-    MoreHorizontal, Check, X, Clock, PlusCircle, Link,
-    RotateCcw, MessageSquare, CheckCircle, XCircle, Download, Briefcase
+    MoreHorizontal, Check, X, Clock, PlusCircle, Link as LinkIcon,
+    RotateCcw, MessageSquare, CheckCircle, XCircle, Download, Briefcase, CreditCard
 } from 'lucide-react'
 import { useAuthStore } from '../stores/index.js'
 import Modal from '../components/ui/Modal.jsx'
@@ -41,11 +41,10 @@ export default function ProposalsPage() {
     const [revisionModal, setRevisionModal] = useState({ open: false, proposal: null })
     const [form, setForm] = useState({
         customer_id: '',
-        service_id: '',
         title: '',
         description: '',
         valid_until: '',
-        items: [{ description: '', quantity: 1, unit_price: 0 }],
+        items: [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
         installments: [],
         is_vat_included: false,
         vat_rate: 20
@@ -140,6 +139,14 @@ export default function ProposalsPage() {
         },
     })
 
+    const markAllPaidMutation = useMutation({
+        mutationFn: (id) => api.post(`/proposals/${id}/mark-all-paid`),
+        onSuccess: () => {
+            qc.invalidateQueries(['proposals'])
+            toast.success('Tüm ödemeler tahsil edildi olarak işaretlendi.')
+        },
+    })
+
     const respondRevisionMutation = useMutation({
         mutationFn: ({ proposalId, revisionId, status }) => api.post(`/proposals/${proposalId}/revisions/${revisionId}/respond`, { status }),
         onSuccess: () => {
@@ -162,15 +169,16 @@ export default function ProposalsPage() {
         if (proposal) {
             setForm({
                 customer_id: proposal.customer_id,
-                service_id: proposal.service_id || '',
                 title: proposal.title,
                 description: proposal.description || '',
                 valid_until: proposal.valid_until ? proposal.valid_until.substring(0, 10) : '',
                 items: proposal.items?.map(i => ({
+                    id: i.id,
+                    service_id: i.service_id || '',
                     description: i.description,
                     quantity: i.quantity,
                     unit_price: i.unit_price
-                })) || [{ description: '', quantity: 1, unit_price: 0 }],
+                })) || [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
                 installments: proposal.installments?.map(i => ({
                     id: i.id,
                     amount: i.amount,
@@ -185,11 +193,10 @@ export default function ProposalsPage() {
         } else {
             setForm({
                 customer_id: '',
-                service_id: '',
                 title: '',
                 description: '',
                 valid_until: '',
-                items: [{ description: '', quantity: 1, unit_price: 0 }],
+                items: [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
                 installments: [],
                 is_vat_included: false,
                 vat_rate: 20
@@ -201,7 +208,7 @@ export default function ProposalsPage() {
     const addItem = () => {
         setForm(f => ({
             ...f,
-            items: [...f.items, { description: '', quantity: 1, unit_price: 0 }]
+            items: [...f.items, { service_id: '', description: '', quantity: 1, unit_price: 0 }]
         }))
     }
 
@@ -395,7 +402,7 @@ export default function ProposalsPage() {
                                                     title="Bağlantıyı Kopyala"
                                                     className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
                                                 >
-                                                    <Link size={16} />
+                                                    <LinkIcon size={16} />
                                                 </button>
                                                 <a
                                                     href={`/api/public/proposals/${proposal.uuid}/pdf`}
@@ -434,6 +441,15 @@ export default function ProposalsPage() {
                                                         <Briefcase size={16} />
                                                     </button>
                                                 )}
+                                                {proposal.job && (
+                                                    <Link
+                                                        to={`/jobs/${proposal.job.id}`}
+                                                        title="İş Detayına Git"
+                                                        className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
+                                                    >
+                                                        <Briefcase size={16} />
+                                                    </Link>
+                                                )}
                                                 <button
                                                     onClick={() => openModal(proposal)}
                                                     className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
@@ -441,13 +457,22 @@ export default function ProposalsPage() {
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
-                                                {proposal.status === 'REJECTED' && (
+                                                {['DRAFT', 'SENT', 'REJECTED', 'REVISION_REQUESTED', 'RENEWAL_REQUESTED'].includes(proposal.status) && (
                                                     <button
                                                         onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'ACCEPTED' })}
                                                         title="Manuel Onayla (Kabul Et)"
                                                         className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
                                                     >
                                                         <CheckCircle size={16} />
+                                                    </button>
+                                                )}
+                                                {['DRAFT', 'SENT', 'REVISION_REQUESTED', 'RENEWAL_REQUESTED'].includes(proposal.status) && (
+                                                    <button
+                                                        onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'REJECTED' })}
+                                                        title="Manuel Reddet"
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                    >
+                                                        <XCircle size={16} />
                                                     </button>
                                                 )}
                                                 {proposal.status !== 'CANCELLED' && (
@@ -466,6 +491,20 @@ export default function ProposalsPage() {
                                                         className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
                                                     >
                                                         <RotateCcw size={16} />
+                                                    </button>
+                                                )}
+                                                {proposal.status === 'ACCEPTED' && proposal.installments?.some(i => !i.is_paid) && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm('Tüm ödemeler tahsil edildi olarak işaretlensin mi?')) {
+                                                                markAllPaidMutation.mutate(proposal.id)
+                                                            }
+                                                        }}
+                                                        disabled={markAllPaidMutation.isPending}
+                                                        title="Tümünü Tahsil Edildi Olarak İşaretle"
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
+                                                    >
+                                                        <CreditCard size={16} />
                                                     </button>
                                                 )}
                                                 <button
@@ -520,17 +559,7 @@ export default function ProposalsPage() {
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İlişkili Hizmet (Opsiyonel)</label>
-                            <select
-                                value={form.service_id}
-                                onChange={e => setForm(f => ({ ...f, service_id: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            >
-                                <option value="">Hizmet Seçin</option>
-                                {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Geçerlilik Tarihi</label>
                             <input
@@ -573,8 +602,8 @@ export default function ProposalsPage() {
 
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                             {form.items.map((item, idx) => (
-                                <div key={idx} className="flex gap-3 items-end group">
-                                    <div className="flex-1">
+                                <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-3 items-end group p-3 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20 transition-all relative">
+                                    <div className="flex-1 min-w-[200px]">
                                         <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Hizmet/Ürün Açıklaması</label>
                                         <input
                                             required
@@ -583,6 +612,19 @@ export default function ProposalsPage() {
                                             onChange={e => updateItem(idx, 'description', e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         />
+                                    </div>
+                                    <div className="flex-1 min-w-[150px]">
+                                        <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">İlişkili Hizmet</label>
+                                        <select
+                                            value={item.service_id}
+                                            onChange={e => updateItem(idx, 'service_id', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        >
+                                            <option value="">Seçilmedi</option>
+                                            {services.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="w-20">
                                         <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Adet</label>

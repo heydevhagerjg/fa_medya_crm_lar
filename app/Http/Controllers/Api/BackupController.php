@@ -54,12 +54,12 @@ class BackupController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         $tenant = Tenant::findOrFail($tenantId);
-        
+
         $tenant->update(['backup_requested' => true]);
-        
+
         ActivityLogService::log($request->user(), 'BACKUP_REQUEST', 'SYSTEM', null, 'Yedek Talebi', 'Tam yedek alma talebi admin panelinde oluşturuldu.');
 
-        return response()->json(['message' => 'Yedekleme talebiniz alınmıştır. Admin onayından sonra yedeğiniz burada listelenecektir.']);
+        return response()->json(['message' => 'Yedekleme talebiniz alınmıştır. Yedeğiniz hazır olduğunda burada listelenecektir.']);
     }
 
     /**
@@ -83,15 +83,15 @@ class BackupController extends Controller
             ->where('status', 'completed')
             ->latest()
             ->get()
-            ->map(function($b) {
-                return [
-                    'id' => $b->id,
-                    'filename' => $b->filename,
-                    'size' => $b->size,
-                    'created_at' => $b->created_at,
-                    'has_file' => $b->path && \Illuminate\Support\Facades\File::exists(storage_path('app/' . $b->path))
-                ];
-            });
+            ->map(function ($b) {
+            return [
+            'id' => $b->id,
+            'filename' => $b->filename,
+            'size' => $b->size,
+            'created_at' => $b->created_at,
+            'has_file' => $b->path && \Illuminate\Support\Facades\File::exists(storage_path('app/' . $b->path))
+            ];
+        });
 
         $tenant = \App\Models\Tenant::find($tenantId);
 
@@ -134,7 +134,7 @@ class BackupController extends Controller
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'backup.download.public',
             now()->addMinutes(15),
-            ['id' => $id]
+        ['id' => $id]
         );
 
         return response()->json(['url' => $url]);
@@ -184,11 +184,12 @@ class BackupController extends Controller
         try {
             $file = $request->file('file');
             $tempDir = storage_path('app/temp_backups');
-            if (!file_exists($tempDir)) mkdir($tempDir, 0755, true);
-            
+            if (!file_exists($tempDir))
+                mkdir($tempDir, 0755, true);
+
             $fileName = \Illuminate\Support\Str::random(40) . '.zip';
             $zipPath = $tempDir . '/' . $fileName;
-            
+
             // Move uploaded file to temp storage for the Job
             $file->move($tempDir, $fileName);
 
@@ -202,7 +203,8 @@ class BackupController extends Controller
                 'status' => 'success',
                 'message' => 'Yedek geri yükleme işlemi arka planda başlatıldı. İşlem tamamlandığında sisteminiz açılacaktır.'
             ]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Import Error: " . $e->getMessage());
             return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
         }

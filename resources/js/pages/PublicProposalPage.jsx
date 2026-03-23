@@ -114,7 +114,7 @@ export default function PublicProposalPage() {
                             <Building2 size={14} /> Hizmet Sağlayıcı
                         </div>
                         <div className="font-bold text-lg text-gray-900 mb-1">{proposal.tenant?.name}</div>
-                        <div className="text-sm text-gray-500">Kurumsal CRM Hizmetleri</div>
+                        <div className="text-sm text-gray-500">Kurumsal Yazılım Hizmetleri</div>
                     </div>
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-4 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
@@ -164,7 +164,6 @@ export default function PublicProposalPage() {
                                 <div>
                                     <div className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Ödeme Özeti</div>
                                     <div className="text-2xl font-bold mb-1">Genel Toplam</div>
-                                    {!proposal.is_vat_included && <div className="text-sm text-slate-400 font-medium">* Belirtilen tutara KDV dahil değildir.</div>}
                                 </div>
 
                                 {proposal.is_vat_included && (

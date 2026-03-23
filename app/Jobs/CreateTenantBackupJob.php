@@ -59,6 +59,11 @@ class CreateTenantBackupJob implements ShouldQueue
                     'filename' => $fileName,
                     'size' => File::size($destination),
                 ]);
+
+                // Yedekleme talebi başarıyla karşılandı
+                if ($this->backup->tenant) {
+                    $this->backup->tenant->update(['backup_requested' => false]);
+                }
             } else {
                 throw new \Exception("Yedek dosyası oluşturulamadı.");
             }

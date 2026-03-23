@@ -24,7 +24,7 @@ class ProposalController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         $proposals = Proposal::where('tenant_id', $tenantId)
-            ->with(['customer', 'items', 'service', 'revisionRequests', 'installments', 'job'])
+            ->with(['customer', 'items.service', 'revisionRequests', 'installments', 'job'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -35,11 +35,11 @@ class ProposalController extends Controller
     {
         $validated = $request->validate([
             'customer_id'         => 'required|exists:customers,id',
-            'service_id'          => 'nullable|exists:services,id',
             'title'               => 'required|string|max:255',
             'description'         => 'nullable|string',
             'valid_until'         => 'nullable|date',
             'items'               => 'required|array|min:1',
+            'items.*.service_id'  => 'nullable|exists:services,id',
             'items.*.description' => 'required|string',
             'items.*.quantity'    => 'required|numeric|min:1',
             'items.*.unit_price'  => 'required|numeric|min:0',
@@ -59,7 +59,6 @@ class ProposalController extends Controller
             $proposal = Proposal::create([
                 'tenant_id'       => $tenantId,
                 'customer_id'     => $validated['customer_id'],
-                'service_id'      => $validated['service_id'] ?? null,
                 'title'           => $validated['title'],
                 'description'     => $validated['description'] ?? null,
                 'valid_until'     => $validated['valid_until'] ?? null,
@@ -74,6 +73,7 @@ class ProposalController extends Controller
                 $subtotal += $itemTotal;
 
                 $proposal->items()->create([
+                    'service_id'  => $item['service_id'] ?? null,
                     'description' => $item['description'],
                     'quantity'    => $item['quantity'],
                     'unit_price'  => $item['unit_price'],
@@ -136,9 +136,9 @@ class ProposalController extends Controller
             'title'               => 'sometimes|string|max:255',
             'description'         => 'nullable|string',
             'valid_until'         => 'nullable|date',
-            'service_id'          => 'nullable|exists:services,id',
             'status'              => 'sometimes|in:DRAFT,SENT,ACCEPTED,REJECTED,REVISION_REQUESTED,CANCELLED,RENEWAL_REQUESTED',
             'items'               => 'sometimes|array',
+            'items.*.service_id'  => 'nullable|exists:services,id',
             'items.*.description' => 'required_with:items|string',
             'items.*.quantity'    => 'required_with:items|numeric|min:1',
             'items.*.unit_price'  => 'required_with:items|numeric|min:0',
@@ -153,7 +153,13 @@ class ProposalController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $proposal, $request, $tenantId) {
-            $proposal->update($request->only(['title', 'description', 'valid_until', 'status', 'service_id', 'is_vat_included', 'vat_rate']));
+            $oldStatus = $proposal->status;
+            $proposal->update($request->only(['title', 'description', 'valid_until', 'status', 'is_vat_included', 'vat_rate']));
+            
+            // Eğer status yeni ACCEPTED olduysa ve henüz bağlı bir iş yoksa otomatik oluştur
+            if ($oldStatus !== 'ACCEPTED' && $proposal->status === 'ACCEPTED' && $proposal->job()->count() === 0) {
+                $this->internalCreateJob($proposal, $request->user(), $tenantId);
+            }
 
             if ($request->has('items') || $request->has('is_vat_included') || $request->has('vat_rate')) {
                 if ($request->has('items')) {
@@ -164,6 +170,7 @@ class ProposalController extends Controller
                         $subtotal += $itemTotal;
 
                         $proposal->items()->create([
+                            'service_id'  => $item['service_id'] ?? null,
                             'description' => $item['description'],
                             'quantity'    => $item['quantity'],
                             'unit_price'  => $item['unit_price'],
@@ -309,49 +316,71 @@ class ProposalController extends Controller
             return response()->json(['message' => 'Bu teklife ait bir iş zaten mevcut.'], 422);
         }
 
-        return DB::transaction(function () use ($proposal, $tenantId, $request) {
-            // İlk iş durumunu bul veya oluştur
-            $jobStatus = \App\Models\JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
-            if (!$jobStatus) {
-                $jobStatus = \App\Models\JobStatus::create([
-                    'tenant_id' => $tenantId,
-                    'name'      => 'Varsayılan',
-                    'color'     => '#6366f1',
-                    'order'     => 0,
+        $job = $this->internalCreateJob($proposal, $request->user(), $tenantId);
+
+        return response()->json([
+            'message' => 'İş başarıyla oluşturuldu.',
+            'job'     => $job->load(['customer', 'service', 'jobStatus']),
+        ], 201);
+    }
+
+    protected function internalCreateJob(Proposal $proposal, $user, $tenantId)
+    {
+        return DB::transaction(function () use ($proposal, $tenantId, $user) {
+            $createdJobs = [];
+            
+            // Teklif KALEMLERİ kadar iş oluşturulması istenmişti.
+            foreach ($proposal->items as $idx => $item) {
+                // İlk iş durumunu bul veya oluştur
+                $jobStatus = \App\Models\JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
+                if (!$jobStatus) {
+                    $jobStatus = \App\Models\JobStatus::create([
+                        'tenant_id' => $tenantId,
+                        'name'      => 'Varsayılan',
+                        'color'     => '#6366f1',
+                        'order'     => 0,
+                    ]);
+                }
+
+                $job = \App\Models\JobCrm::create([
+                    'tenant_id'       => $tenantId,
+                    'customer_id'     => $proposal->customer_id,
+                    'service_id'      => $item->service_id, // Kalemdeki hizmeti kullan
+                    'proposal_id'     => $proposal->id,
+                    'job_status_id'   => $jobStatus->id,
+                    'title'           => $item->description, // İş başlığı olarak kalem açıklamasını kullan
+                    'description'     => $proposal->title . " - " . $item->description,
+                    'status'          => 'PENDING',
+                    'total_price'     => $item->total_price, // Kalem fiyatı üzerinden (aslında toplam teklif ödemesi geneldir ama iş bazlı fiyat takibi için)
+                    'is_vat_included' => $proposal->is_vat_included,
+                    'vat_rate'        => $proposal->vat_rate,
+                    'subtotal'        => $item->total_price,
+                    'vat_amount'      => 0, // İş bazlı KDV kafa karıştırıcı olabilir, şimdilik basit tutalım
+                    'start_date'      => now(),
                 ]);
+
+                // Create job details
+                \App\Models\JobDetail::create([
+                    'job_id'            => $job->id,
+                    'notes'             => "Tekliften kalem bazlı otomatik oluşturuldu. (Teklif ID: {$proposal->id})",
+                    'customer_requests' => $proposal->customer_notes,
+                ]);
+                
+                $createdJobs[] = $job;
+
+                ActivityLogService::log($user, 'CREATE', 'JOB', $job->id, $job->title,
+                    "{$proposal->title} teklifinin '{$item->description}' kaleminden iş oluşturuldu.");
             }
 
-            $job = \App\Models\JobCrm::create([
-                'tenant_id'       => $tenantId,
-                'customer_id'     => $proposal->customer_id,
-                'service_id'      => $proposal->service_id,
-                'proposal_id'     => $proposal->id,
-                'job_status_id'   => $jobStatus->id,
-                'title'           => $proposal->title,
-                'description'     => $proposal->description,
-                'status'          => 'PENDING',
-                'total_price'     => $proposal->total_price,
-                'is_vat_included' => $proposal->is_vat_included,
-                'vat_rate'        => $proposal->vat_rate,
-                'subtotal'        => $proposal->subtotal,
-                'vat_amount'      => $proposal->vat_amount,
-                'start_date'      => now(),
-            ]);
-
-            // Teklifteki ödeme taksitlerini işe bağla
-            if ($proposal->installments->isNotEmpty()) {
+            // Teklifteki ödeme taksitlerini İLK işe bağla (çünkü taksitler teklif genelidir)
+            if (!empty($createdJobs) && $proposal->installments->isNotEmpty()) {
+                $firstJob = $createdJobs[0];
                 foreach ($proposal->installments as $installment) {
-                    $installment->update(['job_id' => $job->id]);
+                    $installment->update(['job_id' => $firstJob->id]);
                 }
             }
 
-            ActivityLogService::log($request->user(), 'CREATE', 'JOB', $job->id, $job->title,
-                "{$proposal->title} teklifinden {$job->title} isimli iş oluşturuldu.");
-
-            return response()->json([
-                'message' => 'İş başarıyla oluşturuldu.',
-                'job'     => $job->load(['customer', 'service', 'jobStatus']),
-            ], 201);
+            return !empty($createdJobs) ? $createdJobs[0] : null;
         });
     }
 
@@ -374,56 +403,32 @@ class ProposalController extends Controller
 
         $nowPaid = !$installment->is_paid;
 
-        DB::transaction(function () use ($installment, $nowPaid, $tenantId, $request) {
+        DB::transaction(function () use ($installment, $nowPaid) {
             $installment->update([
                 'is_paid' => $nowPaid,
                 'paid_at' => $nowPaid ? now() : null,
             ]);
-
-            if ($nowPaid && $installment->job_id) {
-                // Determine if this is the last installment in the schedule
-                $isLast = !ProposalInstallment::where('job_id', $installment->job_id)
-                    ->where(function($q) use ($installment) {
-                        if ($installment->payment_date) {
-                            $q->where('payment_date', '>', $installment->payment_date)
-                              ->orWhere(function($sub) use ($installment) {
-                                  $sub->where('payment_date', $installment->payment_date)
-                                      ->where('id', '>', $installment->id);
-                              })
-                              ->orWhereNull('payment_date');
-                        } else {
-                            $q->whereNull('payment_date')
-                              ->where('id', '>', $installment->id);
-                        }
-                    })
-                    ->exists();
-
-                $type = 'PARTIAL';
-                if (stripos($installment->description, 'avans') !== false) {
-                    $type = 'ADVANCE';
-                } elseif ($isLast) {
-                    $type = 'FINAL';
-                }
-
-                // Find default cash register for tenant
-                $defaultCash = CashRegister::where('tenant_id', $tenantId)->where('is_default', true)->first();
-
-                // Create actual payment record
-                Payment::create([
-                    'tenant_id'        => $tenantId,
-                    'job_id'           => $installment->job_id,
-                    'amount'           => $installment->amount,
-                    'payment_date'     => now(),
-                    'payment_type'     => $type,
-                    'description'      => $installment->description ?: "Taksit ödemesi (" . $installment->amount . " TL)",
-                    'cash_register_id' => $defaultCash ? $defaultCash->id : null,
-                ]);
-            }
         });
 
         return response()->json([
-            'message' => $installment->is_paid ? 'Ödeme ödendi olarak işaretlendi ve tahsilatlara eklendi.' : 'Ödeme bekliyor olarak işaretlendi.',
-            'installment' => $installment->fresh()
+            'message' => $nowPaid ? 'Taksit ödendi olarak işaretlendi.' : 'Taksit ödenmedi olarak işaretlendi.',
+            'installment' => $installment
         ]);
+    }
+
+    public function markAllInstallmentsPaid(Request $request, int $id): JsonResponse
+    {
+        $proposal = Proposal::with('installments')->findOrFail($id);
+        
+        if ($proposal->tenant_id !== $request->user()->tenant_id) {
+            return response()->json(['message' => 'Yetkisiz erişim.'], 403);
+        }
+
+        $proposal->installments()->update([
+            'is_paid' => true,
+            'paid_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Tüm ödemeler tahsil edildi olarak işaretlendi.']);
     }
 }

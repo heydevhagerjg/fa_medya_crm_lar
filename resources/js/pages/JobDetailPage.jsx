@@ -183,7 +183,7 @@ export default function JobDetailPage() {
         mutationFn: (insId) => api.patch(`/proposals/installments/${insId}/toggle-paid`),
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
-            toast.success('Ödeme takvimi güncellendi.')
+            toast.success('Teklif ödeme takvimi güncellendi.')
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Güncellenemedi.'),
     })
@@ -541,6 +541,16 @@ export default function JobDetailPage() {
     if (isLoading) return <div className="flex items-center justify-center h-64 text-gray-400">Yükleniyor...</div>
     if (!job) return <div className="text-center text-gray-400 py-12">İş bulunamadı.</div>
 
+    const matchedService = services.find(s => s.id === (job.serviceId || job.service_id))
+    const definedCustomFields = matchedService?.customfield || []
+
+    const jobPrice = parseFloat(job.totalPrice || job.total_price || 0)
+    const installments = job.installments || []
+
+    // Total price from installments is the Project Total
+    const totalInstallmentsPrice = installments.reduce((s, i) => s + parseFloat(i.amount || 0), 0)
+    const displayTotalPrice = job.proposalId ? totalInstallmentsPrice : jobPrice
+
     const steps = job.jobstep || []
     const payments = job.payment || []
     const expenses = job.expense || []
@@ -561,18 +571,14 @@ export default function JobDetailPage() {
         }))
     ].sort((a, b) => b._date - a._date)
 
-    const installments = job.installments || []
-
     const completedSteps = steps.filter(s => s.is_completed).length
     const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
-    const totalPrice = parseFloat(job.totalPrice || job.total_price || 0)
-    const remaining = totalPrice - totalPaid
-    const paymentPerformance = totalPrice > 0 ? Math.round((totalPaid / totalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
+
+    const remaining = displayTotalPrice - totalPaid
+    const paymentPerformance = displayTotalPrice > 0 ? Math.round((totalPaid / displayTotalPrice) * 100) : Math.round((totalPaid > 0 ? 100 : 0))
     const completionProgress = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0
     // const statusConf = statusConfig[job.status] || statusConfig.PENDING // Removed
 
-    const matchedService = services.find(s => s.id === (job.serviceId || job.service_id))
-    const definedCustomFields = matchedService?.customfield || []
     const filledCustomFieldsCount = job.customfieldvalue?.filter(cf => cf.value && cf.value.trim() !== '').length || 0
     const emptyCustomFieldsCount = definedCustomFields.length - filledCustomFieldsCount
 
@@ -621,7 +627,7 @@ export default function JobDetailPage() {
             {/* Stats bar */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                    { label: 'İş Bedeli', value: formatCurrency(totalPrice), color: 'text-gray-900 dark:text-white' },
+                    { label: job.proposalId ? 'Proje Toplamı' : 'İş Bedeli', value: formatCurrency(displayTotalPrice), color: 'text-gray-900 dark:text-white' },
                     { label: `Toplam KDV Tutarı ${job.vatRate ? `(%${job.vatRate})` : ''}`, value: formatCurrency(job.vatAmount), color: 'text-purple-500' },
                     { label: 'Toplam Tahsilat', value: formatCurrency(totalPaid), color: 'text-emerald-500', permission: 'payments.view' },
                     { label: 'Kalan Tutar', value: formatCurrency(remaining), color: remaining > 0 ? 'text-red-500' : 'text-blue-500', permission: 'payments.view' },
@@ -856,7 +862,7 @@ export default function JobDetailPage() {
                                 />
                                 <span className="text-xs font-medium text-gray-500">Hepsini Seç</span>
                             </div>
-                            
+
                             {selectedFileIds.length > 0 && (
                                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
                                     <span className="text-xs font-bold text-indigo-500">{selectedFileIds.length} Seçili</span>
@@ -939,7 +945,7 @@ export default function JobDetailPage() {
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <Calendar size={18} className="text-blue-500" />
-                            Ödeme Takvimi ({installments.length})
+                            Teklif Ödeme Takvimi ({installments.length})
                         </h2>
                         <div className="space-y-3 flex-1 overflow-y-auto pr-1">
                             {installments.map(ins => (

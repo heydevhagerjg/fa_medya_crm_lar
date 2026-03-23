@@ -362,8 +362,8 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
 
-        // Yedekleme talebini sıfırla
-        $tenant->update(['backup_requested' => false]);
+        // Talebi hemen sıfırlama, yedek bittiğinde sıfırla (CreateTenantBackupJob içinde)
+        // $tenant->update(['backup_requested' => false]);
 
         $backup = TenantBackup::create([
             'tenant_id' => $tenant->id,

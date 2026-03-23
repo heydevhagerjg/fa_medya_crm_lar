@@ -37,9 +37,6 @@ class JobController extends Controller
                 ->orderBy('order')
                 ->orderByDesc('created_at');
 
-            // Role-based filtering: Herkesin tüm işleri görmesi istendiği için view kısıtlamasını kaldırıyoruz.
-            // İşlemler (düzenleme/silme) halen update/destroy vb. metodlarda kontrol ediliyor.
-
             if ($request->has('customerId')) {
                 $query->where('customer_id', $request->customerId);
             }
@@ -56,8 +53,23 @@ class JobController extends Controller
                 $query->where('status', $request->status);
             }
 
+            // Check if pagination is requested (Kanban and potential infinite scrolls)
+            if ($request->has('page') || $request->has('limit')) {
+                $limit = (int) $request->get('limit', 15);
+                $paginatedJobs = $query->paginate($limit);
+                
+                return [
+                    'data' => collect($paginatedJobs->items())->map(fn($j) => $this->jobResource($j))->toArray(),
+                    'meta' => [
+                        'current_page' => $paginatedJobs->currentPage(),
+                        'last_page' => $paginatedJobs->lastPage(),
+                        'per_page' => $paginatedJobs->perPage(),
+                        'total' => $paginatedJobs->total(),
+                    ],
+                ];
+            }
+
             $jobs = $query->get();
-            
             return $jobs->map(fn($j) => $this->jobResource($j))->toArray();
         });
 
@@ -339,6 +351,9 @@ class JobController extends Controller
             }
         });
 
+        // Bulk update doesn't trigger model events, so we clear cache manually
+        $this->clearTenantCache('jobs', $tenantId);
+
         return response()->json(['message' => 'Sıralama güncellendi.']);
     }
 
@@ -420,7 +435,15 @@ class JobController extends Controller
         $base['payment']          = $job->payments;
         $base['expense']          = $job->expenses;
         $base['customfieldvalue'] = $job->customFieldValues;
-        $base['installments']     = $job->installments;
+        
+        // If job belongs to a proposal, use proposal's installments for shared view
+        if ($job->proposal_id) {
+            $base['installments'] = \App\Models\ProposalInstallment::where('proposal_id', $job->proposal_id)
+                ->orderBy('id', 'asc')
+                ->get();
+        } else {
+            $base['installments'] = $job->installments;
+        }
         return $base;
     }
 }

@@ -131,6 +131,7 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
     Route::post('service-trackings/{id}/activate', [ServiceTrackingController::class, 'activate']);
 
     // Proposals
+    Route::post('/proposals/{id}/mark-all-paid', [\App\Http\Controllers\Api\ProposalController::class, 'markAllInstallmentsPaid']);
     Route::patch('/proposals/installments/{id}/toggle-paid', [\App\Http\Controllers\Api\ProposalController::class, 'toggleInstallmentPaid']);
     Route::post('/proposals/{id}/send', [\App\Http\Controllers\Api\ProposalController::class, 'send']);
     Route::post('/proposals/{id}/recall', [App\Http\Controllers\Api\ProposalController::class, 'recall']);

@@ -19,7 +19,7 @@ class SystemBackupController extends Controller
         foreach ($backupDisks as $diskName) {
             try {
                 $disk = Storage::disk($diskName);
-                $files = $disk->allFiles(env('APP_NAME', 'FamedyaCRM_System_Backup'));
+                $files = $disk->allFiles(config('backup.backup.name', 'FamedyaCRM_System_Backup'));
                 
                 // Sort by last modified
                 usort($files, function($a, $b) use ($disk) {
@@ -50,6 +50,9 @@ class SystemBackupController extends Controller
     public function create()
     {
         try {
+            @set_time_limit(0);
+            @ini_set('memory_limit', '1024M');
+            
             // Run backup in background or immediately? Better start it and return
             // We'll use artisan but notice it might take time.
             Artisan::queue('backup:run');

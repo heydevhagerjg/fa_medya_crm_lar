@@ -18,7 +18,7 @@ return [
          * The name of this application. You can use this name to monitor
          * the backups.
          */
-        'name' => env('APP_NAME' . '_sql_system_backup', 'FamedyaCRM_System_Backup'),
+        'name' => env('BACKUP_NAME', 'FamedyaCRM_System_Backup'),
 
         'source' => [
             'files' => [
@@ -40,6 +40,9 @@ return [
                     base_path('node_modules'),
                     storage_path('framework'),
                     storage_path('app/backup-temp'),
+                    storage_path('app/backups'),
+                    storage_path('app/private/FamedyaCRM_System_Backup'),
+                    storage_path('app/private/FA Medya CRM_sql_system_backup'),
                 ],
 
                 /*
@@ -154,7 +157,7 @@ return [
              *
              * Setting of 0 for some algorithms may switch to the strongest compression.
              */
-            'compression_level' => 9,
+            'compression_level' => 2,
 
             /*
              * The filename prefix used for the backup zip file.

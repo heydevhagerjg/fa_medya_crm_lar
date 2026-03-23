@@ -179,15 +179,10 @@
                 <span class="total-value" style="font-size: 14px;">{{ number_format($proposal->vat_amount, 2, ',', '.') }} TL</span>
             </div>
             @endif
-            <div class="total-row" style="border-bottom: 2px solid #333;">
+            <div class="total-row">
                 <span class="total-label">GENEL TOPLAM</span>
                 <span class="total-value">{{ number_format($proposal->total_price, 2, ',', '.') }} TL</span>
             </div>
-            @if(!$proposal->is_vat_included)
-            <div style="font-size: 10px; color: #666; margin-top: 5px; text-align: right;">
-                * Belirtilen tutara KDV dahil değildir.
-            </div>
-            @endif
         </div>
 
         <div style="clear: both; margin-top: 50px;"></div>
@@ -217,7 +212,7 @@
         @endif
 
         <div class="footer">
-            {{ $proposal->tenant->name }} - {{ config('app.name') }} aracılığıyla oluşturulmuştur.
+            Bu teklif {{ $proposal->tenant->name }} firması için - {{ config('app.name') }} aracılığıyla oluşturulmuştur.
         </div>
     </div>
 </body>

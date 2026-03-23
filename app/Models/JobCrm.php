@@ -20,13 +20,16 @@ class JobCrm extends Model
             $job->jobFiles()->each(fn($f) => $f->delete());
             $job->payments()->each(fn($p) => $p->delete());
             $job->expenses()->each(fn($e) => $e->delete());
-            $job->installments()->each(fn($i) => $i->delete());
+            // Don't delete installments that belong to a proposal, just unlink them.
+            // Only delete installments that were created specifically for the job without a proposal.
+            $job->installments()->whereNull('proposal_id')->each(fn($i) => $i->delete());
+            $job->installments()->whereNotNull('proposal_id')->update(['job_id' => null]);
             $job->customFieldValues()->each(fn($cf) => $cf->delete());
         });
     }
 
     protected $fillable = [
-        'user_id', 'customer_id', 'proposal_id', 'service_id', 'job_status_id',
+        'tenant_id', 'user_id', 'customer_id', 'proposal_id', 'service_id', 'job_status_id',
         'title', 'description', 'status', 'start_date', 'end_date', 'total_price', 'order',
         'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount',
     ];
