@@ -9,5 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('backup:run')->dailyAt('03:00');
-Schedule::command('tenant:backup-all')->dailyAt('03:30');
 Schedule::command('trash:cleanup')->daily();

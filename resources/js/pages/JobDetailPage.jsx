@@ -549,7 +549,7 @@ export default function JobDetailPage() {
 
     // Total price from installments is the Project Total
     const totalInstallmentsPrice = installments.reduce((s, i) => s + parseFloat(i.amount || 0), 0)
-    const displayTotalPrice = job.proposalId ? totalInstallmentsPrice : jobPrice
+    const displayTotalPrice = (job.proposalId && jobPrice > 0) ? jobPrice : (totalInstallmentsPrice > 0 ? totalInstallmentsPrice : jobPrice)
 
     const steps = job.jobstep || []
     const payments = job.payment || []

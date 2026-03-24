@@ -41,10 +41,11 @@ export default function ProposalsPage() {
     const [revisionModal, setRevisionModal] = useState({ open: false, proposal: null })
     const [form, setForm] = useState({
         customer_id: '',
+        service_id: '',
         title: '',
         description: '',
         valid_until: '',
-        items: [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
+        items: [{ description: '', quantity: 1, unit_price: 0 }],
         installments: [],
         is_vat_included: false,
         vat_rate: 20
@@ -169,16 +170,16 @@ export default function ProposalsPage() {
         if (proposal) {
             setForm({
                 customer_id: proposal.customer_id,
+                service_id: proposal.service_id || '',
                 title: proposal.title,
                 description: proposal.description || '',
                 valid_until: proposal.valid_until ? proposal.valid_until.substring(0, 10) : '',
                 items: proposal.items?.map(i => ({
                     id: i.id,
-                    service_id: i.service_id || '',
                     description: i.description,
                     quantity: i.quantity,
                     unit_price: i.unit_price
-                })) || [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
+                })) || [{ description: '', quantity: 1, unit_price: 0 }],
                 installments: proposal.installments?.map(i => ({
                     id: i.id,
                     amount: i.amount,
@@ -193,10 +194,11 @@ export default function ProposalsPage() {
         } else {
             setForm({
                 customer_id: '',
+                service_id: '',
                 title: '',
                 description: '',
                 valid_until: '',
-                items: [{ service_id: '', description: '', quantity: 1, unit_price: 0 }],
+                items: [{ description: '', quantity: 1, unit_price: 0 }],
                 installments: [],
                 is_vat_included: false,
                 vat_rate: 20
@@ -208,7 +210,7 @@ export default function ProposalsPage() {
     const addItem = () => {
         setForm(f => ({
             ...f,
-            items: [...f.items, { service_id: '', description: '', quantity: 1, unit_price: 0 }]
+            items: [...f.items, { description: '', quantity: 1, unit_price: 0 }]
         }))
     }
 
@@ -344,7 +346,16 @@ export default function ProposalsPage() {
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : isError ? (
-                    <PlanRestrictionView featureName="Teklif" />
+                    <div className="p-12 text-center text-gray-500">
+                        {error?.response?.status === 403 ? (
+                            <PlanRestrictionView featureName="Teklif" />
+                        ) : (
+                            <>
+                                <XCircle size={40} className="mx-auto text-red-400 mb-3" />
+                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                            </>
+                        )}
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <FileText size={48} className="mx-auto text-gray-200 dark:text-gray-800 mb-4" />
@@ -561,6 +572,19 @@ export default function ProposalsPage() {
                         </div>
 
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İlişkili Hizmet *</label>
+                            <select
+                                required
+                                value={form.service_id}
+                                onChange={e => setForm(f => ({ ...f, service_id: e.target.value }))}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            >
+                                <option value="">Hizmet Seçin</option>
+                                {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Geçerlilik Tarihi</label>
                             <input
                                 type="date"
@@ -603,7 +627,7 @@ export default function ProposalsPage() {
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                             {form.items.map((item, idx) => (
                                 <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-3 items-end group p-3 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20 transition-all relative">
-                                    <div className="flex-1 min-w-[200px]">
+                                    <div className="flex-[2] min-w-[200px]">
                                         <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Hizmet/Ürün Açıklaması</label>
                                         <input
                                             required
@@ -612,19 +636,6 @@ export default function ProposalsPage() {
                                             onChange={e => updateItem(idx, 'description', e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         />
-                                    </div>
-                                    <div className="flex-1 min-w-[150px]">
-                                        <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">İlişkili Hizmet</label>
-                                        <select
-                                            value={item.service_id}
-                                            onChange={e => updateItem(idx, 'service_id', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        >
-                                            <option value="">Seçilmedi</option>
-                                            {services.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
                                     </div>
                                     <div className="w-20">
                                         <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Adet</label>

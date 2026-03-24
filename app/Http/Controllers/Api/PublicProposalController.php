@@ -130,54 +130,51 @@ class PublicProposalController extends Controller
     protected function createJobFromProposal(Proposal $proposal)
     {
         $tenantId = $proposal->tenant_id;
-        $createdJobs = [];
 
-        foreach ($proposal->items as $item) {
-            // Fetch first status for tenant
-            $ds = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
-            if (!$ds) {
-                $ds = JobStatus::create([
-                    'tenant_id' => $tenantId,
-                    'name'      => 'Varsayılan',
-                    'color'     => '#6366f1',
-                    'order'     => 0,
-                ]);
-            }
-
-            $job = JobCrm::create([
-                'tenant_id'     => $tenantId,
-                'customer_id'   => $proposal->customer_id,
-                'proposal_id'   => $proposal->id,
-                'service_id'    => $item->service_id,
-                'job_status_id' => $ds->id,
-                'title'         => $item->description,
-                'description'   => $proposal->title . " - " . $item->description,
-                'status'        => 'PENDING',
-                'start_date'    => now(),
-                'total_price'   => $item->total_price,
-                'is_vat_included' => $proposal->is_vat_included,
-                'vat_rate'        => $proposal->vat_rate,
-                'subtotal'        => $item->total_price,
-                'vat_amount'      => 0,
+        // Fetch first status for tenant
+        $ds = JobStatus::where('tenant_id', $tenantId)->orderBy('order')->first();
+        if (!$ds) {
+            $ds = JobStatus::create([
+                'tenant_id' => $tenantId,
+                'name'      => 'Varsayılan',
+                'color'     => '#6366f1',
+                'order'     => 0,
             ]);
-
-            JobDetail::create([
-                'job_id'            => $job->id,
-                'notes'             => "Tekliften kalem bazlı otomatik oluşturuldu. (Teklif ID: {$proposal->id})",
-                'customer_requests' => $proposal->customer_notes,
-            ]);
-            
-            $createdJobs[] = $job;
         }
 
-        // Link installments to the FIRST job
-        if (!empty($createdJobs) && $proposal->installments->isNotEmpty()) {
-            $firstJob = $createdJobs[0];
+        $job = JobCrm::create([
+            'tenant_id'     => $tenantId,
+            'customer_id'   => $proposal->customer_id,
+            'proposal_id'   => $proposal->id,
+            'service_id'    => $proposal->service_id,
+            'job_status_id' => $ds->id,
+            'title'         => $proposal->title,
+            'description'   => $proposal->description,
+            'status'        => 'PENDING',
+            'start_date'    => now(),
+            'total_price'   => $proposal->total_price,
+            'is_vat_included' => $proposal->is_vat_included,
+            'vat_rate'        => $proposal->vat_rate,
+            'subtotal'        => $proposal->subtotal,
+            'vat_amount'      => $proposal->vat_amount,
+        ]);
+
+        JobDetail::create([
+            'job_id'            => $job->id,
+            'notes'             => "Tekliften otomatik oluşturuldu. (Teklif ID: {$proposal->id})",
+            'customer_requests' => $proposal->customer_notes,
+        ]);
+
+        // Link installments to the job
+        if ($proposal->installments->isNotEmpty()) {
             foreach ($proposal->installments as $ins) {
-                $ins->update(['job_id' => $firstJob->id]);
+                $ins->update(['job_id' => $job->id]);
             }
         }
 
-        return !empty($createdJobs) ? $createdJobs[0] : null;
+        ActivityLogService::log(null, 'CREATE', 'JOB', $job->id, $job->title,
+            "{$proposal->title} teklifinden iş oluşturuldu.", $tenantId);
+
+        return $job;
     }
 }

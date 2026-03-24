@@ -245,7 +245,16 @@ export default function ServiceTrackingPage() {
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : isError ? (
-                    <PlanRestrictionView featureName="Hizmet Takibi" />
+                    <div className="p-12 text-center text-gray-500">
+                        {error?.response?.status === 403 ? (
+                            <PlanRestrictionView featureName="Hizmet Takibi" />
+                        ) : (
+                            <>
+                                <XCircle size={40} className="mx-auto text-red-400 mb-3" />
+                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                            </>
+                        )}
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Clock size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />

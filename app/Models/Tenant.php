@@ -160,6 +160,24 @@ class Tenant extends Model
         ]);
     }
 
+    /**
+     * Get the billable's email address.
+     * Required for Laravel Cashier Paddle v2+.
+     */
+    public function paddleEmail(): ?string
+    {
+        // Use the email of the first user of this tenant as the billing email
+        return $this->users()->orderBy('created_at')->first()?->email;
+    }
+
+    /**
+     * Get the billable's name.
+     */
+    public function paddleName(): ?string
+    {
+        return $this->name;
+    }
+
     public function onTrial($params = [])
     {
         if ($this->is_gifted) return true;

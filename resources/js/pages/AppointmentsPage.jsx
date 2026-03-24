@@ -224,8 +224,15 @@ export default function AppointmentsPage() {
                     {appointmentsLoading ? (
                         <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
                     ) : isError ? (
-                        <div className="my-auto">
-                            <PlanRestrictionView featureName="Randevu" />
+                        <div className="p-12 text-center text-gray-500 my-auto">
+                            {error?.response?.status === 403 ? (
+                                <PlanRestrictionView featureName="Randevu" />
+                            ) : (
+                                <>
+                                    <XCircle size={40} className="mx-auto text-red-400 mb-3" />
+                                    <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <>

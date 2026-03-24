@@ -13,9 +13,9 @@ class Proposal extends Model
     protected $relatedCacheModules = ['jobs'];
 
     protected $fillable = [
-        'tenant_id', 'uuid', 'customer_id', 'title', 'description', 
-        'total_price', 'status', 'notes', 'customer_notes', 'sent_at', 'valid_until',
-        'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount'
+        'tenant_id', 'user_id', 'customer_id', 'service_id', 'proposal_status_id',
+        'title', 'description', 'notes', 'status', 'valid_until',
+        'total_price', 'is_vat_included', 'vat_rate', 'subtotal', 'vat_amount',
     ];
 
     protected $casts = [
@@ -46,6 +46,11 @@ class Proposal extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function items()

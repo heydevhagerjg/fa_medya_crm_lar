@@ -37,8 +37,10 @@ const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-
 export default function JobsPage() {
     const { user: currentUser } = useAuthStore()
     const isFeatureDisabled = currentUser?.tenant?.plan_job_feature === false || currentUser?.tenant?.plan_job_feature === 0
+    // Jobs is a core feature, it shouldn't be disabled by a plan_job_feature flag which doesn't exist.
+    // However, we keep a more robust check in the error handler below.
 
-    if (isFeatureDisabled) {
+    if (isFeatureDisabled && currentUser?.tenant?.plan_job_feature !== undefined) {
         return <PlanRestrictionView featureName="İş Takibi" />
     }
     const [search, setSearch] = useState('')
@@ -201,7 +203,16 @@ export default function JobsPage() {
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : isError ? (
-                    <PlanRestrictionView featureName="İş Takibi" />
+                    <div className="p-12 text-center text-gray-500">
+                        {error?.response?.status === 403 ? (
+                            <PlanRestrictionView featureName="İş" />
+                        ) : (
+                            <>
+                                <XCircle size={40} className="mx-auto text-red-400 mb-3" />
+                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                            </>
+                        )}
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Briefcase size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />

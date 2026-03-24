@@ -119,7 +119,16 @@ export default function CustomersPage() {
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : isError ? (
-                    <PlanRestrictionView featureName="Müşteri" />
+                    <div className="p-12 text-center text-gray-500">
+                        {error?.response?.status === 403 ? (
+                            <PlanRestrictionView featureName="Müşteri" />
+                        ) : (
+                            <>
+                                <XCircle size={40} className="mx-auto text-red-400 mb-3" />
+                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                            </>
+                        )}
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Users size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />

@@ -1,56 +1,68 @@
-# FA MEDYA CRM - SİSTEM ÖZELLİKLERİ VE TEKNİK ANALİZİ
+# Famedya CRM Proje Özellikleri
 
-Bu doküman, `fa_medya_crm_laravel` projesinde halihazırda uygulanmış olan tüm modüllerin ve teknik özelliklerin detaylı bir özetini içermektedir. Sistem, modern bir Restful API mimarisi (Laravel) ve çoklu kiracı (multi-tenancy) modeli üzerine inşa edilmiştir. 
+Famedya CRM, modern işletmelerin müşteri, iş, teklif ve finans süreçlerini uçtan uca yönetebilmeleri için tasarlanmış, bulut tabanlı (SaaS) bir kurumsal Kaynak Planlama (ERP) ve Müşteri İlişkileri Yönetimi (CRM) platformudur.
 
-## 1. Kimlik Doğrulama ve Yetkilendirme (Authentication & Authorization)
-Sistem, `Laravel Sanctum` alt yapısı ile token bazlı kimlik denetimi ve `Spatie Permission` paketi ile detaylı rol/yetki mekanizması sağlamaktadır.
-* **Kullanıcı Yönetimi:** API üzerinden kullanıcı kayıt (register) ve giriş (login) operasyonları.
-* **Profil ve Oturum Kontrolü:** Parola değiştirme, profil bilgileri güncelleme, mevcut aktif oturumları (sessions) görüntüleme ve istenildiğinde "diğer tüm oturumları kapat" (revoke-others) işlemi.
-* **Rol ve Yetki Yönetimi (RBAC):** Yetkilendirilmiş yöneticiler (Admin) tarafından sistemdeki dinamik rol ve yetkilerin oluşturulması, kullanıcılara atanması (Role & Permission CRUD).  
+## 1. Ana Mimari ve SaaS Altyapısı
+*   **Multi-tenant (Çoklu Kiracı):** Tek bir yazılım örneği üzerinden binlerce farklı firmanın (tenant) verilerinin birbirine karışmadan çalışmasını sağlayan mimari.
+*   **Bağımsız Veritabanı Mantığı:** Her firmanın kullanıcıları, müşterileri ve tüm verileri izole edilmiştir.
+*   **Beyaz Etiketleme (White-Labeling):** Her firma kendi logosunu yükleyebilir ve arayüzü kişiselleştirebilir.
+*   **Abonelik ve Plan Yönetimi:** Paddle entegrasyonu ile esnek paket tanımlama, deneme süreci, limit yönetimi ve otomatik faturalandırma.
+*   **Erişim Kısıtlama Sistemi:** Paket özelliklerine göre (İş sayısı, personel limiti, API erişimi vb.) otomatik özellik açma/kapatma.
 
-## 2. Çoklu Kiracı Mimarisi (Multi-Tenancy)
-Yazılımın SaaS (Software as a Service) olarak kullanılabilmesine olanak tanıyan mimari özelliklerdir.
-* **Super Admin Yönetimi:** Tenant'lardan bağımsız `/admin` rotaları üzerinden sadece sisteme hükmeden yöneticilerin girdiği bir arayüz bulunur. 
-* **Tenant (Firma) İşlemleri:** Super admin tarafından yeni tenant (organizasyon) ekleme, silme ve görüntüleme.
-* **Firmaya Kullanıcı Atama:** Yeni veya mevcut tenant'lara kullanıcı (owner/kullanıcı) bağlama işlemi.
-* **Kiracı Ayarları (Tenant Settings):** Her firmanın kendine özel dosya depolama vb. entegrasyon ayarlarını girmesi ve bunların bağlantı testlerinin (Test Connection) yapılabilmesi.
+## 2. Müşteri (CRM) Yönetimi
+*   **Hızlı Müşteri Kaydı:** Ad, telefon, e-posta ve özel notlarla müşteri portföyü oluşturma.
+*   **Müşteri Geçmişi:** Müşteriye bağlı geçmiş işleri, ödemeleri ve randevuları tek ekranda görüntüleme.
+*   **İletişim Yönetimi:** Tek tıkla arama veya e-posta gönderme kısayolları (arayüz üzerinden).
+*   **Gelişmiş Arama ve Filtreleme:** İsim, telefon veya e-posta ile anlık filtreleme.
 
-## 3. Müşteri İlişkileri Yönetimi (Customer Management)
-* **Müşteri CRUD:** Sisteme müşteri ekleme, güncelleme, detay görüntüleme ve silme. Tüm iş ve finans modülleri doğrudan müşteri kayıtları etrafında şekillenir.
+## 3. İş ve Proje Takibi
+*   **Esnek İş Akışları:** İşleri aşama aşama (Kanban veya Liste görünümü) takip edebilme.
+*   **Kanban Panosu:** Sürükle-bırak yöntemiyle iş durumlarını güncelleme (Hazırlanıyor, Onay Bekliyor, Tamamlandı vb.).
+*   **İş Adımları ve Checklist:** Her iş için özel alt görevler (adımlar) tanımlama ve tamamlanma oranını izleme.
+*   **Personel Atama:** İşleri belirli personellere zimmetleme ve sorumluluk takibi.
+*   **İş Bazlı Notlar:** Proje sürecindeki önemli detayları tarih bazlı not alma.
 
-## 4. İş ve Proje Takibi (Job Tracking / CRM)
-Müşteriler adına açılan işlerin statüleri, dökümanları ve süreç geçişleri yönetilir. 
-* **İş Yönetimi (Jobs):** Müşterilere yeni projelendirme (Job) ataması, detay girişi ve sıralama (reorder).
-* **Statü ve Aşama Yönetimi (Job Statuses):** İş süreçleri için "Bekliyor", "İşlemde", "Tamamlandı" gibi dinamik iş statüleri tanımlayabilme ve sıralama (drag & drop reorder için rotalar).
-* **İş Adımları (Job Steps):** Bir iş projesinin yürütülmesi esnasında geçilmesi gereken alt adımların belirlenmesi ve güncellenmesi.
-* **Makro/Şablon İşlemleri (Step Templates):** Sıklıkla yapılan standart projeler için önceden tanımlanmış iş adımı şablonları tasarlanması ve bu şablonların tek tıkla mevcut bir işe atanması (`applyTemplate`).
-* **Dosya Transferleri ve Bulut (Job Files):** Projelere ait döküman, resim, sözleşme vs. dosyalarının sunucuya veya S3 bucket'a yüklenmesi, proxy ile güvenli bir şekilde indirilmesi ve yönetilmesi.
+## 4. Teklif Yönetimi (Proposals)
+*   **Dijital Teklif Hazırlama:** Ürün/hizmet kalemleri, KDV hesaplamaları ve genel indirimlerle profesyonel teklifler oluşturma.
+*   **Online Teklif Onayı:** Müşterilere gönderilen özel link üzerinden tekliflerin dijital olarak incelenmesi ve onaylanması.
+*   **Hızlı İş Dönüşümü:** Onaylanan tekliflerin tek tıkla gerçek bir "İş" kaydına dönüştürülmesi ve finansal verilerin otomatik aktarımı.
+*   **Teklif Durum Takibi:** Taslak, gönderildi, kabul edildi ve reddedildi süreçlerinin yönetimi.
 
-## 5. Finans ve Ön Muhasebe (Finance & Pre-Accounting)
-Kasa, gelir ve gider akışlarının tutulduğu temel finansal takip işlemleri.
-* **Kasa Yönetimi (Cash Registers):** Sisteme "Merkez Kasa", "Banka 1" vs. gibi çoklu kasa/hesap tanımlamaları.
-* **Ödeme Tahsilatları (Payments):** Müşterilerden veya işlerden (job) gelen gelirlerin seçili kasaya makbuz veya evrak ile tahsilat işlemlerinin CRUD operasyonları.
-* **Gider Yönetimi (Expenses):** Ofis içi, personel bazlı vb. para çıkışlarının kayıt edilmesi. 
-* **Gider Kategorileri:** Gider kalemlerinin sınıflandırılması (Yemek, Ulaşım, Fatura vs.) için kategori yönetimi işlemi. 
+## 5. Finans ve Muhasebe Yönetimi
+*   **Kasa ve Hesap Yönetimi:** Birden fazla kasa (Nakit, Banka vb.) tanımlama ve bakiye takibi.
+*   **Ödeme ve Tahsilat:** İş bazlı parçalı ödeme alma, taksitlendirme ve geçmiş tahsilatların raporlanması.
+*   **Gider Takibi:** İşletme giderlerini kategorize etme (Kira, Maaş, Vergi vb.) ve kâr-zarar analizi.
+*   **Kâr-Zarar Özeti:** Dashboard üzerinden anlık toplam gelir, gider ve net bakiye takibi.
+*   **Dekont Yönetimi:** Ödemelere dijital dekont/belge ekleme.
 
-## 6. Ajanda ve Randevu Sistemi (Appointment System)
-* **Randevu İşlemleri:** Müşteri bazlı veya potansiyel müşteri takibi amaçlı takvim etkinlikleri / randevu tanımlama işlemleri.
-* **Konu Başlıkları (Appointment Titles):** Randevuların türlerinin (Toplantı, Keşif, Sunum vb.) dinamik olarak tanımlanıp randevu sırasında seçilebilmesi.
+## 6. Randevu ve Takvim Sistemi
+*   **Gelişmiş Takvim Görünümü:** Günlük, haftalık ve aylık bazda randevu takibi.
+*   **Müşteri Bağlantılı Randevular:** Randevuları doğrudan müşteri kartlarıyla ilişkilendirme.
+*   **Kritik Uyarılar:** Yaklaşan ve geciken randevular için görsel uyarılar ve geri sayım araçları.
 
-## 7. Hizmet Takibi ve Abonelikler (Service Tracking - Kanban)
-Sürekli veya periyodik (örnek: aylık bakım, yıllık yenileme) verilen servislerin takibinin yapıldığı modüldür.
-* **Hizmet Katalogu ve Kategoriler (Services & Categories):** Firmanın sunduğu kalıcı abonelik hizmetlerinin kategori ve tür bazlı listesi.
-* **Periyodik Takip (Service Trackings):** Sözleşmeli işlerin kayıt altına alınması; bunların "aktif edilmesi (activate)", "iptal edilmesi (cancel)", veya tamamlanması (complete).
-* **Gecikmiş İşlemler (Catch-Up):** Tarihi geçmiş periyodik görevlerin toplu ve akıllı olarak günümüz tarihine yaklaştırılması veya tamamlanması mantığı.
-* **Takip Logları (Service Tracking Logs):** Bir abonelik/hizmet işleminin o anki ilerleyiş logu, aşama onaylamaları. 
+## 7. Periyodik Hizmet Takibi
+*   **Otomatik Döngüler:** Bakım, abonelik veya periyodik kontroller için (Günlük, Haftalık, Aylık, Yıllık) otomatik takip oluşturma.
+*   **Gelecek İşlem Tahmini:** Gelecek servis tarihlerini otomatik hesaplama ve hatırlatma.
+*   **Hizmet Geçmişi:** Yapılan tüm periyodik işlemlerin geçmiş günlüğünü tutma.
 
-## 8. Sistem Ayarları ve Ekstra Modüller
-* **Dinamik Veri Alanları (Custom Fields):** Sistem (veritabanı şeması dahilindeki modeller incelendiğinde) kullanıcılara belirli formlar üstüne ekstra "Özel Alanlar" (Custom Field / Custom Field Value) açma yeteneği sağlar.
-* **API Key Yönetimi:** Sistemin dış uygulamalarla haberleşebilmesi adına sadece Adminlerin üretebildiği entegrasyon anahtarları. 
-* **Sistem Günlükleri (Activity Logs):** Veritabanında model bazlı yapılan ekleme, silme veya değişiklik işlemlerinin sistem yöneticileri (Admin) tarafından denetlenebilmesi için kayıt tutan denetim izi mekanizması (`/logs`). 
-* **Dashboard İstatistikleri:** Uygulama giriş sayfasında gösterilen sayısal metrik ve analiz uçları.
+## 8. Dosya ve Doküman Yönetimi
+*   **Amazon S3 Entegrasyonu:** Dosyaların güvenli bulut depolama alanlarında saklanması.
+*   **Firma Bazlı Bağımsız Depolama:** Her firmanın kendi S3 bilgilerini bağlayarak verilerini kendi bulutunda saklayabilme imkanı.
+*   **İş Bazlı Dosya Yükleme:** Her işe özel doküman, fotoğraf ve belge ekleme.
+*   **Çöp Kutusu Sistemi:** Yanlışlıkla silinen dosyaları geri getirebilme ve 30 gün sonra otomatik kalıcı temizlik.
 
-## 9. Veri Güvenliği, Yedekleme ve AWS Entegrasyonu (Backup Management)
-* **Manuel İçeri-Dışarı Aktarım:** Tüm sistem verisinin dışa aktarılması (export) , geri dönülmesi (import) veya veritabanının isteğe bağlı sıfırlanması işlemleri (reset). 
-* **Bulut Depolama (S3) Yedekleri:** S3 compatible bulut servislerine otomatik/manuel yedek gönderilmesi. Arşivlenen bu AWS S3 yedeklerinin API üstünden listelenmesi (`listS3Backups`) ve doğrudan sistem üstünden indirtilmesi.
-* **Güvenli Anahtarlar (Backup Keys):** Yedek işlemleri için güvenlik duvarı rolü üstlenen manuel üretim şifreler/anahtarların yönetimi ve silinmesi işlemleri.
+## 9. Personel ve Yetki Yönetimi
+*   **Rol Bazlı Yetkilendirme:** Admin, Personel gibi rollere göre detaylı izin tanımlama (Oku, Yaz, Sil, Düzenle).
+*   **Personel Performans Takibi:** Hangi işin kimin üzerinde olduğunu ve tamamlanma durumlarını izleme.
+
+## 10. API ve Entegrasyon
+*   **Granüler API Anahtarları:** Dış sistemlerle entegrasyon için modül bazlı yetkilendirilmiş API key oluşturma.
+*   **Gelişmiş API Dokümantasyonu:** Yazılımcılar için sistem içinden erişilebilen canlı dokümantasyon.
+
+## 11. Güvenlik ve Yedekleme
+*   **Oturum Güvenliği:** Modern JWT/Sanctum tabanlı kimlik doğrulama.
+*   **Otomatik Sistem Yedekleme:** Her gece tüm sistemin (Dosyalar + DB) tam yedeğinin alınması.
+*   **Veri İzolasyonu:** Kiracı (Tenant) bazlı veri ayrıştırma ve güvenlik katmanları.
+
+---
+*Bu belge Famedya CRM projesinin güncel teknik ve fonksiyonel kapsamını ifade etmektedir.*
