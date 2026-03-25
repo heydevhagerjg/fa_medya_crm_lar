@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { 
     Settings, Layers, ListTodo, ClipboardList, Wallet, FolderOpen, 
-    CalendarCheck, Activity, Users, Shield, Key, Database, ShieldAlert 
+    CalendarCheck, Activity, Users, Shield, Key, Database, ShieldAlert, Plus
 } from 'lucide-react'
 import { useAuthStore } from '../stores/index.js'
+import PageHeader from '../components/layout/PageHeader.jsx'
 
 // Modüler Bileşenler
-import SettingsSidebar from './Settings/SettingsSidebar.jsx'
 import GeneralTab from './Settings/GeneralTab.jsx'
 import ServicesTab from './Settings/ServicesTab.jsx'
 import StatusesTab from './Settings/StatusesTab.jsx'
@@ -56,6 +56,23 @@ export default function SettingsPage() {
         { id: 'logs', label: 'Denetim Kayıtları', icon: ShieldAlert, to: '/settings?tab=logs' },
     ]
 
+    const menuLabels = {
+        'general': 'Genel Bilgiler',
+        'services': 'Hizmet Tanımları',
+        'statuses': 'İş Akış Durumları',
+        'templates': 'Adım Şablonları',
+        'cash-registers': 'Kasa Yönetimi',
+        'expense-categories': 'Gider Kategorileri',
+        'appointment-titles': 'Randevu Başlıkları',
+        'service-tracking': 'Hizmet Takip Kategorileri',
+        'workflows': 'İş Otomasyonları',
+        'users': 'Personel Yönetimi',
+        'roles': 'Yetki Grupları (Roller)',
+        'api-keys': 'API / Entegrasyon',
+        'backups': 'Veri Yedekleme',
+        'logs': 'Denetim Kayıtları',
+    }
+
     const renderTab = () => {
         switch (activeTab) {
             case 'general': return <GeneralTab tenant={tenant} setTenant={setTenant} />
@@ -77,9 +94,14 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 min-h-screen p-0">
-            <SettingsSidebar menuItems={menuItems} activeTab={activeTab} />
-            <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-col w-full min-h-screen p-6">
+            <PageHeader
+                title={menuLabels[activeTab] || 'Ayarlar'}
+                breadcrumbs={['Ayarlar', menuLabels[activeTab] || 'Ayarlar']}
+                icon={Settings}
+                iconColor="text-[#905EFC]"
+            />
+            <div className="mt-6">
                 {renderTab()}
             </div>
         </div>

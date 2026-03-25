@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday, addHours, addWeeks, subWeeks, addDays, subDays } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { useAuthStore } from '../stores/index.js'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 export default function AppointmentsPage() {
@@ -200,23 +201,16 @@ export default function AppointmentsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl text-indigo-600 dark:text-indigo-400">
-                            <CalendarIcon size={22} />
-                        </div>
-                        Randevular
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">Müşteri randevularınızı takvim üzerinden yönetin</p>
-                </div>
-                <button
-                    onClick={() => { resetForm(); setShowModal(true); }}
-                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
-                >
-                    <Plus size={18} /> Yeni Randevu
-                </button>
-            </div>
+            <PageHeader
+                title="Randevular"
+                subtitle="Müşteri randevularınızı takvim üzerinden yönetin"
+                icon={CalendarIcon}
+                iconColor="text-indigo-500"
+                actions={[
+                    { label: 'Yeni Randevu', onClick: () => { resetForm(); setShowModal(true); }, icon: Plus, variant: 'primary' }
+                ]}
+                breadcrumbs={['Randevular']}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Calendar Detail / List View */}

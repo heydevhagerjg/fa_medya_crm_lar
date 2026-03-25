@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, ChevronRight, X, Check, XCircle } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import { useEffect } from 'react'
 import { useAuthStore } from '../stores/index.js'
 import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
@@ -86,33 +87,17 @@ export default function CustomersPage() {
 
     return (
         <div className="space-y-5">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Users size={24} className="text-indigo-500" />
-                        Müşteriler
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{customers.length} müşteri</p>
-                </div>
-                <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/25"
-                >
-                    <Plus size={18} /> Müşteri Ekle
-                </button>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="İsim, telefon veya e-posta ara..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-white placeholder-gray-400"
-                />
-            </div>
+            <PageHeader
+                title="Müşteriler"
+                subtitle={`${customers.length} müşteri`}
+                icon={Users}
+                iconColor="text-indigo-500"
+                actions={[
+                    { label: 'Müşteri Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                ]}
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'İsim, telefon veya e-posta ara...' }}
+                breadcrumbs={[`Müşteriler (${customers.length} Kayıtlı Veri)`]}
+            />
 
             {/* Table */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">

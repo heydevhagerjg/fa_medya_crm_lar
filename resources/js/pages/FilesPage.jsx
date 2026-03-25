@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 
@@ -260,26 +261,25 @@ export default function FilesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <FolderOpen className="text-indigo-500" size={24} />
-                        Dosyalar
-                    </h1>
-                    <p className="text-sm text-gray-400 mt-1">AWS S3 üzerinde barındırılan tüm iş dosyalarınız</p>
-                </div>
-
+            <PageHeader
+                title="Dosyalar"
+                subtitle="AWS S3 üzerinde barındırılan tüm iş dosyalarınız"
+                icon={FolderOpen}
+                iconColor="text-indigo-500"
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Dosya veya iş ara...' }}
+                breadcrumbs={['Dosyalar']}
+            >
                 <div className="flex items-center gap-3">
-                    <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Dosya veya iş ara..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all w-full md:w-64"
-                        />
+                    <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1 border border-gray-200 dark:border-gray-700">
+                        <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-900 shadow-sm border border-gray-200/50 dark:border-gray-700' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}><List size={16} /></button>
+                        <button onClick={() => setViewMode('grid')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-900 shadow-sm border border-gray-200/50 dark:border-gray-700' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}><Grid size={16} /></button>
                     </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                        <HardDrive size={16} /> {totalFiles} dosya • {totalSize}
+                    </div>
+                </div>
+            </PageHeader>
+
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                         <button
                             onClick={() => { setShowTrash(false); setActiveFolderId(null); }}
@@ -294,22 +294,6 @@ export default function FilesPage() {
                             <Trash size={14} /> Çöp Kutusu
                         </button>
                     </div>
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            <Grid size={18} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            <List size={18} />
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

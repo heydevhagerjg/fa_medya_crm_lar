@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { CreditCard, Plus, Trash2, Edit2, Search, FileText, Eye, Download, Loader2 } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import { useEffect } from 'react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -181,23 +182,17 @@ export default function PaymentsPage() {
 
     return (
         <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <CreditCard size={24} className="text-emerald-500" />
-                        Tahsilatlar
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Toplam: {formatCurrency(totalPayments)}</p>
-                </div>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-emerald-500/25">
-                    <Plus size={18} /> Tahsilat Ekle
-                </button>
-            </div>
-
-            <div className="relative">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İş veya açıklama ara..." className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400" />
-            </div>
+            <PageHeader
+                title="Tahsilatlar"
+                subtitle={`Toplam: ${formatCurrency(totalPayments)}`}
+                icon={CreditCard}
+                iconColor="text-emerald-500"
+                actions={[
+                    { label: 'Tahsilat Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                ]}
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'İş veya açıklama ara...' }}
+                breadcrumbs={['Tahsilatlar']}
+            />
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (

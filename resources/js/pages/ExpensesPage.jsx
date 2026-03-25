@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { TrendingDown, Plus, Trash2, Edit2, Search, FileText, Eye, Download } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import { useEffect } from 'react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
@@ -162,23 +163,17 @@ export default function ExpensesPage() {
 
     return (
         <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <TrendingDown size={24} className="text-red-500" />
-                        Masraflar
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Toplam: {formatCurrency(totalExpenses)}</p>
-                </div>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-red-500/25">
-                    <Plus size={18} /> Masraf Ekle
-                </button>
-            </div>
-
-            <div className="relative">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Başlık veya iş ara..." className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400" />
-            </div>
+            <PageHeader
+                title="Masraflar"
+                subtitle={`Toplam: ${formatCurrency(totalExpenses)}`}
+                icon={TrendingDown}
+                iconColor="text-red-500"
+                actions={[
+                    { label: 'Masraf Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                ]}
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Başlık veya iş ara...' }}
+                breadcrumbs={['Masraflar']}
+            />
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (

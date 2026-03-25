@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '../stores/index.js'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const statuses = {
@@ -307,29 +308,17 @@ export default function ProposalsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText size={24} className="text-indigo-500" />
-                        Teklifler
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{proposals.length} toplam teklif</p>
-                </div>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/25">
-                    <Plus size={18} /> Yeni Teklif Oluştur
-                </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Teklif veya müşteri ara..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white"
-                    />
-                </div>
+            <PageHeader
+                title="Teklifler"
+                subtitle={`${proposals.length} toplam teklif`}
+                icon={FileText}
+                iconColor="text-indigo-500"
+                actions={[
+                    { label: 'Yeni Teklif Oluştur', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                ]}
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Teklif veya müşteri ara...' }}
+                breadcrumbs={['Teklifler']}
+            >
                 <select
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
@@ -340,7 +329,7 @@ export default function ProposalsPage() {
                         <option key={key} value={key}>{val.label}</option>
                     ))}
                 </select>
-            </div>
+            </PageHeader>
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (

@@ -7,6 +7,7 @@ import {
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/index.js'
 import { useState, useRef, useEffect } from 'react'
+import PageHeader from '../components/layout/PageHeader.jsx'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -51,57 +52,49 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-end pb-8">
-                <div>
-                    <h1 className="text-4xl font-black text-[#1A1A2E] dark:text-white tracking-tighter">İstatistikler</h1>
-                    <p className="text-[#9097A6] dark:text-gray-400 text-sm mt-2 font-medium italic opacity-70">Vistore CRM Dashboard • Canlı Veri Akışı</p>
-                </div>
-
-                <div className="relative" ref={dropdownRef}>
-                    <button
-                        onClick={() => setDropdownOpen(!dropdownOpen)}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-primary/25"
-                    >
-                        <Plus size={20} />
-                        Hızlı İşlem
-                        <ChevronDown size={16} className={`transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {dropdownOpen && (
-                        <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-2 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-                            <Link to="/customers?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                    <UserPlus size={16} className="text-blue-500" />
+            <PageHeader
+                title="İstatistikler"
+                subtitle="Vistore CRM Dashboard • Canlı Veri Akışı"
+                icon={BarChart3}
+                iconColor="text-indigo-500"
+                actions={[
+                    { label: 'Hızlı İşlem', onClick: () => setDropdownOpen(!dropdownOpen), icon: Plus, variant: 'primary' }
+                ]}
+                breadcrumbs={['İstatistikler']}
+            >
+                {dropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-2 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                        <Link to="/customers?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                <UserPlus size={16} className="text-blue-500" />
+                            </div>
+                            <span className="font-medium">Yeni Müşteri</span>
+                        </Link>
+                        <Link to="/jobs?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <Briefcase size={16} className="text-indigo-500" />
+                            </div>
+                            <span className="font-medium">Yeni İş / Proje</span>
+                        </Link>
+                        {hasPermission('payments.create') && (
+                            <Link to="/payments?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                    <CreditCard size={16} className="text-emerald-500" />
                                 </div>
-                                <span className="font-medium">Yeni Müşteri</span>
+                                <span className="font-medium">Yeni Tahsilat</span>
                             </Link>
-                            <Link to="/jobs?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                    <Briefcase size={16} className="text-indigo-500" />
+                        )}
+                        {hasPermission('expenses.create') && (
+                            <Link to="/expenses?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                                    <TrendingDown size={16} className="text-red-500" />
                                 </div>
-                                <span className="font-medium">Yeni İş / Proje</span>
+                                <span className="font-medium">Yeni Masraf</span>
                             </Link>
-                            {hasPermission('payments.create') && (
-                                <Link to="/payments?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                        <CreditCard size={16} className="text-emerald-500" />
-                                    </div>
-                                    <span className="font-medium">Yeni Tahsilat</span>
-                                </Link>
-                            )}
-                            {hasPermission('expenses.create') && (
-                                <Link to="/expenses?new=1" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                                        <TrendingDown size={16} className="text-red-500" />
-                                    </div>
-                                    <span className="font-medium">Yeni Masraf</span>
-                                </Link>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )}
+                    </div>
+                )}
+            </PageHeader>
 
             {/* Stat cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">

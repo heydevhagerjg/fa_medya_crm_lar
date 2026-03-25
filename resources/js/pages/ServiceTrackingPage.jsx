@@ -6,6 +6,7 @@ import { Clock, Plus, Trash2, Edit2, Search, Calendar, User, FolderOpen, History
 import { useAuthStore } from '../stores/index.js'
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
+import PageHeader from '../components/layout/PageHeader.jsx'
 import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -212,24 +213,17 @@ export default function ServiceTrackingPage() {
 
     return (
         <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Clock size={24} className="text-indigo-500" />
-                        Hizmet Takibi
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Hizmet periyotlarını ve hatırlatmaları yönetin.</p>
-                </div>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/25">
-                    <Plus size={18} /> Yeni Takip Ekle
-                </button>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Başlık, müşteri veya kategori ara..." className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400" />
-                </div>
+            <PageHeader
+                title="Hizmet Takibi"
+                subtitle="Hizmet periyotlarını ve hatırlatmaları yönetin."
+                icon={Clock}
+                iconColor="text-indigo-500"
+                actions={[
+                    { label: 'Yeni Takip Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                ]}
+                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Başlık, müşteri veya kategori ara...' }}
+                breadcrumbs={['Hizmet Takibi']}
+            >
                 <select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
@@ -239,7 +233,7 @@ export default function ServiceTrackingPage() {
                     <option value="cancelled">İptal Edilenler</option>
                     <option value="all">Tümü</option>
                 </select>
-            </div>
+            </PageHeader>
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
