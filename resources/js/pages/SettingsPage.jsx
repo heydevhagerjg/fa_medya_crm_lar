@@ -53,7 +53,7 @@ export default function SettingsPage() {
         { id: 'roles', label: 'Yetki Grupları (Roller)', icon: Shield, to: '/settings?tab=roles' },
         { id: 'api-keys', label: 'API / Entegrasyon', icon: Key, to: '/settings?tab=api-keys' },
         { id: 'backups', label: 'Veri Yedekleme', icon: Database, to: '/settings?tab=backups' },
-        { id: 'logs', label: 'Denetim Kayıtları (Audit Log)', icon: ShieldAlert, to: '/settings?tab=logs' },
+        { id: 'logs', label: 'Denetim Kayıtları', icon: ShieldAlert, to: '/settings?tab=logs' },
     ]
 
     const renderTab = () => {
@@ -77,9 +77,9 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-8 min-h-screen bg-gray-25/50 dark:bg-gray-950/20 p-4 md:p-0">
+        <div className="flex flex-col md:flex-row gap-6 min-h-screen p-0">
             <SettingsSidebar menuItems={menuItems} activeTab={activeTab} />
-            <div className="flex-1 overflow-y-auto px-1">
+            <div className="flex-1 overflow-y-auto">
                 {renderTab()}
             </div>
         </div>

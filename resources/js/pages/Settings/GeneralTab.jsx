@@ -34,26 +34,27 @@ export default function GeneralTab({ tenant, setTenant }) {
     }
 
     return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 shadow-xl shadow-gray-200/20 dark:shadow-none overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
+        <div className="space-y-5 max-w-4xl">
+            <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-6 overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-6 opacity-[0.03] dark:opacity-[0.06]">
                     <Building2 size={120} />
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-10 relative z-10">
-                    <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col md:flex-row gap-8 relative z-10">
+                    {/* Logo upload */}
+                    <div className="flex flex-col items-center gap-3">
                         <div className="group relative">
-                            <div className="w-32 h-32 rounded-3xl bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-indigo-500 shadow-sm relative">
+                            <div className="w-28 h-28 rounded-xl bg-[#F4F5F7] dark:bg-white/5 border-2 border-dashed border-[#E5E9F0] dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:border-[#905EFC] relative">
                                 {tenant?.logo ? (
-                                    <div className="relative w-full h-full p-2 flex items-center justify-center">
-                                        <img src={`/storage/${tenant.logo}`} className="max-w-full max-h-full object-contain filter drop-shadow-md" alt="Logo" />
-                                        <div className="absolute inset-0 bg-indigo-600/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
-                                            <ImageIcon className="text-white" size={24} />
+                                    <>
+                                        <img src={`/storage/${tenant.logo}`} className="max-w-full max-h-full object-contain p-2" alt="Logo" />
+                                        <div className="absolute inset-0 bg-[#905EFC]/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-200">
+                                            <ImageIcon className="text-white" size={22} />
                                         </div>
-                                    </div>
+                                    </>
                                 ) : (
-                                    <div className="text-gray-400 group-hover:text-indigo-500 transition-colors flex flex-col items-center gap-2">
-                                        <ImageIcon size={32} />
+                                    <div className="text-[#9097A6] group-hover:text-[#905EFC] transition-colors flex flex-col items-center gap-1.5">
+                                        <ImageIcon size={28} strokeWidth={1.5} />
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-center px-2">Logo Yükle</span>
                                     </div>
                                 )}
@@ -61,66 +62,64 @@ export default function GeneralTab({ tenant, setTenant }) {
                             </div>
                         </div>
                         <div className="text-center">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Kurumsal Logo</h4>
-                            <p className="text-[10px] text-gray-500 italic max-w-[140px] leading-relaxed">PNG veya JPG formatında saydam logo kullanımı önerilir.</p>
+                            <h4 className="text-[11px] font-bold text-[#9097A6] uppercase tracking-widest mb-0.5">Kurumsal Logo</h4>
+                            <p className="text-[10px] text-[#9097A6] italic max-w-[130px] leading-relaxed">PNG veya JPG formatında saydam logo kullanımı önerilir.</p>
                         </div>
                     </div>
 
-                    <div className="flex-1 space-y-8">
-                        <div>
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600">
-                                    <Briefcase size={16} />
-                                </div>
-                                <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Firma Bilgileri</h3>
+                    {/* Form */}
+                    <div className="flex-1 space-y-6">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-[#905EFC]/10 rounded-lg text-[#905EFC]">
+                                <Briefcase size={14} />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">İşletme Adı</label>
+                            <h3 className="text-sm font-black text-[#1A1A2E] dark:text-white uppercase tracking-wider">Firma Bilgileri</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { label: 'İşletme Adı', key: 'company_name', icon: Building2, placeholder: 'Firma Ünvanı', type: 'text' },
+                                { label: 'E-posta Adresi', key: 'email', icon: Mail, placeholder: 'kurumsal@eposta.com', type: 'email' },
+                                { label: 'Telefon', key: 'phone', icon: Phone, placeholder: '05XX XXX XX XX', type: 'text' },
+                                { label: 'Web Sitesi', key: 'website', icon: Globe, placeholder: 'www.firmawebsite.com', type: 'text' },
+                            ].map(({ label, key, icon: Icon, placeholder, type }) => (
+                                <div key={key} className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-[#9097A6] uppercase tracking-widest ml-0.5">{label}</label>
                                     <div className="relative group">
-                                        <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                                        <input type="text" value={tenant?.company_name || ''} onChange={e => setTenant({ ...tenant, company_name: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-white" placeholder="Firma Ünvanı" />
+                                        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9097A6] group-focus-within:text-[#905EFC] transition-colors" size={15} />
+                                        <input
+                                            type={type}
+                                            value={tenant?.[key] || ''}
+                                            onChange={e => setTenant({ ...tenant, [key]: e.target.value })}
+                                            className="w-full pl-10 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-semibold text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905EFC]/20 focus:border-[#905EFC] transition-all"
+                                            placeholder={placeholder}
+                                        />
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">E-posta Adresi</label>
-                                    <div className="relative group">
-                                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                                        <input type="email" value={tenant?.email || ''} onChange={e => setTenant({ ...tenant, email: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-white" placeholder="kurumsal@eposta.com" />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Telefon</label>
-                                    <div className="relative group">
-                                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                                        <input type="text" value={tenant?.phone || ''} onChange={e => setTenant({ ...tenant, phone: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-white" placeholder="05XX XXX XX XX" />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Web Sitesi</label>
-                                    <div className="relative group">
-                                        <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                                        <input type="text" value={tenant?.website || ''} onChange={e => setTenant({ ...tenant, website: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-white" placeholder="www.firmawebsite.com" />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Adres</label>
-                                    <div className="relative group">
-                                        <MapPin className="absolute left-3.5 top-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                                        <textarea rows={3} value={tenant?.address || ''} onChange={e => setTenant({ ...tenant, address: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none text-gray-900 dark:text-white" placeholder="İşletme açık adresi..." />
-                                    </div>
+                            ))}
+                            <div className="space-y-1.5 md:col-span-2">
+                                <label className="text-[11px] font-bold text-[#9097A6] uppercase tracking-widest ml-0.5">Adres</label>
+                                <div className="relative group">
+                                    <MapPin className="absolute left-3 top-3 text-[#9097A6] group-focus-within:text-[#905EFC] transition-colors" size={15} />
+                                    <textarea
+                                        rows={3}
+                                        value={tenant?.address || ''}
+                                        onChange={e => setTenant({ ...tenant, address: e.target.value })}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-semibold text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905EFC]/20 focus:border-[#905EFC] transition-all resize-none"
+                                        placeholder="İşletme açık adresi..."
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex pt-4">
+                        <div className="flex pt-2">
                             <button
                                 onClick={() => updateMutation.mutate({ company_name: tenant.company_name, email: tenant.email, phone: tenant.phone, address: tenant.address, website: tenant.website })}
                                 disabled={updateMutation.isPending}
-                                className="w-full md:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-bold shadow-xl shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100"
+                                className="flex items-center gap-2 px-6 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#905EFC]/20 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100"
                             >
-                                {updateMutation.isPending ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                                {updateMutation.isPending ? 'KAYDEDİLİYOR...' : 'DEĞİŞİKLİKLERİ KAYDET'}
+                                {updateMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                {updateMutation.isPending ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
                             </button>
                         </div>
                     </div>

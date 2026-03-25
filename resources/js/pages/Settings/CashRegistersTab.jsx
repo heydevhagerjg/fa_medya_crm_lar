@@ -9,12 +9,12 @@ export default function CashRegistersTab() {
         renderForm={(form, setForm) => (
             <>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kasa Adı *</label>
-                    <input type="text" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                    <label className="block text-sm font-medium text-[#1A1A2E] dark:text-white mb-1">Kasa Adı *</label>
+                    <input type="text" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="w-full px-3 py-2 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-white dark:bg-white/5 text-[#1A1A2E] dark:text-white focus:outline-none focus:border-[#905EFC]" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer mt-2">
                     <input type="checkbox" checked={form.is_default || false} onChange={e => setForm(p => ({ ...p, is_default: e.target.checked }))} className="rounded" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Varsayılan kasa</span>
+                    <span className="text-sm text-[#1A1A2E] dark:text-white">Varsayılan kasa</span>
                 </label>
             </>
         )}

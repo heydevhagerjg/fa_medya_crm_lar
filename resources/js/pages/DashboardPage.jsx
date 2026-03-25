@@ -39,13 +39,12 @@ export default function DashboardPage() {
     }
 
     const statCards = [
-        { label: 'Toplam Müşteri', value: stats?.totalCustomers || 0, icon: Users, color: 'from-blue-500 to-blue-600', bg: 'bg-blue-500/10 dark:bg-blue-500/10', iconColor: 'text-blue-500' },
-        { label: 'Aktif İşler', value: stats?.activeJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
-        { label: 'Tamamlanan', value: stats?.completedJobs || 0, icon: CheckSquare, color: 'from-green-500 to-green-600', bg: 'bg-green-500/10', iconColor: 'text-green-500' },
-        { label: 'Toplam İş', value: stats?.totalJobs || 0, icon: Briefcase, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-500/10', iconColor: 'text-indigo-500' },
-        { label: 'Toplam Tahsilat', value: formatCurrency(stats?.totalPayments), icon: CreditCard, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', isText: true, permission: 'payments.view' },
-        { label: 'Toplam Masraf', value: formatCurrency(stats?.totalExpenses), icon: TrendingDown, color: 'from-red-500 to-red-600', bg: 'bg-red-500/10', iconColor: 'text-red-500', isText: true, permission: 'expenses.view' },
-        { label: 'Toplam KDV', value: formatCurrency(stats?.totalVat), icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
+        { label: 'Toplam Müşteri', value: stats?.totalCustomers || 0, icon: Users, bg: 'bg-primary/10', iconColor: 'text-primary' },
+        { label: 'Aktif İşler', value: stats?.activeJobs || 0, icon: Briefcase, bg: 'bg-blue-500/10', iconColor: 'text-blue-500' },
+        { label: 'Tamamlanan', value: stats?.completedJobs || 0, icon: CheckSquare, bg: 'bg-success/10', iconColor: 'text-success' },
+        { label: 'Toplam Tahsilat', value: formatCurrency(stats?.totalPayments), icon: CreditCard, bg: 'bg-orange-500/10', iconColor: 'text-orange-500', isText: true, permission: 'payments.view' },
+        { label: 'Toplam Masraf', value: formatCurrency(stats?.totalExpenses), icon: TrendingDown, bg: 'bg-red-500/10', iconColor: 'text-red-500', isText: true, permission: 'expenses.view' },
+        { label: 'Kasa Toplamı', value: formatCurrency(stats?.cashRegisters?.reduce((acc, cr) => acc + cr.balance, 0)), icon: TrendingUp, bg: 'bg-purple-500/10', iconColor: 'text-purple-500', isText: true },
     ]
 
     if (isLoading) return <LoadingSkeleton />
@@ -53,20 +52,20 @@ export default function DashboardPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center relative z-20">
+            <div className="flex justify-between items-end pb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ana Sayfa</h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Genel bakış ve istatistikler</p>
+                    <h1 className="text-4xl font-black text-[#1A1A2E] dark:text-white tracking-tighter">İstatistikler</h1>
+                    <p className="text-[#9097A6] dark:text-gray-400 text-sm mt-2 font-medium italic opacity-70">Vistore CRM Dashboard • Canlı Veri Akışı</p>
                 </div>
 
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setDropdownOpen(!dropdownOpen)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/30"
+                        className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-primary/25"
                     >
-                        <Plus size={18} />
-                        Yeni
-                        <ChevronDown size={16} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                        <Plus size={20} />
+                        Hızlı İşlem
+                        <ChevronDown size={16} className={`transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {dropdownOpen && (
@@ -105,63 +104,64 @@ export default function DashboardPage() {
             </div>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {statCards
                     .filter(card => hasPermission(card.permission))
-                    .map(({ label, value, icon: Icon, bg, iconColor, isText }) => (
-                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:shadow-lg dark:hover:shadow-gray-900/50 transition-all group">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className={`${bg} p-2.5 rounded-xl`}>
-                                <Icon size={20} className={iconColor} />
+                    .map(({ label, value, icon: IconComp, bg, iconColor, isText }) => (
+                    <div key={label} className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-3xl p-4 hover:translate-y-[-4px] transition-all duration-300 group shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] hover:shadow-xl dark:shadow-none dark:hover:shadow-primary/5">
+                        <div className="flex items-start justify-between mb-5">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${bg}`}>
+                                <IconComp size={20} className={iconColor} />
                             </div>
-                            <ArrowUpRight size={16} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="w-7 h-7 rounded-full bg-[#F4F5F7] dark:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                <ArrowUpRight size={12} className="text-[#9097A6]" />
+                            </div>
                         </div>
-                        <div className={`${isText ? 'text-xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white`}>{value}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</div>
+                        <div className={`${isText ? 'text-base' : 'text-2xl'} font-black text-[#1A1A2E] dark:text-white tracking-tight leading-none`}>{value}</div>
+                        <div className="text-[10px] font-bold text-[#9097A6] dark:text-gray-500 uppercase tracking-widest mt-2 opacity-80">{label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Cash Registers Section */}
-            <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Activity size={18} className="text-blue-500" />
-                    Kasa Özeti
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-primary rounded-full" />
+                    <h2 className="text-base font-black text-gray-900 dark:text-white tracking-tight uppercase">Kasa Özeti</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {stats?.cashRegisters?.map((cr) => (
-                        <div key={cr.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-                                <CreditCard size={20} className="text-gray-500" />
+                        <div key={cr.id} className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-2xl p-3 flex items-center gap-3 transition-all hover:bg-[#F4F5F7] dark:hover:bg-white/5 shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] dark:shadow-none">
+                            <div className="w-12 h-12 rounded-xl bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center">
+                                <CreditCard size={20} className="text-[#9097A6]" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">{cr.name}</div>
+                                    <div className="text-xs font-bold text-[#9097A6] dark:text-gray-500 uppercase tracking-wider">{cr.name}</div>
                                     {cr.isDefault && (
-                                        <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-md font-medium">Varsayılan</span>
+                                        <span className="text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase">Varsayılan</span>
                                     )}
                                 </div>
-                                <div className={`text-lg font-bold ${cr.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                <div className={`text-sm font-black mt-0.5 ${cr.balance >= 0 ? 'text-success' : 'text-red-500'}`}>
                                     {formatCurrency(cr.balance)}
                                 </div>
                             </div>
                         </div>
                     ))}
-                    {!stats?.cashRegisters?.length && <p className="text-sm text-gray-500">Henüz kasa kaydı yok.</p>}
+                    {!stats?.cashRegisters?.length && <p className="text-sm text-gray-400 py-4 font-medium italic">Henüz kasa kaydı yok.</p>}
                 </div>
             </div>
 
-            {/* Upcoming Appointments */}
             {stats?.upcomingAppointments?.length > 0 && (
-                <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Clock size={18} className="text-indigo-500" />
-                            Yaklaşan Randevular (3 Gün)
-                        </h2>
-                        <Link to="/appointments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takvim →</Link>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+                            <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight uppercase">Yaklaşan Randevular</h2>
+                        </div>
+                        <Link to="/appointments" className="text-xs font-black text-indigo-500 hover:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-4 py-2 rounded-full transition-all">Tüm Takvim</Link>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                         {stats.upcomingAppointments.map((apt) => (
                             <AppointmentCard key={apt.id} apt={apt} />
                         ))}
@@ -177,13 +177,13 @@ export default function DashboardPage() {
                             <Clock size={18} className="text-orange-500" />
                             Hizmet Yenileme Hatırlatmaları (±7 Gün)
                         </h2>
-                        <Link to="/service-tracking" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium font-bold">Tüm Takipler →</Link>
+                        <Link to="/service-trackings" className="text-xs text-indigo-500 hover:text-indigo-400 font-bold uppercase tracking-widest bg-indigo-500/10 px-4 py-2 rounded-full">Tüm Takipler</Link>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {stats.upcomingServiceTrackings.map((t) => {
                             const isOverdue = new Date(t.next_date) < new Date().setHours(0, 0, 0, 0)
                             return (
-                                <Link key={t.id} to="/service-tracking" className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-lg transition-all border-l-4 ${isOverdue ? 'border-l-red-500 shadow-red-500/5' : 'border-l-orange-500 shadow-orange-500/5'}`}>
+                                <Link key={t.id} to="/service-trackings" className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-lg transition-all border-l-4 ${isOverdue ? 'border-l-red-500 shadow-red-500/5' : 'border-l-orange-500 shadow-orange-500/5'}`}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="text-xs font-bold text-gray-400 uppercase">{t.category?.name || 'Genel'}</div>
                                         <div className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
@@ -212,69 +212,69 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Recent Jobs */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Briefcase size={18} className="text-indigo-500" />
-                            Son İşler
-                        </h2>
-                        <Link to="/jobs" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium">Tümü →</Link>
+                <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-2xl p-5 shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] dark:shadow-none">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-primary rounded-full" />
+                            <h2 className="text-lg font-black text-[#1A1A2E] dark:text-white tracking-tight uppercase">Son İşler</h2>
+                        </div>
+                        <Link to="/jobs" className="text-xs font-black text-primary hover:opacity-70 uppercase tracking-widest transition-opacity">Tümünü Gör</Link>
                     </div>
                     <div className="space-y-3">
                         {(stats?.recentJobs || []).map(job => (
-                            <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
-                                <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                                    <Briefcase size={16} className="text-indigo-500" />
+                            <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <Briefcase size={18} className="text-primary" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{job.title}</div>
-                                    <div className="text-xs text-gray-500 truncate">{job.customer?.name} • {formatDate(job.createdAt)}</div>
+                                    <div className="font-bold text-[#1A1A2E] dark:text-white text-xs truncate">{job.title}</div>
+                                    <div className="text-[9px] font-bold text-[#9097A6] mt-0.5 truncate uppercase tracking-tighter">{job.customer?.name}</div>
                                 </div>
-                                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
-                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tight">
+                                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0]/40 dark:border-white/5 shadow-sm">
+                                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
+                                    <span className="text-[8px] font-black text-[#9097A6] dark:text-gray-400 uppercase tracking-tight">
                                         {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
                                     </span>
                                 </div>
                             </Link>
                         ))}
-                        {!stats?.recentJobs?.length && <p className="text-center text-gray-400 text-sm py-4">Henüz iş yok.</p>}
+                        {!stats?.recentJobs?.length && <p className="text-center text-gray-400 text-sm py-4 italic">Henüz iş yok.</p>}
                     </div>
                 </div>
 
                 {/* Recent Payments */}
                 {hasPermission('payments.view') && (
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                <CreditCard size={18} className="text-emerald-500" />
-                                Son Tahsilatlar
-                            </h2>
-                            <Link to="/payments" className="text-xs text-indigo-500 hover:text-indigo-400 font-medium">Tümü →</Link>
+                    <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-2xl p-5 shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] dark:shadow-none">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-[#1ED2A7] rounded-full" />
+                                <h2 className="text-lg font-black text-[#1A1A2E] dark:text-white tracking-tight uppercase">Son Tahsilatlar</h2>
+                            </div>
+                            <Link to="/payments" className="text-xs font-black text-[#1ED2A7] hover:opacity-70 uppercase tracking-widest transition-opacity">Tümünü Gör</Link>
                         </div>
                         <div className="space-y-3">
                             {(stats?.recentPayments || []).map(p => (
-                                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
-                                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                                        <CreditCard size={16} className="text-emerald-500" />
+                                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5">
+                                    <div className="w-10 h-10 rounded-full bg-[#1ED2A7]/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                        <CreditCard size={18} className="text-[#1ED2A7]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{p.job?.title || 'Genel'}</div>
-                                        <div className="text-xs text-gray-500">{formatDate(p.paymentDate)}</div>
+                                        <div className="font-bold text-[#1A1A2E] dark:text-white text-xs truncate">{p.job?.title || 'Genel'}</div>
+                                        <div className="text-[8px] font-bold text-[#9097A6] mt-0.5 uppercase tracking-tighter">{formatDate(p.paymentDate)}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {p.receiptUrl && (
-                                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all opacity-0 group-hover:opacity-100" title="Dekontu Görüntüle">
-                                                <FileText size={14} />
+                                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-primary transition-all opacity-0 group-hover:opacity-100 shadow-sm border border-[#E5E9F0]/40" title="Dekontu Görüntüle">
+                                                <FileText size={12} />
                                             </a>
                                         )}
-                                        <span className="text-sm font-bold text-emerald-500">{formatCurrency(p.amount)}</span>
+                                        <span className="text-xs font-black text-[#1ED2A7] tabular-nums">{formatCurrency(p.amount)}</span>
                                     </div>
                                 </div>
                             ))}
-                            {!stats?.recentPayments?.length && <p className="text-center text-gray-400 text-sm py-4">Henüz tahsilat yok.</p>}
+                            {!stats?.recentPayments?.length && <p className="text-center text-gray-400 text-sm py-4 italic">Henüz tahsilat yok.</p>}
                         </div>
                     </div>
                 )}
@@ -310,34 +310,34 @@ function AppointmentCard({ apt }) {
     }, [apt.startTime])
 
     return (
-        <Link to={`/appointments?id=${apt.id}`} className={`${urgencyClass} border border-gray-200 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md transition-all group border-l-4 border-l-indigo-500 flex flex-col justify-between h-full cursor-pointer`}>
-            <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
+        <Link to={`/appointments?id=${apt.id}`} className={`${urgencyClass} border border-[#E5E9F0] dark:border-white/5 rounded-3xl p-6 hover:shadow-xl transition-all group border-l-8 border-l-primary flex flex-col justify-between h-full cursor-pointer bg-white dark:bg-[#111111]`}>
+            <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate leading-tight">{apt.title}</div>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 font-medium">
-                            <Users size={12} className="flex-shrink-0" />
+                        <div className="font-black text-[#1A1A2E] dark:text-white text-base truncate leading-tight tracking-tight">{apt.title}</div>
+                        <div className="flex items-center gap-1.5 text-xs text-[#9097A6] dark:text-gray-400 mt-2 font-bold uppercase tracking-wider">
+                            <Users size={12} className="flex-shrink-0 text-primary" />
                             <span className="truncate">{apt.customer?.name}</span>
                         </div>
                     </div>
-                    <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase border flex items-center gap-1 shadow-sm h-fit ${apt.status === 'COMPLETED'
+                    <div className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border flex items-center gap-1.5 shadow-sm h-fit ${apt.status === 'COMPLETED'
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : apt.status === 'CANCELLED'
                             ? 'bg-red-50 text-red-600 border-red-100'
                             : 'bg-amber-50 text-amber-600 border-amber-100'
                         }`}>
-                        <Clock size={10} />
+                        <Clock size={12} />
                         <Countdown targetDate={apt.startTime} />
                     </div>
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-4">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg">
+            <div className="flex items-center gap-2 mt-6">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-primary dark:text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
                     <CalendarIcon size={12} />
                     {new Date(apt.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-[#9097A6] dark:text-gray-400 bg-[#F4F5F7] dark:bg-white/5 px-3 py-1.5 rounded-full border border-[#E5E9F0]/40 dark:border-white/10">
                     <Clock size={12} />
                     {new Date(apt.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -382,21 +382,16 @@ function Countdown({ targetDate }) {
 
 function LoadingSkeleton() {
     return (
-        <div className="space-y-6 animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-xl w-48" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="space-y-8 animate-pulse p-4">
+            <div className="h-10 bg-gray-200 dark:bg-white/5 rounded-full w-48" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {[...Array(6)].map((_, i) => (
-                    <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-32" />
+                    <div key={i} className="bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/5 rounded-3xl h-32 px-6 py-8" />
                 ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-20" />
-                ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {[...Array(2)].map((_, i) => (
-                    <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-64" />
+                    <div key={i} className="bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/5 rounded-3xl h-96" />
                 ))}
             </div>
         </div>

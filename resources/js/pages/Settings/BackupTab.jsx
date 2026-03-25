@@ -17,11 +17,11 @@ export default function BackupTab() {
 
     const { data: backups = [], isLoading } = useQuery({
         queryKey: ['backups'],
-        queryFn: () => api.get('/settings/backups').then(r => r.data)
+        queryFn: () => api.get('/settings/backup/list').then(r => r.data.backups)
     })
 
     const createMutation = useMutation({
-        mutationFn: () => api.post('/settings/backups'),
+        mutationFn: () => api.post('/settings/backup/export'),
         onSuccess: () => {
             qc.invalidateQueries(['backups'])
             toast.success('Yedekleme işlemi başlatıldı. Birazdan listede görünecektir.')
@@ -30,7 +30,7 @@ export default function BackupTab() {
     })
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => api.delete(`/settings/backups/${id}`),
+        mutationFn: (id) => api.delete(`/settings/backup/${id}`),
         onSuccess: () => {
             qc.invalidateQueries(['backups'])
             toast.success('Yedek silindi.')
@@ -40,7 +40,7 @@ export default function BackupTab() {
 
     const downloadBackup = async (id) => {
         try {
-            const { data } = await api.get(`/settings/backups/${id}/download-url`)
+            const { data } = await api.get(`/settings/backup/${id}/signed-url`)
             if (data?.url) window.location.href = data.url
             else toast.error('İndirme bağlantısı alınamadı.')
         } catch (err) {
@@ -57,21 +57,21 @@ export default function BackupTab() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-indigo-600 p-6 rounded-2xl shadow-lg shadow-indigo-500/20 text-white">
+        <div className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#905EFC] p-6 rounded-xl shadow-lg shadow-[#905EFC]/20 text-white">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                         <Database size={24} className="text-white" />
                     </div>
                     <div>
                         <h2 className="text-lg font-bold">Veri Yedekleme</h2>
-                        <p className="text-indigo-100 text-sm opacity-80">Sistem verilerinizi dilediğiniz zaman yedekleyin.</p>
+                        <p className="text-white/80 text-sm opacity-80">Sistem verilerinizi dilediğiniz zaman yedekleyin.</p>
                     </div>
                 </div>
                 <button
                     onClick={() => createMutation.mutate()}
                     disabled={createMutation.isPending}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-[#905EFC] hover:bg-[#905EFC]/10 rounded-xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50"
                 >
                     {createMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
                     Şimdi Yedekle
@@ -79,47 +79,47 @@ export default function BackupTab() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-2">
-                    <div className="flex items-center gap-2 text-indigo-500 font-bold text-xs uppercase tracking-widest mb-2"><Clock size={14} /> Otomatik Yedekleme</div>
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">Her Gece</p>
-                    <p className="text-xs text-gray-500">Sistem verileriniz her gece 03:00'te otomatik yedeklenir.</p>
+                <div className="bg-white dark:bg-[#111111] p-5 rounded-xl border border-[#E5E9F0] dark:border-white/5 space-y-2">
+                    <div className="flex items-center gap-2 text-[#905EFC] font-bold text-xs uppercase tracking-widest mb-2"><Clock size={14} /> Otomatik Yedekleme</div>
+                    <p className="text-2xl font-black text-[#1A1A2E] dark:text-white">Her Gece</p>
+                    <p className="text-xs text-[#9097A6]">Sistem verileriniz her gece 03:00'te otomatik yedeklenir.</p>
                 </div>
-                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-2">
+                <div className="bg-white dark:bg-[#111111] p-5 rounded-xl border border-[#E5E9F0] dark:border-white/5 space-y-2">
                     <div className="flex items-center gap-2 text-green-500 font-bold text-xs uppercase tracking-widest mb-2"><CheckCircle2 size={14} /> Durum</div>
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">Güvende</p>
-                    <p className="text-xs text-gray-500">Son 30 günlük yedekleme geçmişiniz saklanmaktadır.</p>
+                    <p className="text-2xl font-black text-[#1A1A2E] dark:text-white">Güvende</p>
+                    <p className="text-xs text-[#9097A6]">Son 30 günlük yedekleme geçmişiniz saklanmaktadır.</p>
                 </div>
-                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-2">
+                <div className="bg-white dark:bg-[#111111] p-5 rounded-xl border border-[#E5E9F0] dark:border-white/5 space-y-2">
                     <div className="flex items-center gap-2 text-amber-500 font-bold text-xs uppercase tracking-widest mb-2"><Database size={14} /> Saklama</div>
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">30 Gün</p>
-                    <p className="text-xs text-gray-500">Eski yedekler otomatik olarak silinerek yer açılır.</p>
+                    <p className="text-2xl font-black text-[#1A1A2E] dark:text-white">30 Gün</p>
+                    <p className="text-xs text-[#9097A6]">Eski yedekler otomatik olarak silinerek yer açılır.</p>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Yedekleme Geçmişi</span>
-                    <span className="text-[10px] text-gray-400 italic">Toplam {backups.length} dosya</span>
+            <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#9097A6] uppercase tracking-widest">Yedekleme Geçmişi</span>
+                    <span className="text-[10px] text-[#9097A6] italic">Toplam {backups.length} dosya</span>
                 </div>
 
                 {isLoading ? (
-                    <div className="p-12 text-center text-gray-400"><Loader2 className="animate-spin mx-auto" size={32} /></div>
+                    <div className="p-12 text-center text-[#9097A6]"><Loader2 className="animate-spin mx-auto" size={32} /></div>
                 ) : (
-                    <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                    <div className="divide-y divide-gray-50 dark:divide-white/5">
                         {backups.map(b => (
-                            <div key={b.id} className="group px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                            <div key={b.id} className="group px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                    <div className="w-10 h-10 bg-[#F4F5F7] dark:bg-white/5 rounded-xl flex items-center justify-center text-[#9097A6] group-hover:bg-[#905EFC]/10 group-hover:text-[#905EFC] transition-colors">
                                         <Database size={20} />
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <div className="text-sm font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
                                             {new Date(b.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            <span className="font-normal text-xs text-gray-400">{new Date(b.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="font-normal text-xs text-[#9097A6]">{new Date(b.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
-                                        <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-3">
+                                        <div className="text-[11px] text-[#9097A6] mt-1 flex items-center gap-3">
                                             <span className="flex items-center gap-1"><Calendar size={10} /> {formatSize(b.size)}</span>
-                                            <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                                            <span className="w-1 h-1 bg-[#E5E9F0] rounded-full" />
                                             <span className="flex items-center gap-1 font-mono uppercase text-[9px]">{b.name}</span>
                                         </div>
                                     </div>
@@ -127,13 +127,13 @@ export default function BackupTab() {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => downloadBackup(b.id)}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-all"
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#E5E9F0] dark:bg-white/5 hover:bg-[#E5E9F0] dark:hover:bg-white/10 text-[#1A1A2E] dark:text-white rounded-xl text-xs font-bold transition-all"
                                     >
                                         <Download size={14} /> İndir
                                     </button>
                                     <button
                                         onClick={() => setDeleteConfirm(b)}
-                                        className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                        className="p-2.5 text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                                         title="Yedeği Sil"
                                     >
                                         <Trash2 size={16} />
@@ -145,7 +145,7 @@ export default function BackupTab() {
                 )}
 
                 {backups.length === 0 && !isLoading && (
-                    <div className="p-12 text-center text-gray-400">
+                    <div className="p-12 text-center text-[#9097A6]">
                         <Database size={40} className="mx-auto mb-3 opacity-20" />
                         <p className="text-sm font-medium italic">Henüz bir yedek kaydı bulunmuyor.</p>
                     </div>
@@ -154,12 +154,12 @@ export default function BackupTab() {
 
             <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Yedeği Sil">
                 <div className="space-y-4">
-                    <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-2xl flex gap-3 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-500/20">
+                    <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-3 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-500/20">
                         <AlertCircle size={20} className="shrink-0" />
                         <p>Bu yedek dosyasını kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Vazgeç</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-semibold hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">Vazgeç</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-500/20">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Evet, Kalıcı Olarak Sil'}
                         </button>

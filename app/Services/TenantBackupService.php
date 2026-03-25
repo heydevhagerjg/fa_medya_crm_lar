@@ -261,6 +261,10 @@ class TenantBackupService
      */
     public function createBackupZip($tenantId, $password = null, $includeUsers = true, $progressCallback = null, $backupId = null)
     {
+        // Uzun süren backup işlemleri için limit kaldır (queue worker'da çalışır)
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(0);
+
         $tenant = Tenant::findOrFail($tenantId);
         if ($progressCallback) $progressCallback(5, 'Veriler hazırlanıyor...');
         
@@ -305,7 +309,8 @@ class TenantBackupService
                 $processedFiles = 0;
 
                 if ($totalFiles > 0) {
-                    $chunks = array_chunk($files, 15);
+                    // Küçük batch: daha az eşzamanlı bağlantı, prod ortamda daha güvenilir
+                    $chunks = array_chunk($files, 5);
                     foreach ($chunks as $batch) {
                         if ($backupId && Cache::has("backup_cancelled_{$backupId}")) {
                             throw new \Exception("Yedekleme kullanıcı tarafından iptal edildi.");
@@ -314,11 +319,11 @@ class TenantBackupService
                         foreach ($batch as $f) {
                             $tempF = $tempDir . '/' . Str::random(16);
                             $relP = str_replace("tenants/{$tenantId}/", "", $f);
-                            $batchItems = array_merge($batchItems, [[
-                                'temp' => $tempF,
+                            $batchItems[] = [
+                                'temp'     => $tempF,
                                 'relative' => $relP,
-                                'original' => $f
-                            ]]);
+                                'original' => $f,
+                            ];
                         }
 
                         if ($progressCallback) {
@@ -326,44 +331,70 @@ class TenantBackupService
                             $progressCallback($p, "Dosyalar indiriliyor: ".($processedFiles + 1)."/$totalFiles");
                         }
 
-                        // Parallel Download
+                        // Parallel Download — 120 sn timeout, prod için yeterli
                         try {
-                            Http::pool(fn($pool) => 
-                                collect($batchItems)->map(function($item) use ($pool, $s3) {
+                            Http::pool(function ($pool) use ($batchItems, $s3) {
+                                return collect($batchItems)->map(function ($item) use ($pool, $s3) {
                                     try {
-                                        $url = $s3->temporaryUrl($item['original'], now()->addMinutes(20));
-                                        return $pool->sink($item['temp'])->get($url);
+                                        $url = $s3->temporaryUrl($item['original'], now()->addMinutes(30));
+                                        return $pool->timeout(120)->sink($item['temp'])->get($url);
                                     } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::warning("Backup pool URL hatası [{$item['original']}]: " . $e->getMessage());
                                         return null;
                                     }
-                                })
-                            );
+                                })->values()->all();
+                            });
                         } catch (\Exception $e) {
-                            // Pool failed, fallback to sequential
+                            \Illuminate\Support\Facades\Log::warning("Backup HTTP pool başarısız, sıralı indirmeye geçiliyor: " . $e->getMessage());
                         }
 
-                        // Process batch results
+                        // Fallback: pool'dan gelemeyen dosyaları sıralı stream ile indir
                         foreach ($batchItems as $item) {
                             if (!File::exists($item['temp']) || filesize($item['temp']) === 0) {
+                                $readStream  = null;
+                                $writeStream = null;
                                 try {
                                     $readStream = $s3->readStream($item['original']);
-                                    $writeStream = fopen($item['temp'], 'w');
-                                    stream_copy_to_stream($readStream, $writeStream);
-                                    fclose($readStream);
-                                    fclose($writeStream);
+                                    if (!is_resource($readStream)) {
+                                        \Illuminate\Support\Facades\Log::error("Backup: S3 stream açılamadı [{$item['original']}]");
+                                        $processedFiles++;
+                                        continue;
+                                    }
+
+                                    $writeStream = fopen($item['temp'], 'wb');
+                                    if (!is_resource($writeStream)) {
+                                        fclose($readStream);
+                                        \Illuminate\Support\Facades\Log::error("Backup: Geçici dosya açılamadı [{$item['temp']}]");
+                                        $processedFiles++;
+                                        continue;
+                                    }
+
+                                    // stream_copy_to_stream PHP dahili buffer ile chunk'lı okur (memory-safe)
+                                    $copied = stream_copy_to_stream($readStream, $writeStream);
+                                    if ($copied === false) {
+                                        \Illuminate\Support\Facades\Log::error("Backup: stream_copy başarısız [{$item['original']}]");
+                                    }
                                 } catch (\Exception $e) {
-                                    continue;
+                                    \Illuminate\Support\Facades\Log::error("Backup: Dosya indirme hatası [{$item['original']}]: " . $e->getMessage());
+                                } finally {
+                                    // Handle leak olmaması için her durumda kapat
+                                    if (is_resource($readStream))  { try { fclose($readStream);  } catch (\Throwable $t) {} }
+                                    if (is_resource($writeStream)) { try { fclose($writeStream); } catch (\Throwable $t) {} }
                                 }
                             }
 
-                            if (File::exists($item['temp'])) {
+                            // Dosya başarıyla indirilmişse ZIP'e ekle
+                            if (File::exists($item['temp']) && filesize($item['temp']) > 0) {
                                 $zip->addFile($item['temp'], 'files/' . $item['relative']);
                                 $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
                                 if ($password) {
                                     $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
                                 }
                                 $tempFilesToCleanup[] = $item['temp'];
+                            } else {
+                                \Illuminate\Support\Facades\Log::warning("Backup: Dosya atlandı (indirilemedi) [{$item['original']}]");
                             }
+
                             $processedFiles++;
                         }
                     }

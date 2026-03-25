@@ -34,6 +34,9 @@ class BackupTenantJob implements ShouldQueue
 
     public function handle(): void
     {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(0);
+
         $tenantId = $this->tenantId;
         $tenant = Tenant::find($tenantId);
         
@@ -57,7 +60,16 @@ class BackupTenantJob implements ShouldQueue
                 $filename = basename($zipPath);
                 $s3Path = "tenants/{$tenantId}/backups/{$filename}";
                 
-                Storage::disk('s3_global')->put($s3Path, file_get_contents($zipPath));
+                // file_get_contents yerine stream kullan — büyük dosyalar RAM'e sığmaz
+                $stream = fopen($zipPath, 'rb');
+                if (!is_resource($stream)) {
+                    throw new \Exception("Yedek dosyası okunamadı: {$zipPath}");
+                }
+                try {
+                    Storage::disk('s3_global')->writeStream($s3Path, $stream);
+                } finally {
+                    if (is_resource($stream)) fclose($stream);
+                }
                 
                 // Cleanup local temp file
                 @unlink($zipPath);

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
     Plus, Trash2, Edit2, Play, CheckCircle, Activity, Mail, Loader2, 
     AlertCircle, RefreshCw, UserPlus, Briefcase, FileText, Settings, 
-    ChevronRight, Database, Bell, Zap, Clock, Code, Globe, MessageSquare, 
+    ChevronRight, ChevronDown, Database, Bell, Zap, Clock, Code, Globe, MessageSquare, 
     Hash, History, List
 } from 'lucide-react'
 import api from '../../lib/api.js'
@@ -15,6 +15,7 @@ export default function WorkflowsTab() {
     const [view, setView] = useState('list') // list, editor, logs
     const [modal, setModal] = useState({ open: false, workflow: null })
     const [logModal, setLogModal] = useState({ open: false, logs: [] })
+    const [expandedSections, setExpandedSections] = useState({ step1: true, step2: false, step3: false })
     const [form, setForm] = useState({
         name: '',
         trigger_model: 'App\\Models\\Proposal',
@@ -217,17 +218,17 @@ export default function WorkflowsTab() {
     return (
         <div className="space-y-6">
             {/* Header Navigation */}
-            <div className="flex items-center justify-between gap-4 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                <div className="flex items-center gap-1 p-1 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between gap-4 bg-white dark:bg-[#111111] p-4 rounded-xl border border-[#E5E9F0] dark:border-white/5 shadow-sm">
+                <div className="flex items-center gap-1 p-1 bg-[#F4F5F7] dark:bg-white/5 rounded-xl border border-[#E5E9F0] dark:border-white/10">
                     <button 
                         onClick={() => setView('list')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'list' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'list' ? 'bg-white dark:bg-white/10 text-[#905EFC] shadow-sm' : 'text-[#9097A6] hover:text-[#1A1A2E]'}`}
                     >
                         <List size={14} /> Otomasyonlarım
                     </button>
                     <button 
                         onClick={() => setView('logs')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'logs' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'logs' ? 'bg-white dark:bg-white/10 text-[#905EFC] shadow-sm' : 'text-[#9097A6] hover:text-[#1A1A2E]'}`}
                     >
                         <History size={14} /> Çalışma Kayıtları (Logs)
                     </button>
@@ -235,7 +236,7 @@ export default function WorkflowsTab() {
                 {view === 'list' && (
                     <button
                         onClick={() => openModal()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-xs font-black shadow-lg shadow-[#905EFC]/20 active:scale-95 transition-all"
                     >
                         <Zap size={16} /> Yeni Senaryo Oluştur
                     </button>
@@ -245,44 +246,44 @@ export default function WorkflowsTab() {
             {view === 'list' && (
                 <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     {isLoading ? (
-                        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>
+                        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#905EFC]" size={40} /></div>
                     ) : (
                         workflows.map(w => (
-                            <div key={w.id} className="bg-white dark:bg-gray-800 border-2 border-transparent hover:border-indigo-500/20 rounded-3xl p-5 flex items-center justify-between transition-all hover:shadow-xl group">
+                            <div key={w.id} className="bg-white dark:bg-white/5 border-2 border-transparent hover:border-[#905EFC]/20 rounded-xl p-5 flex items-center justify-between transition-all hover:shadow-xl group">
                                 <div className="flex items-center gap-5">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${w.is_active ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10' : 'bg-gray-100 text-gray-400'}`}>
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${w.is_active ? 'bg-[#905EFC]/10 text-[#905EFC] dark:bg-[#905EFC]/10' : 'bg-[#E5E9F0] text-[#9097A6]'}`}>
                                         <Zap size={20} className={w.is_active ? 'fill-current' : ''} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 transition-colors">{w.name}</h3>
+                                        <h3 className="font-bold text-[#1A1A2E] dark:text-white group-hover:text-[#905EFC] transition-colors">{w.name}</h3>
                                         <div className="flex items-center gap-3 mt-1.5 overflow-hidden">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-900 px-2 py-0.5 rounded-md border border-gray-100 dark:border-gray-800">
+                                            <span className="text-[10px] font-black text-[#9097A6] uppercase tracking-widest bg-[#F4F5F7] dark:bg-[#111111] px-2 py-0.5 rounded-md border border-[#E5E9F0] dark:border-white/5">
                                                 {models.find(m => m.id === w.trigger_model)?.label?.split(' ')[0]}
                                             </span>
-                                            <ChevronRight size={10} className="text-gray-300" />
-                                            <span className="text-[10px] font-bold text-gray-400 truncate max-w-[150px]">
+                                            <ChevronRight size={10} className="text-[#9097A6]" />
+                                            <span className="text-[10px] font-bold text-[#9097A6] truncate max-w-[150px]">
                                                 {events.find(e => e.id === w.trigger_event)?.label || w.trigger_event}
                                             </span>
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-black tracking-tighter bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600">
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-black tracking-tighter bg-[#905EFC]/10 dark:bg-[#905EFC]/10 text-[#905EFC]">
                                                 {w.actions?.length || 0} AKSİYON
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => toggleMutation.mutate(w.id)} className={`p-2 rounded-xl transition-all ${w.is_active ? 'text-green-600 hover:bg-green-50' : 'text-gray-300 hover:bg-gray-50'}`} title={w.is_active ? 'Pasif Yap' : 'Aktif Yap'}>
+                                    <button onClick={() => toggleMutation.mutate(w.id)} className={`p-2 rounded-xl transition-all ${w.is_active ? 'text-green-600 hover:bg-green-50' : 'text-[#9097A6] hover:bg-[#F4F5F7]'}`} title={w.is_active ? 'Pasif Yap' : 'Aktif Yap'}>
                                         <CheckCircle size={20} />
                                     </button>
-                                    <button onClick={() => openModal(w)} className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"><Edit2 size={20} /></button>
-                                    <button onClick={() => setDeleteConfirm(w)} className="p-2 rounded-xl text-gray-300 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                                    <button onClick={() => openModal(w)} className="p-2 rounded-xl text-[#9097A6] hover:text-[#905EFC] hover:bg-[#905EFC]/10 transition-all"><Edit2 size={20} /></button>
+                                    <button onClick={() => setDeleteConfirm(w)} className="p-2 rounded-xl text-[#9097A6] hover:text-red-500 transition-all"><Trash2 size={20} /></button>
                                 </div>
                             </div>
                         ))
                     )}
                     {workflows.length === 0 && !isLoading && (
-                        <div className="py-20 text-center bg-white dark:bg-gray-900 rounded-[2.5rem] border border-dashed border-gray-200">
-                            <Zap size={40} className="mx-auto text-gray-200 mb-4" />
-                            <p className="text-gray-400 font-bold">Henüz bir otomasyon senaryonuz yok.</p>
+                        <div className="py-20 text-center bg-white dark:bg-[#111111] rounded-xl border border-dashed border-[#E5E9F0]">
+                            <Zap size={40} className="mx-auto text-[#E5E9F0] mb-4" />
+                            <p className="text-[#9097A6] font-bold">Henüz bir otomasyon senaryonuz yok.</p>
                         </div>
                     )}
                 </div>
@@ -290,26 +291,26 @@ export default function WorkflowsTab() {
 
             {view === 'logs' && (
                 <div className="animate-in fade-in duration-500 lg:p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
+                    <div className="bg-white dark:bg-[#111111] rounded-xl border border-[#E5E9F0] dark:border-white/5 overflow-hidden shadow-sm">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">Tarih</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">Otomasyon</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">Tetikleyici / Kayıt ID</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">Durum</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">Detay</th>
+                                <tr className="bg-[#F4F5F7] dark:bg-white/5 border-b border-[#E5E9F0] dark:border-white/5">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-[#9097A6] tracking-wider">Tarih</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-[#9097A6] tracking-wider">Otomasyon</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-[#9097A6] tracking-wider">Tetikleyici / Kayıt ID</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-[#9097A6] tracking-wider">Durum</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-[#9097A6] tracking-wider">Detay</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                            <tbody className="divide-y divide-[#F4F5F7] dark:divide-white/5">
                                 {workflowLogs.map(log => (
                                     <tr key={log.id} className="hover:bg-gray-25/50 transition-colors">
-                                        <td className="px-6 py-4 text-xs font-bold text-gray-400">{new Date(log.created_at).toLocaleString('tr-TR')}</td>
-                                        <td className="px-6 py-4 text-xs font-black text-gray-900 dark:text-white uppercase truncate max-w-[200px]">{log.workflow_name}</td>
+                                        <td className="px-6 py-4 text-xs font-bold text-[#9097A6]">{new Date(log.created_at).toLocaleString('tr-TR')}</td>
+                                        <td className="px-6 py-4 text-xs font-black text-[#1A1A2E] dark:text-white uppercase truncate max-w-[200px]">{log.workflow_name}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{log.trigger_model}</span>
-                                                <span className="text-[9px] text-gray-400 font-mono">ID: {log.model_id} • {log.trigger_event}</span>
+                                                <span className="text-[10px] font-bold text-[#905EFC] dark:text-[#905EFC]">{log.trigger_model}</span>
+                                                <span className="text-[9px] text-[#9097A6] font-mono">ID: {log.model_id} • {log.trigger_event}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -320,7 +321,7 @@ export default function WorkflowsTab() {
                                         <td className="px-6 py-4">
                                             <button 
                                                 onClick={() => setLogModal({ open: true, logs: log.actions_taken || [] })}
-                                                className="text-[10px] font-bold text-indigo-600 hover:underline"
+                                                className="text-[10px] font-bold text-[#905EFC] hover:underline"
                                             >
                                                 {log.actions_taken?.length || 0} Aksiyon Analizi
                                             </button>
@@ -328,7 +329,7 @@ export default function WorkflowsTab() {
                                     </tr>
                                 ))}
                                 {workflowLogs.length === 0 && (
-                                    <tr><td colSpan={5} className="px-6 py-20 text-center text-gray-400 font-bold italic">Henüz çalışma kaydı bulunmuyor.</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-20 text-center text-[#9097A6] font-bold italic">Henüz çalışma kaydı bulunmuyor.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -337,225 +338,197 @@ export default function WorkflowsTab() {
             )}
 
             {/* Workflow Editor Modal */}
-            <Modal open={modal.open} onClose={() => setModal({ open: false, workflow: null })} title={modal.workflow ? 'Otomasyon Senaryosu Düzenle' : 'Yeni Otomasyon Tasarla'} size="2xl">
-                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-8 py-2">
-                    <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1 space-y-2">
-                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Senaryo Başlığı</label>
-                            <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold shadow-inner outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all text-gray-900 dark:text-white" placeholder="Örn: Teklif Kabul Edilince İş Başlat" />
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-center gap-4 self-end">
-                            <span className="text-[10px] font-black text-gray-400 tracking-widest">DURUM</span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </label>
-                            <span className={`text-[10px] font-black tracking-widest ${form.is_active ? 'text-indigo-600' : 'text-gray-400'}`}>{form.is_active ? 'AKTİF' : 'PASİF'}</span>
+            <Modal open={modal.open} onClose={() => setModal({ open: false, workflow: null })} title={modal.workflow ? 'Senaryoyu Düzenle' : 'Yeni Senaryo'} size="lg">
+                <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-1">
+                    {/* Name Input */}
+                    <div className="space-y-2 pb-4 border-b border-[#E5E9F0] dark:border-white/5">
+                        <label className="text-[10px] font-black text-[#9097A6] uppercase tracking-widest ml-1">Senaryo Adı</label>
+                        <div className="flex gap-3">
+                            <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="flex-1 px-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-[#905EFC]/20 transition-all text-[#1A1A2E] dark:text-white" placeholder="Örn: Teklif Kabul İş Başlat" />
+                            <div className="bg-[#F4F5F7] dark:bg-white/5 px-4 py-2.5 rounded-lg border border-[#E5E9F0] dark:border-white/10 flex items-center gap-2">
+                                <span className="text-[10px] font-black text-[#9097A6] tracking-widest">DURUM</span>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="sr-only peer" />
+                                    <div className="w-10 h-5 bg-[#E5E9F0] dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E5E9F0] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#905EFC]"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
                     {/* Step 1: Trigger */}
-                    <div className="space-y-5 bg-amber-50/20 dark:bg-amber-500/5 p-6 rounded-[2rem] border border-amber-100/50 dark:border-amber-500/10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-500/30">1</div>
-                            <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]">Olay ve Tetikleyici</h4>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Kategori / Modül</label>
-                                <select value={form.trigger_model} onChange={e => setForm(p => ({ ...p, trigger_model: e.target.value, trigger_event: 'created', conditions: [] }))} className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-xs font-black outline-none focus:border-indigo-500 transition-all text-gray-700 dark:text-white shadow-sm">
-                                    {models.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                </select>
+                    <div className="border border-[#E5E9F0] dark:border-white/5 rounded-lg overflow-hidden">
+                        <button type="button" onClick={() => setExpandedSections(p => ({ ...p, step1: !p.step1 }))} className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 dark:bg-amber-500/5 hover:bg-amber-100 dark:hover:bg-amber-500/10 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 bg-amber-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">1</div>
+                                <span className="text-xs font-bold text-[#1A1A2E] dark:text-white uppercase tracking-widest">Olay Tetikleyici</span>
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 rounded-full">
+                                    {models.find(m => m.id === form.trigger_model)?.label?.split(' ')[0]} • {events.find(e => e.id === form.trigger_event)?.label || form.trigger_event}
+                                </span>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tetikleyici Olay</label>
-                                <select value={form.trigger_event} onChange={e => setForm(p => ({ ...p, trigger_event: e.target.value }))} className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-xs font-black outline-none focus:border-indigo-500 transition-all text-gray-700 dark:text-white shadow-sm">
-                                    {events.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
-                                </select>
+                            <ChevronDown size={16} className={`text-[#9097A6] transition-transform ${expandedSections.step1 ? 'rotate-180' : ''}`} />
+                        </button>
+                        {expandedSections.step1 && (
+                            <div className="px-4 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-white/5 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-[#9097A6] uppercase tracking-widest ml-1">Kategori</label>
+                                        <select value={form.trigger_model} onChange={e => setForm(p => ({ ...p, trigger_model: e.target.value, trigger_event: 'created', conditions: [] }))} className="w-full px-3 py-2 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20 transition-all text-[#1A1A2E] dark:text-white">
+                                            {models.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-[#9097A6] uppercase tracking-widest ml-1">Olay</label>
+                                        <select value={form.trigger_event} onChange={e => setForm(p => ({ ...p, trigger_event: e.target.value }))} className="w-full px-3 py-2 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20 transition-all text-[#1A1A2E] dark:text-white">
+                                            {events.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Step 2: Conditions */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                    <div className="border border-[#E5E9F0] dark:border-white/5 rounded-lg overflow-hidden">
+                        <button type="button" onClick={() => setExpandedSections(p => ({ ...p, step2: !p.step2 }))} className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-500/5 hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-500/30">2</div>
-                                <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]">Çalışma Koşulları</h4>
+                                <div className="w-6 h-6 bg-blue-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">2</div>
+                                <span className="text-xs font-bold text-[#1A1A2E] dark:text-white uppercase tracking-widest">Çalışma Koşulları</span>
+                                {form.conditions.length > 0 && (
+                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 rounded-full">
+                                        {form.conditions.length} Koşul
+                                    </span>
+                                )}
                             </div>
-                            <button type="button" onClick={addCondition} className="text-[10px] font-black text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-xl border border-dashed border-indigo-200 transition-all">+ Yeni Koşul</button>
-                        </div>
-                        <div className="space-y-2">
-                            {form.conditions.map((c, idx) => {
-                                const selectedField = fieldOptions.find(f => f.id === c.field);
-                                return (
-                                    <div key={idx} className="flex gap-2 items-end group">
-                                        <div className="flex-1 min-w-[150px]">
-                                            <select value={c.field} onChange={e => updateCondition(idx, 'field', e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold outline-none">
-                                                <option value="">Alan Seçin</option>
+                            <ChevronDown size={16} className={`text-[#9097A6] transition-transform ${expandedSections.step2 ? 'rotate-180' : ''}`} />
+                        </button>
+                        {expandedSections.step2 && (
+                            <div className="px-4 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-white/5 space-y-3">
+                                {form.conditions.map((c, idx) => {
+                                    const selectedField = fieldOptions.find(f => f.id === c.field);
+                                    return (
+                                        <div key={idx} className="flex gap-2 items-end">
+                                            <select value={c.field} onChange={e => updateCondition(idx, 'field', e.target.value)} className="flex-1 px-2.5 py-1.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/20 text-[#1A1A2E] dark:text-white">
+                                                <option value="">Alan</option>
                                                 {fieldOptions.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                                             </select>
-                                        </div>
-                                        <div className="w-32">
-                                            <select value={c.operator} onChange={e => updateCondition(idx, 'operator', e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold outline-none text-indigo-600">
+                                            <select value={c.operator} onChange={e => updateCondition(idx, 'operator', e.target.value)} className="w-20 px-2.5 py-1.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/20 text-[#905EFC]">
                                                 {operators.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                                             </select>
-                                        </div>
-                                        <div className="flex-[1.5] min-w-[150px]">
                                             {selectedField?.type === 'select' ? (
-                                                <select value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold outline-none">
-                                                    <option value="">Değer Seçin</option>
+                                                <select value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} className="flex-1 px-2.5 py-1.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/20 text-[#1A1A2E] dark:text-white">
+                                                    <option value="">Seçin</option>
                                                     {selectedField.values.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
                                                 </select>
                                             ) : (
-                                                <input type={selectedField?.type || 'text'} value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} placeholder="Değer..." className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold outline-none" />
+                                                <input type={selectedField?.type || 'text'} value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} placeholder="Değer" className="flex-1 px-2.5 py-1.5 bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/20 text-[#1A1A2E] dark:text-white" />
                                             )}
+                                            <button type="button" onClick={() => removeCondition(idx)} className="p-1.5 text-[#9097A6] hover:text-red-500"><Trash2 size={14} /></button>
                                         </div>
-                                        <button type="button" onClick={() => removeCondition(idx)} className="p-2.5 text-gray-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                                    )
+                                })}
+                                <button type="button" onClick={addCondition} className="w-full text-[10px] font-black text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-lg border border-dashed border-blue-300 dark:border-blue-500/30 transition-all">+ Koşul Ekle</button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Step 3: Actions */}
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
+                    <div className="border border-[#E5E9F0] dark:border-white/5 rounded-lg overflow-hidden">
+                        <button type="button" onClick={() => setExpandedSections(p => ({ ...p, step3: !p.step3 }))} className="w-full flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-500/5 hover:bg-green-100 dark:hover:bg-green-500/10 transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-green-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-green-500/30">3</div>
-                                <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]">Yapılacak İşlemler (Actions)</h4>
+                                <div className="w-6 h-6 bg-green-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">3</div>
+                                <span className="text-xs font-bold text-[#1A1A2E] dark:text-white uppercase tracking-widest">Yapılacak İşlemler</span>
+                                {form.actions.length > 0 && (
+                                    <span className="text-[10px] text-green-600 dark:text-green-400 font-bold px-2 py-0.5 bg-green-100 dark:bg-green-500/20 rounded-full">
+                                        {form.actions.length} Aksiyon
+                                    </span>
+                                )}
                             </div>
-                            <button type="button" onClick={addAction} className="text-[10px] font-black text-green-600 px-6 py-2.5 bg-green-50 rounded-2xl hover:bg-green-100 transition-all">+ Aksiyon Ekle</button>
-                        </div>
-                        <div className="space-y-4">
-                            {form.actions.map((action, actionIdx) => {
-                                const type = actionTypes.find(at => at.id === action.type);
-                                return (
-                                    <div key={actionIdx} className="bg-white dark:bg-gray-900 border-2 border-indigo-50 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm relative group">
-                                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button type="button" onClick={() => removeAction(actionIdx)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
-                                        </div>
-                                        <div className="p-6">
-                                            <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                                    {type && <type.icon size={20} />}
+                            <ChevronDown size={16} className={`text-[#9097A6] transition-transform ${expandedSections.step3 ? 'rotate-180' : ''}`} />
+                        </button>
+                        {expandedSections.step3 && (
+                            <div className="px-4 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-white/5 space-y-3">
+                                {form.actions.map((action, actionIdx) => {
+                                    const type = actionTypes.find(at => at.id === action.type);
+                                    return (
+                                        <div key={actionIdx} className="bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/5 rounded-lg p-4 relative group">
+                                            <button type="button" onClick={() => removeAction(actionIdx)} className="absolute top-3 right-3 p-1 text-[#9097A6] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14} /></button>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-6 h-6 bg-[#905EFC] text-white rounded-lg flex items-center justify-center shrink-0">
+                                                    {type && <type.icon size={14} />}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <select 
-                                                        value={action.type} 
-                                                        onChange={e => updateAction(actionIdx, 'type', e.target.value)}
-                                                        className="bg-transparent border-none text-base font-black text-gray-900 dark:text-white focus:ring-0 p-0 outline-none w-full"
-                                                    >
-                                                        {actionTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                                                    </select>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{type?.desc}</p>
-                                                </div>
+                                                <select 
+                                                    value={action.type} 
+                                                    onChange={e => updateAction(actionIdx, 'type', e.target.value)}
+                                                    className="flex-1 bg-transparent border-none text-xs font-bold text-[#1A1A2E] dark:text-white focus:ring-0 p-0 outline-none"
+                                                >
+                                                    {actionTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                                </select>
                                             </div>
 
-                                            {/* Action Specific UI */}
+                                            {/* Action Fields - Compact Version */}
                                             {action.type === 'send_email' && (
-                                                <div className="space-y-4 animate-in slide-in-from-top-2">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Alıcı E-posta</label>
-                                                            <input type="email" value={action.parameters.to || ''} onChange={e => updateActionParam(actionIdx, 'to', e.target.value)} placeholder="Örn: admin@site.com" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Konu</label>
-                                                            <input type="text" value={action.parameters.subject || ''} onChange={e => updateActionParam(actionIdx, 'subject', e.target.value)} placeholder="Konu başlığı..." className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                        </div>
-                                                    </div>
-                                                    <textarea rows={2} value={action.parameters.body || ''} onChange={e => updateActionParam(actionIdx, 'body', e.target.value)} placeholder="E-posta içeriği..." className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold resize-none" />
+                                                <div className="space-y-2 text-xs">
+                                                    <input type="email" value={action.parameters.to || ''} onChange={e => updateActionParam(actionIdx, 'to', e.target.value)} placeholder="E-posta" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
+                                                    <input type="text" value={action.parameters.subject || ''} onChange={e => updateActionParam(actionIdx, 'subject', e.target.value)} placeholder="Konu" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
+                                                    <textarea rows={2} value={action.parameters.body || ''} onChange={e => updateActionParam(actionIdx, 'body', e.target.value)} placeholder="İçerik..." className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold resize-none" />
                                                 </div>
                                             )}
 
                                             {action.type === 'change_status' && (
-                                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                                                    <div className="space-y-1 text-gray-400">
-                                                        <label className="text-[10px] font-bold uppercase ml-1">Alan</label>
-                                                        <select value={action.parameters.field || 'status'} onChange={e => updateActionParam(actionIdx, 'field', e.target.value)} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold">
-                                                            {fieldOptions.filter(f => f.type === 'select').map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                                                            <option value="status">Metin Statüsü</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Yeni Değer</label>
-                                                        {(() => {
-                                                            const field = fieldOptions.find(f => f.id === (action.parameters.field || 'status'));
-                                                            if (field?.type === 'select') {
-                                                                return (
-                                                                    <select value={action.parameters.value || ''} onChange={e => updateActionParam(actionIdx, 'value', e.target.value)} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold">
-                                                                        <option value="">Seçiniz</option>
-                                                                        {field.values.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-                                                                    </select>
-                                                                )
-                                                            }
-                                                            return <input type="text" value={action.parameters.value || ''} onChange={e => updateActionParam(actionIdx, 'value', e.target.value)} placeholder="Yeni değer..." className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                        })()}
-                                                    </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <select value={action.parameters.field || 'status'} onChange={e => updateActionParam(actionIdx, 'field', e.target.value)} className="px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold">
+                                                        {fieldOptions.filter(f => f.type === 'select').map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                                                    </select>
+                                                    <select value={action.parameters.value || ''} onChange={e => updateActionParam(actionIdx, 'value', e.target.value)} className="px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold">
+                                                        <option value="">Seçin</option>
+                                                        {fieldOptions.find(f => f.id === (action.parameters.field || 'status'))?.values?.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+                                                    </select>
                                                 </div>
                                             )}
 
                                             {action.type === 'create_task' && (
-                                                <div className="space-y-4 animate-in slide-in-from-top-2">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Görev Başlığı</label>
-                                                        <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Örn: Müşteriyi 3 gün sonra ara" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                    </div>
-                                                </div>
+                                                <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Görev adı" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
                                             )}
 
                                             {action.type === 'create_appointment' && (
-                                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Randevu Başlığı</label>
-                                                        <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Örn: Toplantı" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Kaç Gün Sonra?</label>
-                                                        <input type="number" value={action.parameters.offset_days || 0} onChange={e => updateActionParam(actionIdx, 'offset_days', e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                    </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Başlık" className="px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
+                                                    <input type="number" value={action.parameters.offset_days || 0} onChange={e => updateActionParam(actionIdx, 'offset_days', e.target.value)} placeholder="Gün" className="px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
                                                 </div>
                                             )}
 
                                             {action.type === 'send_webhook' && (
-                                                <div className="space-y-1 animate-in slide-in-from-top-2">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Webhook URL</label>
-                                                    <input type="url" value={action.parameters.url || ''} onChange={e => updateActionParam(actionIdx, 'url', e.target.value)} placeholder="https://api.example.com/callback" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                </div>
+                                                <input type="url" value={action.parameters.url || ''} onChange={e => updateActionParam(actionIdx, 'url', e.target.value)} placeholder="https://api.example.com" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
                                             )}
 
                                             {action.type === 'add_note' && (
-                                                <div className="space-y-1 animate-in slide-in-from-top-2">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Not İçeriği</label>
-                                                    <input type="text" value={action.parameters.content || ''} onChange={e => updateActionParam(actionIdx, 'content', e.target.value)} placeholder="Kayıt üzerine eklenecek not..." className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold" />
-                                                </div>
+                                                <input type="text" value={action.parameters.content || ''} onChange={e => updateActionParam(actionIdx, 'content', e.target.value)} placeholder="Not içeriği" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
                                             )}
 
-                                            {(action.type === 'assign_to_user' || action.type === 'log_activity') && (
-                                                <div className="animate-in slide-in-from-top-2">
-                                                    {action.type === 'assign_to_user' ? (
-                                                        <select value={action.parameters.user_id || ''} onChange={e => updateActionParam(actionIdx, 'user_id', e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-bold">
-                                                            <option value="">Personel Seçin</option>
-                                                            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                                        </select>
-                                                    ) : (
-                                                        <input type="text" value={action.parameters.description || ''} onChange={e => updateActionParam(actionIdx, 'description', e.target.value)} placeholder="Log açıklaması..." className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-bold" />
-                                                    )}
-                                                </div>
+                                            {action.type === 'assign_to_user' && (
+                                                <select value={action.parameters.user_id || ''} onChange={e => updateActionParam(actionIdx, 'user_id', e.target.value)} className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold">
+                                                    <option value="">Personel Seçin</option>
+                                                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </select>
+                                            )}
+
+                                            {action.type === 'log_activity' && (
+                                                <input type="text" value={action.parameters.description || ''} onChange={e => updateActionParam(actionIdx, 'description', e.target.value)} placeholder="Log açıklaması" className="w-full px-2.5 py-1.5 bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded text-[10px] font-bold" />
                                             )}
                                         </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                                    )
+                                })}
+                                <button type="button" onClick={addAction} className="w-full text-[10px] font-black text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 px-3 py-2 rounded-lg border border-dashed border-green-300 dark:border-green-500/30 transition-all">+ Aksiyon Ekle</button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex gap-4 pt-6 border-t border-gray-50 dark:border-gray-800">
-                        <button type="button" onClick={() => setModal({ open: false, workflow: null })} className="flex-1 px-8 py-4 border-2 border-gray-100 dark:border-gray-700 rounded-2xl text-xs font-black text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all uppercase tracking-widest">İptal</button>
-                        <button type="submit" disabled={saveMutation.isPending} className="flex-[2] px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-xl shadow-indigo-500/25 transition-all active:scale-95 disabled:opacity-50 uppercase tracking-widest flex items-center justify-center gap-2">
-                            {saveMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />} 
-                            {saveMutation.isPending ? 'Kaydediliyor...' : 'Senaryoyu Kaydet'}
+                    {/* Footer Buttons */}
+                    <div className="flex gap-3 pt-4 border-t border-[#E5E9F0] dark:border-white/5 mt-4">
+                        <button type="button" onClick={() => setModal({ open: false, workflow: null })} className="flex-1 px-4 py-2.5 border-2 border-[#E5E9F0] dark:border-white/10 rounded-lg text-[10px] font-black text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all uppercase tracking-widest">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-[1.5] px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-lg text-[10px] font-black shadow-lg shadow-[#905EFC]/20 transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-[#905EFC] uppercase tracking-widest flex items-center justify-center gap-2">
+                            {saveMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} 
+                            {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
                     </div>
                 </form>
@@ -565,34 +538,34 @@ export default function WorkflowsTab() {
             <Modal open={logModal.open} onClose={() => setLogModal({ open: false, logs: [] })} title="Otomasyon Analizi" size="lg">
                 <div className="space-y-4">
                     {logModal.logs.map((step, i) => (
-                        <div key={i} className={`p-4 rounded-2xl border ${step.status === 'success' ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
+                        <div key={i} className={`p-4 rounded-xl border ${step.status === 'success' ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
                             <div className="flex items-center gap-3 mb-2">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${step.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
                                     {step.status === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                                 </div>
-                                <span className="text-xs font-black uppercase tracking-wider text-gray-700">{step.type}</span>
+                                <span className="text-xs font-black uppercase tracking-wider text-[#1A1A2E]">{step.type}</span>
                                 <span className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full ${step.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                     {step.status === 'success' ? 'TAMAMLANDI' : 'HATA'}
                                 </span>
                             </div>
-                            <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                            <p className="text-xs text-[#9097A6] font-medium leading-relaxed">
                                 {step.status === 'success' ? (step.result || 'İşlem başarıyla icra edildi.') : (step.error || 'Bilinmeyen bir hata oluştu.')}
                             </p>
                         </div>
                     ))}
-                    {logModal.logs.length === 0 && <p className="text-center py-10 text-gray-400 italic">Analiz edilecek aksiyon verisi bulunmuyor.</p>}
+                    {logModal.logs.length === 0 && <p className="text-center py-10 text-[#9097A6] italic">Analiz edilecek aksiyon verisi bulunmuyor.</p>}
                 </div>
             </Modal>
 
             {/* Standard Delete Confirm */}
             <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Otomasyonu Sil">
                 <div className="space-y-6">
-                    <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-2xl flex gap-4 text-red-600 border border-red-100 dark:border-red-500/20 shadow-sm">
+                    <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-4 text-red-600 border border-red-100 dark:border-red-500/20 shadow-sm">
                         <AlertCircle className="shrink-0" size={24} />
                         <p className="text-xs font-bold leading-relaxed">"{deleteConfirm?.name}" isimli otomasyonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-black text-gray-400 hover:bg-gray-50 transition-all uppercase tracking-widest">İptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-xs font-black text-[#9097A6] hover:bg-[#F4F5F7] transition-all uppercase tracking-widest">İptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 transition-all uppercase tracking-widest">Sil</button>
                     </div>
                 </div>

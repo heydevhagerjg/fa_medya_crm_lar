@@ -145,12 +145,13 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
         // Admin-only Settings
         Route::middleware('role.admin')->group(function () {
             // Backup
-            Route::get('/backup/export', [BackupController::class, 'export'])->middleware('check.plan:backup');
+            Route::post('/backup/export', [BackupController::class, 'export'])->middleware('check.plan:backup');
             Route::post('/backup/request', [BackupController::class, 'requestBackup'])->middleware('check.plan:backup');
             Route::post('/backup/cancel-request', [BackupController::class, 'cancelRequest'])->middleware('check.plan:backup');
             Route::get('/backup/list', [BackupController::class, 'listAppBackups'])->middleware('check.plan:backup');
             Route::get('/backup/{id}/download', [BackupController::class, 'downloadAppBackup'])->middleware('check.plan:backup');
             Route::get('/backup/{id}/signed-url', [BackupController::class, 'getSignedUrl'])->middleware('check.plan:backup');
+            Route::delete('/backup/{id}', [BackupController::class, 'deleteAppBackup'])->middleware('check.plan:backup');
             Route::post('/backup/import', [BackupController::class, 'import'])->middleware('check.plan:backup');
             Route::post('/backup/reset', [BackupController::class, 'reset']);
 

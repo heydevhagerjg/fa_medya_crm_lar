@@ -19,35 +19,35 @@ export default function StatusItem({ s, openModal, setDeleteConfirm, isLocked = 
             ref={setNodeRef}
             style={style}
             className={`
-                group bg-white dark:bg-gray-800 border transition-all rounded-xl p-4 flex items-center gap-4
-                ${isDragging ? 'shadow-lg border-indigo-500 z-50' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-500/30'}
-                ${isLocked ? 'bg-gray-50 dark:bg-gray-800/50' : ''}
+                group bg-white dark:bg-white/5 border transition-all rounded-xl p-4 flex items-center gap-4
+                ${isDragging ? 'shadow-lg border-[#905EFC] z-50' : 'border-[#E5E9F0] dark:border-white/10 hover:border-[#905EFC]/30'}
+                ${isLocked ? 'bg-[#F4F5F7] dark:bg-white/5' : ''}
             `}
         >
             {!isLocked ? (
-                <button {...attributes} {...listeners} className="p-1 text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing">
+                <button {...attributes} {...listeners} className="p-1 text-[#9097A6] hover:text-[#905EFC] cursor-grab active:cursor-grabbing">
                     <GripVertical size={20} />
                 </button>
             ) : (
-                <div className="w-8 flex items-center justify-center text-gray-300">
+                <div className="w-8 flex items-center justify-center text-[#9097A6]">
                     <Lock size={16} />
                 </div>
             )}
 
-            <div className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm border border-white dark:border-gray-700" style={{ background: s.color }} />
+            <div className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm border border-white dark:border-white/10" style={{ background: s.color }} />
 
             <div className="flex-1">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-tight">{s.name}</span>
-                    <span className="text-[10px] text-gray-400 font-medium">ID: #{s.id}</span>
+                    <span className="font-bold text-[#1A1A2E] dark:text-white text-sm uppercase tracking-tight">{s.name}</span>
+                    <span className="text-[10px] text-[#9097A6] font-medium">ID: #{s.id}</span>
                 </div>
                 {isLocked && <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">Sistem Varsayılanı</span>}
             </div>
 
             <div className="flex gap-1">
-                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"><Edit2 size={16} /></button>
+                <button onClick={() => openModal(s)} className="p-2 rounded-lg text-[#9097A6] hover:text-[#905EFC] hover:bg-[#905EFC]/10 dark:hover:bg-[#905EFC]/10 transition-colors"><Edit2 size={16} /></button>
                 {!isLocked && (
-                    <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => setDeleteConfirm(s)} className="p-2 rounded-lg text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
                 )}
             </div>
         </div>

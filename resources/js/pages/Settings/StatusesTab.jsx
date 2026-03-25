@@ -63,12 +63,12 @@ export default function StatusesTab() {
         <div className="space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">İş Akış Durumları</h2>
-                    <p className="text-sm text-gray-500">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
+                    <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white">İş Akış Durumları</h2>
+                    <p className="text-sm text-[#9097A6]">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
                 </div>
                 <button
                     onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <Plus size={18} />
                     Durum Ekle
@@ -84,7 +84,7 @@ export default function StatusesTab() {
 
             <div className="space-y-2">
                 {statuses.length === 0 ? (
-                    <div className="flex justify-center py-12"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+                    <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#9097A6]" size={32} /></div>
                 ) : (
                     <>
                         {defaultStatus && (
@@ -107,32 +107,32 @@ export default function StatusesTab() {
             <Modal open={modal.open} onClose={() => setModal({ open: false, status: null })} title={modal.status ? 'Durumu Düzenle' : 'Durum Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adı *</label>
-                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required disabled={modal.status?.name === 'Varsayılan'} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50" />
+                        <label className="block text-sm font-medium text-[#1A1A2E] dark:text-white mb-1">Adı *</label>
+                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required disabled={modal.status?.name === 'Varsayılan'} className="w-full px-3 py-2 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-white dark:bg-white/5 text-[#1A1A2E] dark:text-white focus:outline-none focus:border-[#905EFC] disabled:opacity-50" />
                     </div>
                     <div className="flex items-center gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Renk</label>
-                            <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))} className="h-10 w-20 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer" />
+                            <label className="block text-sm font-medium text-[#1A1A2E] dark:text-white mb-1">Renk</label>
+                            <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))} className="h-10 w-20 rounded-lg border border-[#E5E9F0] dark:border-white/10 cursor-pointer" />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sıra</label>
-                            <input type="number" value={form.order} readOnly className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800/50 text-gray-500 focus:outline-none" />
-                            <p className="text-[10px] text-gray-400 mt-1">Sıralamayı listeden sürükleyerek değiştirebilirsiniz.</p>
+                            <label className="block text-sm font-medium text-[#1A1A2E] dark:text-white mb-1">Sıra</label>
+                            <input type="number" value={form.order} readOnly className="w-full px-3 py-2 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] focus:outline-none" />
+                            <p className="text-[10px] text-[#9097A6] mt-1">Sıralamayı listeden sürükleyerek değiştirebilirsiniz.</p>
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, status: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium transition-colors">İptal</button>
-                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">Kaydet</button>
+                        <button type="button" onClick={() => setModal({ open: false, status: null })} className="flex-1 px-4 py-2.5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-medium transition-colors">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">Kaydet</button>
                     </div>
                 </form>
             </Modal>
 
             <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Durumu Sil">
                 <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-400"><span className="font-semibold">{deleteConfirm?.name}</span> durumunu silmek istediğinize emin misiniz?</p>
+                    <p className="text-[#9097A6] dark:text-[#9097A6]"><span className="font-semibold">{deleteConfirm?.name}</span> durumunu silmek istediğinize emin misiniz?</p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium transition-colors">İptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-medium transition-colors">İptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">Sil</button>
                     </div>
                 </div>

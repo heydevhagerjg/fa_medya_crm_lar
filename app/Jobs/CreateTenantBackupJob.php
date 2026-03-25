@@ -30,6 +30,10 @@ class CreateTenantBackupJob implements ShouldQueue
      */
     public function handle(TenantBackupService $service): void
     {
+        // Queue worker'da zaman ve bellek sınırını kaldır
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(0);
+
         $this->backup->update(['status' => 'processing', 'progress' => 0]);
 
         $zipPath = null;

@@ -33,14 +33,14 @@ use App\Models\ProposalInstallment;
 use App\Models\ProposalRevisionRequest;
 use App\Models\ServiceTrackingCategory;
 use App\Models\ServiceTracking;
-use App\Models\ServiceTrackingLog;
-use App\Traits\HasTenantCache;
+use App\Models\AdminNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use App\Services\ActivityLogService;
+use App\Traits\HasTenantCache;
 
 class BackupController extends Controller
 {
@@ -59,6 +59,22 @@ class BackupController extends Controller
 
         ActivityLogService::log($request->user(), 'BACKUP_REQUEST', 'SYSTEM', null, 'Yedek Talebi', 'Tam yedek alma talebi admin panelinde oluşturuldu.');
 
+        // Send notification to all admins
+        $admins = Admin::all();
+        foreach ($admins as $admin) {
+            AdminNotification::create([
+                'admin_id' => $admin->id,
+                'type' => 'backup_request',
+                'title' => 'Yedekleme Talebi',
+                'message' => $tenant->name . ' kullanıcısı yedekleme talep etti.',
+                'data' => [
+                    'tenant_id' => $tenant->id,
+                    'tenant_name' => $tenant->name,
+                    'requested_at' => now(),
+                ]
+            ]);
+        }
+
         return response()->json(['message' => 'Yedekleme talebiniz alınmıştır. Yedeğiniz hazır olduğunda burada listelenecektir.']);
     }
 
@@ -71,6 +87,24 @@ class BackupController extends Controller
         $tenant = Tenant::findOrFail($tenantId);
         $tenant->update(['backup_requested' => false]);
         return response()->json(['message' => 'Yedekleme talebi iptal edildi.']);
+    }
+
+    /**
+     * Delete a specific backup
+     */
+    public function deleteAppBackup(Request $request, $id): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $backup = \App\Models\TenantBackup::where('tenant_id', $tenantId)->findOrFail($id);
+
+        // Delete the file if it exists
+        if ($backup->path && \Illuminate\Support\Facades\File::exists(storage_path('app/' . $backup->path))) {
+            \Illuminate\Support\Facades\File::delete(storage_path('app/' . $backup->path));
+        }
+
+        $backup->delete();
+
+        return response()->json(['message' => 'Yedek silindi.']);
     }
 
     /**

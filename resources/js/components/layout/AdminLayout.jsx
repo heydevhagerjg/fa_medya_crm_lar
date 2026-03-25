@@ -1,177 +1,152 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAdminStore, useThemeStore } from '../../stores/index.js'
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import {
     Database, LogOut, Menu, X, Sun, Moon,
-    ShieldCheck, User, Settings
+    ShieldCheck, Settings, Package,
+    LogInIcon
 } from 'lucide-react'
 
+const adminNavItems = [
+    { to: '/admin/dashboard', icon: Database, label: 'Firmalar (Tenants)', color: '#905EFC' },
+    { to: '/admin/packages', icon: Package, label: 'Sistem Paketleri', color: '#1ED2A7' },
+    { to: '/admin/backups', icon: Database, label: 'Sistem Yedekleri', color: '#f59e0b' },
+    { to: '/admin/tenant-backups', icon: Database, label: 'Firma Yedekleri', color: '#905EFC' },
+    { to: '/admin/settings', icon: Settings, label: 'Sistem Ayarları', color: '#ef4444' },
+]
+
 export default function AdminLayout() {
-    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [mobileOpen, setMobileOpen] = useState(false)
     const { admin, clearAdminAuth } = useAdminStore()
     const { theme, toggleTheme } = useThemeStore()
     const navigate = useNavigate()
+    const location = useLocation()
 
     const handleLogout = async () => {
-        try {
-            await api.post('/admin/logout')
-        } catch { }
+        try { await api.post('/admin/logout') } catch {}
         clearAdminAuth()
         navigate('/admin/login')
         toast.success('Admin çıkışı yapıldı.')
     }
 
+    const todayStr = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+    const sidebarContent = (
+        <div className="flex flex-col h-full">
+            {/* Logo */}
+            <div className="h-[70px] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white shadow-lg shadow-red-500/30">
+                    <ShieldCheck size={20} strokeWidth={2} />
+                </div>
+            </div>
+
+            {/* Nav */}
+            <nav className="flex-1 flex flex-col items-center gap-1 py-3 px-[18px]">
+                {adminNavItems.map((item) => {
+                    const IconComp = item.icon
+                    const isActive = location.pathname === item.to || location.pathname.startsWith(item.to)
+                    return (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            onClick={() => setMobileOpen(false)}
+                            className={`
+                                relative group w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200
+                                ${isActive
+                                    ? 'bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md'
+                                    : 'text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white'
+                                }
+                            `}
+                        >
+                            <IconComp size={18} strokeWidth={isActive ? 2.5 : 1.8} />
+                            <span className="nav-tooltip">{item.label}</span>
+                        </NavLink>
+                    )
+                })}
+            </nav>
+
+            {/* Bottom */}
+            <div className="flex flex-col items-center gap-1 pb-5 px-[18px]">
+                <button
+                    onClick={toggleTheme}
+                    className="relative group w-11 h-11 rounded-full flex items-center justify-center text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white transition-all"
+                >
+                    {theme === 'dark' ? <Sun size={18} strokeWidth={1.8} /> : <Moon size={18} strokeWidth={1.8} />}
+                    <span className="nav-tooltip">{theme === 'dark' ? 'Açık Tema' : 'Koyu Tema'}</span>
+                </button>
+
+                <button
+                    onClick={handleLogout}
+                    className="relative group w-11 h-11 rounded-full bg-[#E5E9F0] dark:bg-white/10 flex items-center justify-center text-sm font-black text-[#1A1A2E] dark:text-white hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-500 transition-all mt-1"
+                >
+                    <LogInIcon size={14} />
+                    <span className="nav-tooltip">{admin?.name} — Çıkış</span>
+                </button>
+            </div>
+        </div>
+    )
+
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
+        <div className="flex h-screen bg-[#F4F5F7] dark:bg-[#0A0A0A] overflow-hidden">
+            {mobileOpen && (
+                <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
             )}
 
-            {/* Sidebar */}
-            <aside className={`
-                fixed lg:static inset-y-0 left-0 z-50 w-64 flex flex-col
-                bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
-                transform transition-transform duration-300 ease-in-out
-                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            `}>
-                {/* Logo */}
-                <div className="flex items-center justify-between h-16 px-5 border-b border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white">
-                            <ShieldCheck size={18} />
-                        </div>
-                        <div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Admin Panel</div>
-                        </div>
-                    </div>
-                    <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Navigation */}
-                <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-                    <NavLink
-                        to="/admin/dashboard"
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) => `
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                            ${isActive
-                                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                            }
-                        `}
-                    >
-                        <Database size={18} />
-                        <span>Firmalar (Tenants)</span>
-                    </NavLink>
-                    <NavLink
-                        to="/admin/packages"
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) => `
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                            ${isActive
-                                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                            }
-                        `}
-                    >
-                        <Settings size={18} className="text-blue-500" />
-                        <span>Sistem Paketleri</span>
-                    </NavLink>
-                    <NavLink
-                        to="/admin/backups"
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) => `
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                            ${isActive
-                                ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                            }
-                        `}
-                    >
-                        <Database size={18} />
-                        <span>Sistem Yedekleri</span>
-                    </NavLink>
-                    <NavLink
-                        to="/admin/tenant-backups"
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) => `
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                            ${isActive
-                                ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                            }
-                        `}
-                    >
-                        <Database size={18} className="text-purple-500" />
-                        <span>Firma Yedekleri</span>
-                    </NavLink>
-                    <NavLink
-                        to="/admin/settings"
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) => `
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                            ${isActive
-                                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                            }
-                        `}
-                    >
-                        <Settings size={18} />
-                        <span>Sistem Ayarları</span>
-                    </NavLink>
-                </nav>
-
-                {/* Bottom user section */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-3 mb-3 px-2">
-                        <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                            {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
-                        </div>
-                        <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{admin?.name}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">Sistem Yöneticisi</div>
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
-                    >
-                        <LogOut size={16} />
-                        Güvenli Çıkış
-                    </button>
-                </div>
+            {/* Sidebar — Desktop */}
+            <aside className="hidden lg:flex w-20 shrink-0 flex-col bg-white dark:bg-[#111111] border-r border-[#E5E9F0] dark:border-white/5 overflow-visible z-30">
+                {sidebarContent}
             </aside>
 
-            {/* Main content */}
+            {/* Sidebar — Mobile */}
+            <aside className={`
+                lg:hidden fixed inset-y-0 left-0 z-50 w-20 flex flex-col
+                bg-white dark:bg-[#111111] border-r border-[#E5E9F0] dark:border-white/5
+                transform transition-transform duration-300 ease-in-out
+                ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <button onClick={() => setMobileOpen(false)} className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6] hover:text-[#1A1A2E] transition-all">
+                    <X size={14} />
+                </button>
+                {sidebarContent}
+            </aside>
+
+            {/* Main */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Topbar */}
-                <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+                <header className="h-[70px] shrink-0 flex items-center gap-4 px-5 lg:px-7 bg-white dark:bg-[#111111] border-b border-[#E5E9F0] dark:border-white/5">
                     <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                        onClick={() => setMobileOpen(true)}
+                        className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white transition-all shrink-0"
                     >
-                        <Menu size={22} />
+                        <Menu size={18} />
                     </button>
+
+                    <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white shadow-sm">
+                            <ShieldCheck size={14} strokeWidth={2} />
+                        </div>
+                        <span className="text-sm font-black text-[#1A1A2E] dark:text-white tracking-wide uppercase">Admin Panel</span>
+                    </div>
+
                     <div className="flex-1" />
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                    </button>
+
+                    <span className="text-sm font-semibold text-[#9097A6] select-none">{todayStr}</span>
+
+                    <div className="flex items-center gap-2.5 pl-3 border-l border-[#E5E9F0] dark:border-white/10">
+                        <div className="text-right hidden sm:block">
+                            <div className="text-sm font-bold text-[#1A1A2E] dark:text-white leading-tight">{admin?.name}</div>
+                            <div className="text-[11px] text-[#9097A6] font-medium">Sistem Yöneticisi</div>
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm shadow-sm select-none">
+                            {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
+                        </div>
+                    </div>
                 </header>
 
-                {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
-                    <div className="p-4 lg:p-6">
+                    <div className="p-5 lg:p-8">
                         <Outlet />
                     </div>
                 </main>

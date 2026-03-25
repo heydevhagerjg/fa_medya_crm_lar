@@ -29,53 +29,53 @@ export default function GenericCrudTab({ queryKey, apiPath, label, renderForm, e
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{label}</h2>
-                    <p className="text-sm text-gray-500">Mevcut tanımlamaları yönetin veya yenisini ekleyin.</p>
+                    <h2 className="text-base font-black text-[#1A1A2E] dark:text-white">{label}</h2>
+                    <p className="text-xs text-[#9097A6] mt-0.5">Mevcut tanımlamaları yönetin veya yenisini ekleyin.</p>
                 </div>
                 <button
                     onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-bold shadow-md shadow-[#905EFC]/20 transition-all active:scale-95"
                 >
-                    <Plus size={18} />
+                    <Plus size={16} />
                     {label} Ekle
                 </button>
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#9097A6]" size={28} /></div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {items.map(item => (
-                        <div key={item.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center justify-between transition-all hover:border-indigo-500/30 hover:shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors">
-                                    <Icon size={18} />
+                        <div key={item.id} className="group bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-4 flex items-center justify-between transition-all hover:border-[#905EFC]/30 hover:shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#F4F5F7] dark:bg-white/5 rounded-lg text-[#9097A6] group-hover:text-[#905EFC] group-hover:bg-[#905EFC]/10 transition-colors">
+                                    <Icon size={16} strokeWidth={1.8} />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-tight">{item.name}</div>
+                                    <div className="font-bold text-[#1A1A2E] dark:text-white text-sm">{item.name}</div>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] text-gray-400 font-medium">ID: #{item.id}</span>
+                                        <span className="text-[10px] text-[#9097A6] font-medium">#{item.id}</span>
                                         {item.is_default && (
-                                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-[9px] font-bold uppercase tracking-wider">
+                                            <span className="text-[10px] px-1.5 py-0.5 bg-[#905EFC]/10 text-[#905EFC] rounded font-bold uppercase tracking-wider">
                                                 Varsayılan
                                             </span>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex gap-1">
-                                <button onClick={() => openModal(item)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"><Edit2 size={16} /></button>
-                                <button onClick={() => setDeleteConfirm(item)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                            <div className="flex gap-0.5">
+                                <button onClick={() => openModal(item)} className="p-2 rounded-lg text-[#9097A6] hover:text-[#905EFC] hover:bg-[#905EFC]/10 transition-colors"><Edit2 size={15} /></button>
+                                <button onClick={() => setDeleteConfirm(item)} className="p-2 rounded-lg text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 size={15} /></button>
                             </div>
                         </div>
                     ))}
                     {items.length === 0 && (
-                        <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl py-12 text-center col-span-full">
-                            <Icon size={40} className="mx-auto text-gray-300 mb-3" />
-                            <p className="text-gray-400 font-medium italic">Henüz kayıt bulunamadı.</p>
+                        <div className="border-2 border-dashed border-[#E5E9F0] dark:border-white/10 rounded-xl py-12 text-center col-span-full">
+                            <Icon size={36} className="mx-auto text-[#9097A6] mb-3" strokeWidth={1.5} />
+                            <p className="text-[#9097A6] text-sm font-medium">Henüz kayıt bulunamadı.</p>
                         </div>
                     )}
                 </div>
@@ -85,8 +85,8 @@ export default function GenericCrudTab({ queryKey, apiPath, label, renderForm, e
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     {renderForm(form, setForm)}
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, item: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium transition-colors">İptal</button>
-                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+                        <button type="button" onClick={() => setModal({ open: false, item: null })} className="flex-1 px-4 py-2.5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-semibold text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white transition-colors">İptal</button>
+                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
                     </div>
@@ -95,10 +95,10 @@ export default function GenericCrudTab({ queryKey, apiPath, label, renderForm, e
 
             <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title={`${label} Sil`}>
                 <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-400"><span className="font-semibold">{deleteConfirm?.name}</span> öğesini silmek istediğinize emin misiniz?</p>
+                    <p className="text-[#9097A6] text-sm"><span className="font-semibold text-[#1A1A2E] dark:text-white">{deleteConfirm?.name}</span> öğesini silmek istediğinize emin misiniz?</p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium transition-colors">İptal</button>
-                        <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">Sil</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-[#E5E9F0] dark:border-white/10 rounded-xl text-sm font-semibold text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white transition-colors">İptal</button>
+                        <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">Sil</button>
                     </div>
                 </div>
             </Modal>

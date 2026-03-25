@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  
+  --primary: #905efc;
+  --success: #1ED2A7;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg-app: #F4F5F7;
+  --border: #E5E9F0;
+  --text-main: #1A1A2E;
+  --text-muted: #9097A6;
+
+  --color-primary: #905efc;
+  --color-success: #1ED2A7;
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+}
+
+
 /* ─── Dark mode: class strategy for Tailwind v4 ─────────────────────── */
 /* 
   Tailwind v4 kullanıyor. `dark:` prefix'lerinin .dark class ile çalışması için
@@ -9,8 +31,14 @@
 
 @layer base {
   :root {
-    --primary: 79 70 229;
-    --primary-dark: 67 56 202;
+    --primary: 144 94 252; /* #905EFC */
+    --primary-foreground: 255 255 255;
+    --success: 30 210 167; /* #1ED2A7 */
+    --background: 244 245 247; /* #F4F5F7 */
+    --card: 255 255 255;
+    --border: 229 233 240; /* #E5E9F0 */
+    --sidebar-width: 80px;
+    --sidebar-collapsed-width: 80px;
   }
 
   * {
@@ -22,20 +50,20 @@
   }
 
   body {
-    background-color: rgb(249 250 251);
-    color: rgb(17 24 39);
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: rgb(var(--background));
+    color: #1A1A2E;
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   html.dark body {
-    background-color: rgb(3 7 18);
-    color: rgb(243 244 246);
+    background-color: #0A0A0A;
+    color: #F4F5F7;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -43,12 +71,72 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(209 213 219);
+    background: #E5E9F0;
     border-radius: 9999px;
   }
 
   html.dark ::-webkit-scrollbar-thumb {
     background: rgb(55 65 81);
+  }
+}
+
+/* Card utility */
+@layer utilities {
+  .card {
+    background-color: #ffffff;
+    border-radius: 1.25rem;
+    box-shadow: 0 1px 8px 0 rgba(26, 26, 46, 0.06);
+    border: 1px solid #E5E9F0;
+  }
+
+  html.dark .card {
+    background-color: #111111;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 8px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  /* Sidebar nav tooltip */
+  .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #1A1A2E;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.28rem 0.6rem;
+    border-radius: 0.5rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 9999;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 12px rgba(26, 26, 46, 0.15);
+  }
+
+  html.dark .nav-tooltip {
+    background-color: #ffffff;
+    color: #1A1A2E;
+  }
+
+  .nav-tooltip::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #1A1A2E;
+  }
+
+  html.dark .nav-tooltip::before {
+    border-right-color: #ffffff;
+  }
+
+  .group:hover .nav-tooltip {
+    opacity: 1;
   }
 }
 
