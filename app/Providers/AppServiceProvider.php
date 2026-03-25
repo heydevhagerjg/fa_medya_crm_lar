@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\RateLimiter;
 
 use Laravel\Paddle\Cashier;
 use App\Models\BillingCustomer;
+use App\Observers\WorkflowObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -58,5 +59,8 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
         });
+
+        // Central Workflow Automation Subscriber
+        \Illuminate\Support\Facades\Event::subscribe(\App\Observers\WorkflowSubscriber::class);
     }
 }

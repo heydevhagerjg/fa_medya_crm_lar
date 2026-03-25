@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\ServiceTrackingController;
 use App\Http\Controllers\Api\Settings\ServiceTrackingCategoryController;
 use App\Http\Controllers\Api\Settings\RoleController;
 use App\Http\Controllers\Api\Settings\PermissionController;
+use App\Http\Controllers\Api\WorkflowController;
 
 /*
 |--------------------------------------------------------------------------
@@ -196,6 +197,11 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
         Route::get('/tenant', [TenantController::class, 'show']);
         Route::put('/tenant', [TenantController::class, 'update'])->middleware('role.admin');
         Route::post('/tenant/test', [TenantController::class, 'testConnection'])->middleware('role.admin');
+        
+        // Workflows
+        Route::get('/workflow-logs', [WorkflowController::class, 'logs'])->middleware('role.admin');
+        Route::patch('/workflows/{id}/toggle', [WorkflowController::class, 'toggle'])->middleware('role.admin');
+        Route::apiResource('workflows', WorkflowController::class)->middleware('role.admin');
     });
 });
 
