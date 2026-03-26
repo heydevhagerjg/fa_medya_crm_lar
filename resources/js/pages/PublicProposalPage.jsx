@@ -113,9 +113,28 @@ export default function PublicProposalPage() {
                         <div className="flex items-center gap-2 mb-4 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
                             <Building2 size={14} /> Hizmet Sağlayıcı
                         </div>
+                        {proposal.tenant?.logo && (
+                            <img 
+                                src={proposal.tenant.logo} 
+                                alt={proposal.tenant.name}
+                                className="w-20 h-20 object-contain mb-4 rounded-lg bg-gray-50 p-2"
+                                onError={(e) => {
+                                    // If signed URL expires, fallback to backend endpoint
+                                    e.target.src = `/api/logo/${proposal.tenant.id}`;
+                                }}
+                            />
+                        )}
                         <div className="font-bold text-lg text-gray-900 mb-1">{proposal.tenant?.name}</div>
-                        <div className="text-sm text-gray-500">Profesyonel Yazılım Hizmetleri</div>
-                        <div className="text-sm text-gray-500">+90 850 307 41 07</div>
+                        <div className="text-sm text-gray-500 mb-2">{proposal.tenant?.address || 'Adres belirtilmemiş'}</div>
+                        {proposal.tenant?.email && <div className="text-sm text-gray-500">{proposal.tenant.email}</div>}
+                        {proposal.tenant?.phone && <div className="text-sm text-gray-500">{formatPhoneNumber(proposal.tenant.phone)}</div>}
+                        {proposal.tenant?.website && (
+                            <div className="text-sm text-indigo-600 hover:text-indigo-700">
+                                <a href={proposal.tenant.website} target="_blank" rel="noopener noreferrer">
+                                    {proposal.tenant.website}
+                                </a>
+                            </div>
+                        )}
                     </div>
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-4 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">

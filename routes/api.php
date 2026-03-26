@@ -53,6 +53,10 @@ Route::group(['prefix' => 'public', 'middleware' => 'throttle:30,1'], function (
         ->middleware('signed');
 });
 
+// Public logo route (no auth needed - logos are public)
+Route::get('/logo/{tenantId}', [App\Http\Controllers\Api\TenantController::class, 'serveLogo'])
+    ->name('api.public.logo');
+
 // Protected routes
 Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan'])->group(function () {
 
@@ -202,6 +206,11 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
         Route::get('/tenant', [TenantController::class, 'show']);
         Route::put('/tenant', [TenantController::class, 'update'])->middleware('role.admin');
         Route::post('/tenant/test', [TenantController::class, 'testConnection'])->middleware('role.admin');
+        
+        // General Info
+        Route::get('/general-info', [TenantController::class, 'getGeneralInfo']);
+        Route::put('/general-info', [TenantController::class, 'updateGeneralInfo']);
+        Route::post('/general-info/logo', [TenantController::class, 'uploadLogo']);
         
         // Workflows
         Route::get('/workflow-logs', [WorkflowController::class, 'logs'])->middleware('role.admin');

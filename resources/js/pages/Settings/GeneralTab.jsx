@@ -1,21 +1,58 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { Save, Loader2, Image as ImageIcon, Briefcase, Mail, Phone, MapPin, Building2, Globe } from 'lucide-react'
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../../stores/index.js'
 
-export default function GeneralTab({ tenant, setTenant }) {
+export default function GeneralTab({ tenant: initialTenant, setTenant: setParentTenant }) {
     const qc = useQueryClient()
     const { updateTenant } = useAuthStore()
 
+    // Local tenant state
+    const [tenant, setTenant] = useState(initialTenant || {})
+
+    // Fetch general info from database
+    const { data: generalInfo, isLoading } = useQuery({
+        queryKey: ['general-info'],
+        queryFn: () => api.get('/settings/general-info').then(r => {
+            console.log('API response data:', r.data)
+            return r.data
+        }),
+        staleTime: 1000 * 60 * 5,
+        onError: (err) => {
+            console.error('Query error:', err)
+            toast.error('Bilgiler yüklenmedi: ' + err.message)
+        }
+    })
+
+    // Update tenant state when API data arrives
+    useEffect(() => {
+        if (generalInfo && !isLoading) {
+            console.log('Setting tenant from API:', generalInfo)
+            setTenant(generalInfo)
+            setParentTenant(generalInfo)
+        }
+    }, [generalInfo, isLoading])
+
     const updateMutation = useMutation({
-        mutationFn: (data) => api.put('/settings/general', data),
-        onSuccess: (res) => {
-            qc.invalidateQueries(['auth-user'])
-            updateTenant(res.data)
-            toast.success('Ayarlar güncellendi.')
+        mutationFn: (data) => {
+            console.log('Sending data:', data)
+            return api.put('/settings/general-info', data)
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.')
+        onSuccess: (res) => {
+            console.log('Success response:', res.data)
+            const updatedTenant = res.data.data
+            setTenant(updatedTenant)
+            setParentTenant(updatedTenant)
+            qc.invalidateQueries(['general-info'])
+            qc.invalidateQueries(['auth-user'])
+            toast.success('Genel bilgiler güncellendi.')
+        },
+        onError: (err) => {
+            console.error('Error response:', err.response?.data)
+            toast.error(err.response?.data?.message || err.message || 'Hata oluştu.')
+        }
     })
 
     const handleLogoChange = async (e) => {
@@ -24,8 +61,8 @@ export default function GeneralTab({ tenant, setTenant }) {
         const fd = new FormData()
         fd.append('logo', file)
         try {
-            const res = await api.post('/settings/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-            updateTenant(res.data)
+            const res = await api.post('/settings/general-info/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+            setTenant({ ...tenant, logo: res.data.logo })
             qc.invalidateQueries(['auth-user'])
             toast.success('Logo güncellendi.')
         } catch (err) {
@@ -35,6 +72,16 @@ export default function GeneralTab({ tenant, setTenant }) {
 
     return (
         <div className="space-y-5 max-w-4xl">
+            {isLoading && (
+                <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-6 flex items-center justify-center min-h-[300px]">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="animate-spin text-[#905EFC]" size={20} />
+                        <span className="text-sm font-semibold text-[#9097A6]">Bilgiler yükleniyor...</span>
+                    </div>
+                </div>
+            )}
+            
+            {!isLoading && (
             <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-6 overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] dark:opacity-[0.06]">
                     <Building2 size={120} />
@@ -47,7 +94,7 @@ export default function GeneralTab({ tenant, setTenant }) {
                             <div className="w-28 h-28 rounded-xl bg-[#F4F5F7] dark:bg-white/5 border-2 border-dashed border-[#E5E9F0] dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:border-[#905EFC] relative">
                                 {tenant?.logo ? (
                                     <>
-                                        <img src={`/storage/${tenant.logo}`} className="max-w-full max-h-full object-contain p-2" alt="Logo" />
+                                        <img src={tenant.logo} className="max-w-full max-h-full object-contain p-2" alt="Logo" />
                                         <div className="absolute inset-0 bg-[#905EFC]/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-200">
                                             <ImageIcon className="text-white" size={22} />
                                         </div>
@@ -78,7 +125,7 @@ export default function GeneralTab({ tenant, setTenant }) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {[
-                                { label: 'İşletme Adı', key: 'company_name', icon: Building2, placeholder: 'Firma Ünvanı', type: 'text' },
+                                { label: 'İşletme Adı', key: 'name', icon: Building2, placeholder: 'Firma Ünvanı', type: 'text' },
                                 { label: 'E-posta Adresi', key: 'email', icon: Mail, placeholder: 'kurumsal@eposta.com', type: 'email' },
                                 { label: 'Telefon', key: 'phone', icon: Phone, placeholder: '05XX XXX XX XX', type: 'text' },
                                 { label: 'Web Sitesi', key: 'website', icon: Globe, placeholder: 'www.firmawebsite.com', type: 'text' },
@@ -114,7 +161,19 @@ export default function GeneralTab({ tenant, setTenant }) {
 
                         <div className="flex pt-2">
                             <button
-                                onClick={() => updateMutation.mutate({ company_name: tenant.company_name, email: tenant.email, phone: tenant.phone, address: tenant.address, website: tenant.website })}
+                                onClick={() => {
+                                    if (!tenant.name?.trim()) {
+                                        toast.error('İşletme adı zorunludur.')
+                                        return
+                                    }
+                                    updateMutation.mutate({ 
+                                        name: tenant.name, 
+                                        email: tenant.email || null, 
+                                        phone: tenant.phone || null, 
+                                        address: tenant.address || null, 
+                                        website: tenant.website || null 
+                                    })
+                                }}
                                 disabled={updateMutation.isPending}
                                 className="flex items-center gap-2 px-6 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#905EFC]/20 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100"
                             >
@@ -125,6 +184,7 @@ export default function GeneralTab({ tenant, setTenant }) {
                     </div>
                 </div>
             </div>
+            )}
         </div>
     )
 }

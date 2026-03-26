@@ -94,7 +94,7 @@ export default function PackagesPage() {
         setForm(emptyPackage)
     }
 
-    const filtered = packages.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    const filtered = packages.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()))
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 

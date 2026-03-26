@@ -134,8 +134,9 @@ class SearchController extends \App\Http\Controllers\Controller
                                 $job->where('title', 'like', "%{$query}%");
                             });
                     })
-                    ->select('id', 'description', 'job_id')
+                    ->select('id', 'description', 'job_id', 'payment_date')
                     ->with('job.customer:id,name')
+                    ->orderByDesc('payment_date')
                     ->limit(5)
                     ->get()
                     ->map(function ($payment) {
@@ -159,8 +160,9 @@ class SearchController extends \App\Http\Controllers\Controller
             try {
                 $expenses = Expense::where('tenant_id', $tenantId)
                     ->where('title', 'like', "%{$query}%")
-                    ->select('id', 'title', 'job_id')
+                    ->select('id', 'title', 'job_id', 'date')
                     ->with('job.customer:id,name')
+                    ->orderByDesc('date')
                     ->limit(5)
                     ->get()
                     ->map(function ($expense) {

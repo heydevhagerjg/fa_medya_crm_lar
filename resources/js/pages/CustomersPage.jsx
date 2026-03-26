@@ -76,7 +76,7 @@ export default function CustomersPage() {
         .filter(c => {
             const low = search.toLowerCase();
             const clean = search.replace(/\D/g, '');
-            return c.name.toLowerCase().includes(low) || 
+            return c.name?.toLowerCase().includes(low) || 
                    c.email?.toLowerCase().includes(low) || 
                    (c.phone && c.phone.includes(clean)) || 
                    (c.phone && formatPhoneNumber(c.phone).includes(search));

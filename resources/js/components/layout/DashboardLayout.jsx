@@ -337,6 +337,10 @@ export default function DashboardLayout() {
                         expanded={expanded}
                         isMobile={isMobile}
                         setMobileOpen={setMobileOpen}
+                        onExpandSidebar={() => {
+                            setExpanded(true)
+                            localStorage.setItem("sidebar-expanded", "true")
+                        }}
                     />
                 )}
             </nav>

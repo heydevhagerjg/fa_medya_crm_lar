@@ -14,6 +14,7 @@ export default function DropdownMenu({
     expanded,
     isMobile,
     setMobileOpen,
+    onExpandSidebar,
 }) {
     const location = useLocation()
     const [isDropdownOpen, setIsDropdownOpen] = useState(() => {
@@ -26,8 +27,15 @@ export default function DropdownMenu({
 
     const toggleDropdown = () => {
         setIsDropdownOpen(prev => {
-            localStorage.setItem(storageKey, String(!prev))
-            return !prev
+            const nextState = !prev
+            localStorage.setItem(storageKey, String(nextState))
+            
+            // Daraltılmış sidebar'da dropdown açılıyorsa, sidebar'ı genişlet
+            if (!expanded && nextState && onExpandSidebar) {
+                onExpandSidebar()
+            }
+            
+            return nextState
         })
     }
 

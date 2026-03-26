@@ -103,7 +103,8 @@ class Tenant extends Model
         'plan_backup_feature', 'plan_backup_limit',
         'plan_services_section_feature', 'plan_service_limit',
         'plan_step_templates_feature', 'plan_step_template_limit',
-        'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit', 'plan_single_file_limit'
+        'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit', 'plan_single_file_limit',
+        'email', 'phone', 'address', 'website'
     ];
 
     public $incrementing = false;
