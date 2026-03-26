@@ -205,7 +205,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Recent Jobs */}
                 <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-2xl p-5 shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] dark:shadow-none">
                     <div className="flex items-center justify-between mb-4">
@@ -215,15 +215,15 @@ export default function DashboardPage() {
                         </div>
                         <Link to="/jobs" className="text-xs font-black text-primary hover:opacity-70 uppercase tracking-widest transition-opacity">Tümünü Gör</Link>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-1">
                         {(stats?.recentJobs || []).map(job => (
-                            <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5">
+                            <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 py-3 px-1 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                                     <Briefcase size={18} className="text-primary" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-[#1A1A2E] dark:text-white text-xs truncate">{job.title}</div>
-                                    <div className="text-[9px] font-bold text-[#9097A6] mt-0.5 truncate uppercase tracking-tighter">{job.customer?.name}</div>
+                                    <div className="font-bold text-[#1A1A2E] dark:text-white text-base truncate">{job.title}</div>
+                                    <div className="text-[10px] font-bold text-[#9097A6] mt-0.5 truncate uppercase tracking-tighter">{job.customer?.name}</div>
                                 </div>
                                 <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0]/40 dark:border-white/5 shadow-sm">
                                     <div className="w-1 h-1 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
@@ -247,27 +247,55 @@ export default function DashboardPage() {
                             </div>
                             <Link to="/payments" className="text-xs font-black text-[#1ED2A7] hover:opacity-70 uppercase tracking-widest transition-opacity">Tümünü Gör</Link>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-1">
                             {(stats?.recentPayments || []).map(p => (
-                                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5">
+                                <Link key={p.id} to={`/payments?id=${p.id}`} className="flex items-center gap-3 py-3 px-1 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5 cursor-pointer">
                                     <div className="w-10 h-10 rounded-full bg-[#1ED2A7]/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                                         <CreditCard size={18} className="text-[#1ED2A7]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-[#1A1A2E] dark:text-white text-xs truncate">{p.job?.title || 'Genel'}</div>
-                                        <div className="text-[8px] font-bold text-[#9097A6] mt-0.5 uppercase tracking-tighter">{formatDate(p.paymentDate)}</div>
+                                        <div className="font-bold text-[#1A1A2E] dark:text-white text-base truncate">{p.job?.title || 'Genel'}</div>
+                                        <div className="text-[10px] font-bold text-[#9097A6] mt-0.5 uppercase tracking-tighter">{formatDate(p.paymentDate)}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {p.receiptUrl && (
-                                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-primary transition-all opacity-0 group-hover:opacity-100 shadow-sm border border-[#E5E9F0]/40" title="Dekontu Görüntüle">
+                                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-full bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-primary transition-all opacity-0 group-hover:opacity-100 shadow-sm border border-[#E5E9F0]/40" title="Dekontu Görüntüle">
                                                 <FileText size={12} />
                                             </a>
                                         )}
                                         <span className="text-xs font-black text-[#1ED2A7] tabular-nums">{formatCurrency(p.amount)}</span>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                             {!stats?.recentPayments?.length && <p className="text-center text-gray-400 text-sm py-4 italic">Henüz tahsilat yok.</p>}
+                        </div>
+                    </div>
+                )}
+
+                {/* Recent Expenses */}
+                {hasPermission('expenses.view') && (
+                    <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-2xl p-5 shadow-[0_1px_8px_0_rgba(26,26,46,0.06)] dark:shadow-none">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-red-500 rounded-full" />
+                                <h2 className="text-lg font-black text-[#1A1A2E] dark:text-white tracking-tight uppercase">Son Masraflar</h2>
+                            </div>
+                            <Link to="/expenses" className="text-xs font-black text-red-500 hover:opacity-70 uppercase tracking-widest transition-opacity">Tümünü Gör</Link>
+                        </div>
+                        <div className="space-y-1">
+                            {(stats?.recentExpenses || []).map(e => (
+                                <Link key={e.id} to={`/expenses?id=${e.id}`} className="flex items-center gap-3 py-3 px-1 rounded-xl hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all group border border-transparent hover:border-[#E5E9F0] dark:hover:border-white/5 cursor-pointer">
+                                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                        <TrendingDown size={18} className="text-red-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-[#1A1A2E] dark:text-white text-base truncate">{e.title || e.job?.title || 'Genel Masraf'}</div>
+                                        <div className="text-[10px] font-bold text-[#9097A6] mt-0.5 uppercase tracking-tighter">{formatDate(e.date)}</div>
+                                    </div>
+                                    <span className="text-xs font-black text-red-500 tabular-nums">{formatCurrency(e.amount)}</span>
+                                </Link>
+                            ))}
+                            {!stats?.recentExpenses?.length && <p className="text-center text-gray-400 text-sm py-4 italic">Henüz masraf yok.</p>}
                         </div>
                     </div>
                 )}

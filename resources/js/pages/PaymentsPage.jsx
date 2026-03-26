@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
@@ -6,7 +7,6 @@ import { CreditCard, Plus, Trash2, Edit2, Search, FileText, Eye, Download, Loade
 import Modal from '../components/ui/Modal.jsx'
 import Pagination from '../components/ui/Pagination.jsx'
 import PageHeader from '../components/layout/PageHeader.jsx'
-import { useEffect } from 'react'
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -15,6 +15,7 @@ const paymentTypeLabel = { ADVANCE: 'Avans', PARTIAL: 'Taksit', FINAL: 'Final' }
 const emptyForm = { amount: '', paymentDate: new Date().toISOString().substring(0, 10), paymentType: 'FINAL', description: '', jobId: '', cashRegisterId: '', receipt: null }
 
 export default function PaymentsPage() {
+    // 1. State declarations
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, payment: null })
     const [form, setForm] = useState(emptyForm)
@@ -23,11 +24,9 @@ export default function PaymentsPage() {
     const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
     const itemsPerPage = 10
     const qc = useQueryClient()
+    const [searchParams, setSearchParams] = useSearchParams()
 
-    useEffect(() => {
-        setCurrentPage(1)
-    }, [search])
-
+    // 2. useQuery hooks (MUST come before functions that use this data)
     const { data: payments = [], isLoading } = useQuery({
         queryKey: ['payments'],
         queryFn: () => api.get('/payments').then(r => r.data),
@@ -43,48 +42,7 @@ export default function PaymentsPage() {
         queryFn: () => api.get('/settings/cash-registers').then(r => r.data),
     })
 
-    const saveMutation = useMutation({
-        mutationFn: () => {
-            const formData = new FormData();
-            Object.keys(form).forEach(key => {
-                const value = form[key];
-                if (value !== null && value !== undefined) {
-                    formData.append(key, value);
-                }
-            });
-            
-            if (modal.payment) {
-                formData.append('_method', 'PUT');
-                return api.post(`/payments/${modal.payment.id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-            }
-            return api.post('/payments', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-        },
-        onSuccess: () => {
-            qc.invalidateQueries(['payments'])
-            toast.success(modal.payment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
-            setModal({ open: false, payment: null })
-            setForm(emptyForm)
-        },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
-    })
-
-    const deleteMutation = useMutation({
-        mutationFn: (id) => api.delete(`/payments/${id}`),
-        onSuccess: () => {
-            qc.invalidateQueries(['payments'])
-            toast.success('Ödeme silindi.')
-            setDeleteConfirm(null)
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.message || 'Ödeme silinemedi.')
-            setDeleteConfirm(null)
-        }
-    })
-
+    // 3. Function definitions (now cashRegisters is available)
     const openModal = (payment = null) => {
         if (payment) {
             setForm({
@@ -104,6 +62,15 @@ export default function PaymentsPage() {
             })
         }
         setModal({ open: true, payment })
+    }
+
+    const closeMainModal = () => {
+        setModal({ open: false, payment: null })
+        if (searchParams.has('id')) {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('id')
+            setSearchParams(newParams, { replace: true })
+        }
     }
 
     const handlePreview = async (payment) => {
@@ -168,6 +135,65 @@ export default function PaymentsPage() {
         }
     }
 
+    // 4. useMutation hooks
+    const saveMutation = useMutation({
+        mutationFn: () => {
+            const formData = new FormData();
+            Object.keys(form).forEach(key => {
+                const value = form[key];
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value);
+                }
+            });
+            
+            if (modal.payment) {
+                formData.append('_method', 'PUT');
+                return api.post(`/payments/${modal.payment.id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            return api.post('/payments', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        },
+        onSuccess: () => {
+            qc.invalidateQueries(['payments'])
+            qc.invalidateQueries(['dashboard-stats'])
+            toast.success(modal.payment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
+            closeMainModal()
+            setForm(emptyForm)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => api.delete(`/payments/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries(['payments'])
+            qc.invalidateQueries(['dashboard-stats'])
+            toast.success('Ödeme silindi.')
+            setDeleteConfirm(null)
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Ödeme silinemedi.')
+            setDeleteConfirm(null)
+        }
+    })
+
+    // 5. useEffect hooks
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search])
+
+    useEffect(() => {
+        const idParam = searchParams.get('id')
+        if (idParam && payments.length > 0 && !modal.open) {
+            const payment = payments.find(p => p.id.toString() === idParam)
+            if (payment) openModal(payment)
+        }
+    }, [searchParams, payments])
+
+    // 6. Derived data and render logic
     const totalPayments = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const filtered = payments.filter(p => {
         if (!search) return true;
@@ -267,7 +293,7 @@ export default function PaymentsPage() {
             </div>
 
             {/* Modal */}
-            <Modal open={modal.open} onClose={() => setModal({ open: false, payment: null })} title={modal.payment ? 'Tahsilat Düzenle' : 'Tahsilat Ekle'}>
+            <Modal open={modal.open} onClose={closeMainModal} title={modal.payment ? 'Tahsilat Düzenle' : 'Tahsilat Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">İş (İsteğe Bağlı)</label>
@@ -312,7 +338,7 @@ export default function PaymentsPage() {
                         <input type="file" accept="image/*,application/pdf" onChange={e => setForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, payment: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>

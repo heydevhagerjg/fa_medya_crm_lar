@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
@@ -13,6 +14,7 @@ const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-
 const emptyForm = { title: '', amount: '', date: new Date().toISOString().substring(0, 10), description: '', jobId: '', categoryId: '', cashRegisterId: '', receipt: null }
 
 export default function ExpensesPage() {
+    // State declarations
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, expense: null })
     const [form, setForm] = useState(emptyForm)
@@ -21,51 +23,9 @@ export default function ExpensesPage() {
     const [preview, setPreview] = useState({ open: false, url: null, type: null, fileName: null })
     const itemsPerPage = 10
     const qc = useQueryClient()
+    const [searchParams, setSearchParams] = useSearchParams()
 
-    useEffect(() => {
-        setCurrentPage(1)
-    }, [search])
-
-    const { data: expenses = [], isLoading } = useQuery({ queryKey: ['expenses'], queryFn: () => api.get('/expenses').then(r => r.data) })
-    const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => api.get('/jobs').then(r => r.data) })
-    const { data: categories = [] } = useQuery({ queryKey: ['expense-categories'], queryFn: () => api.get('/settings/expense-categories').then(r => r.data) })
-    const { data: cashRegisters = [] } = useQuery({ queryKey: ['cash-registers'], queryFn: () => api.get('/settings/cash-registers').then(r => r.data) })
-
-    const saveMutation = useMutation({
-        mutationFn: () => {
-            const formData = new FormData();
-            Object.keys(form).forEach(key => {
-                const value = form[key];
-                if (value !== null && value !== undefined) {
-                    formData.append(key, value);
-                }
-            });
-
-            if (modal.expense) {
-                formData.append('_method', 'PUT');
-                return api.post(`/expenses/${modal.expense.id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-            }
-            return api.post('/expenses', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-        },
-        onSuccess: () => {
-            qc.invalidateQueries(['expenses'])
-            toast.success(modal.expense ? 'Masraf güncellendi.' : 'Masraf eklendi.')
-            setModal({ open: false, expense: null })
-            setForm(emptyForm)
-        },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
-    })
-
-    const deleteMutation = useMutation({
-        mutationFn: (id) => api.delete(`/expenses/${id}`),
-        onSuccess: () => { qc.invalidateQueries(['expenses']); toast.success('Masraf silindi.'); setDeleteConfirm(null) },
-        onError: (err) => { toast.error(err.response?.data?.message || 'Masraf silinemedi.'); setDeleteConfirm(null) }
-    })
-
+    // Function definitions FIRST
     const openModal = (expense = null) => {
         if (expense) {
             setForm({
@@ -86,6 +46,15 @@ export default function ExpensesPage() {
             })
         }
         setModal({ open: true, expense })
+    }
+
+    const closeMainModal = () => {
+        setModal({ open: false, expense: null })
+        if (searchParams.has('id')) {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('id')
+            setSearchParams(newParams, { replace: true })
+        }
     }
 
     const handlePreview = async (expense) => {
@@ -148,6 +117,67 @@ export default function ExpensesPage() {
             toast.error('Dekont indirilemedi. Lütfen oturumunuzu kontrol edin.', { id: toastId })
         }
     }
+
+    // useQuery hooks
+    const { data: expenses = [], isLoading } = useQuery({ queryKey: ['expenses'], queryFn: () => api.get('/expenses').then(r => r.data) })
+    const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => api.get('/jobs').then(r => r.data) })
+    const { data: categories = [] } = useQuery({ queryKey: ['expense-categories'], queryFn: () => api.get('/settings/expense-categories').then(r => r.data) })
+    const { data: cashRegisters = [] } = useQuery({ queryKey: ['cash-registers'], queryFn: () => api.get('/settings/cash-registers').then(r => r.data) })
+
+    // useMutation hooks
+    const saveMutation = useMutation({
+        mutationFn: () => {
+            const formData = new FormData();
+            Object.keys(form).forEach(key => {
+                const value = form[key];
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value);
+                }
+            });
+
+            if (modal.expense) {
+                formData.append('_method', 'PUT');
+                return api.post(`/expenses/${modal.expense.id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            return api.post('/expenses', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        },
+        onSuccess: () => {
+            qc.invalidateQueries(['expenses'])
+            qc.invalidateQueries(['dashboard-stats'])
+            toast.success(modal.expense ? 'Masraf güncellendi.' : 'Masraf eklendi.')
+            closeMainModal()
+            setForm(emptyForm)
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => api.delete(`/expenses/${id}`),
+        onSuccess: () => { 
+            qc.invalidateQueries(['expenses'])
+            qc.invalidateQueries(['dashboard-stats'])
+            toast.success('Masraf silindi.')
+            setDeleteConfirm(null) 
+        },
+        onError: (err) => { toast.error(err.response?.data?.message || 'Masraf silinemedi.'); setDeleteConfirm(null) }
+    })
+
+    // useEffect hooks
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search])
+
+    useEffect(() => {
+        const idParam = searchParams.get('id')
+        if (idParam && expenses.length > 0 && !modal.open) {
+            const expense = expenses.find(e => e.id.toString() === idParam)
+            if (expense) openModal(expense)
+        }
+    }, [searchParams, expenses])
 
     const totalExpenses = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
     const filtered = expenses.filter(e => {
@@ -234,7 +264,7 @@ export default function ExpensesPage() {
                 )}
             </div>
 
-            <Modal open={modal.open} onClose={() => setModal({ open: false, expense: null })} title={modal.expense ? 'Masraf Düzenle' : 'Masraf Ekle'}>
+            <Modal open={modal.open} onClose={closeMainModal} title={modal.expense ? 'Masraf Düzenle' : 'Masraf Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlık *</label>
@@ -282,7 +312,7 @@ export default function ExpensesPage() {
                         <input type="file" accept="image/*,application/pdf" onChange={e => setForm(p => ({ ...p, receipt: e.target.files[0] }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, expense: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>

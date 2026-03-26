@@ -50,7 +50,7 @@ class DashboardController extends Controller
         $recentJobsQuery = JobCrm::where('tenant_id', $tenantId);
         if ($isUser) $recentJobsQuery->where('user_id', $user->id);
         $recentJobs = $recentJobsQuery->with(['customer', 'jobStatus'])
-            ->orderByDesc('created_at')
+            ->orderBy('created_at')
             ->limit(5)
             ->get()
             ->map(fn($j) => [
@@ -65,7 +65,7 @@ class DashboardController extends Controller
         $recentPaymentsQuery = Payment::where('tenant_id', $tenantId);
         if ($isUser) $recentPaymentsQuery->whereHas('job', fn($q) => $q->where('user_id', $user->id));
         $recentPayments = $recentPaymentsQuery->with(['job'])
-            ->orderByDesc('created_at')
+            ->orderBy('payment_date', 'DESC')
             ->limit(5)
             ->get()
             ->map(fn($p) => [
@@ -74,6 +74,20 @@ class DashboardController extends Controller
                 'paymentDate' => $p->payment_date,
                 'paymentType' => $p->payment_type,
                 'job'         => ['title' => $p->job?->title],
+            ]);
+
+        $recentExpensesQuery = Expense::where('tenant_id', $tenantId);
+        if ($isUser) $recentExpensesQuery->whereHas('job', fn($q) => $q->where('user_id', $user->id));
+        $recentExpenses = $recentExpensesQuery->with(['job'])
+            ->orderBy('date', 'DESC')
+            ->limit(5)
+            ->get()
+            ->map(fn($e) => [
+                'id'     => $e->id,
+                'title'  => $e->title ?? ($e->job?->title ?? 'Genel Masraf'),
+                'amount' => $e->amount,
+                'date'   => $e->date,
+                'job'    => ['title' => $e->job?->title],
             ]);
 
         $completedJobsQuery = JobCrm::where('tenant_id', $tenantId);
@@ -162,10 +176,13 @@ class DashboardController extends Controller
             'netProfit'            => $totalPayments - $totalExpenses,
             'recentJobs'           => $recentJobs,
             'recentPayments'       => $recentPayments,
+            'recentExpenses'       => $recentExpenses,
             'jobsByStatus'         => $jobsByStatus,
             'cashRegisters'        => $cashRegisters,
             'upcomingAppointments' => $upcomingAppointments,
             'upcomingServiceTrackings' => $upcomingServiceTrackings,
-        ]);
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+          ->header('Pragma', 'no-cache')
+          ->header('Expires', '0');
     }
 }

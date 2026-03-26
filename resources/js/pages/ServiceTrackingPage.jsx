@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import toast from 'react-hot-toast'
@@ -31,6 +32,8 @@ export default function ServiceTrackingPage() {
     if (isFeatureDisabled) {
         return <PlanRestrictionView featureName="Hizmet Takibi" />
     }
+
+    // ===== STATE DECLARATIONS =====
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, tracking: null })
     const [historyModal, setHistoryModal] = useState({ open: false, tracking: null, logs: [] })
@@ -41,11 +44,73 @@ export default function ServiceTrackingPage() {
     const [statusFilter, setStatusFilter] = useState('active')
     const itemsPerPage = 10
     const qc = useQueryClient()
+    const [searchParams, setSearchParams] = useSearchParams()
 
-    useEffect(() => {
-        setCurrentPage(1)
-    }, [search, statusFilter])
+    // ===== REGULAR FUNCTIONS =====
+    const openModal = (tracking = null) => {
+        setForm(tracking ? {
+            category_id: tracking.category_id || '',
+            customer_id: tracking.customer_id || '',
+            job_id: tracking.job_id || '',
+            title: tracking.title || '',
+            description: tracking.description || '',
+            period: tracking.period || 1,
+            period_unit: tracking.period_unit || 'month',
+            start_date: tracking.start_date ? new Date(tracking.start_date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10),
+        } : emptyForm)
+        setModal({ open: true, tracking })
+    }
 
+    const closeMainModal = () => {
+        setModal({ open: false, tracking: null })
+        if (searchParams.has('id')) {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('id')
+            setSearchParams(newParams, { replace: true })
+        }
+    }
+
+    const openHistory = async (tracking) => {
+        try {
+            const res = await api.get(`/service-trackings/${tracking.id}/logs`)
+            setHistoryModal({ open: true, tracking, logs: res.data })
+        } catch (err) {
+            toast.error('Geçmiş yüklenemedi.')
+        }
+    }
+
+    const isDelayed = (date) => {
+        if (!date) return false
+        return new Date(date) < new Date().setHours(0, 0, 0, 0)
+    }
+
+    const isFuture = (date) => {
+        if (!date) return false
+        return new Date(date) > new Date().setHours(23, 59, 59, 999)
+    }
+
+    const canProcessDate = (date, period, unit) => {
+        if (!date) return false
+        const nextDt = new Date(date)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+
+        // Past or today is always allowed
+        if (nextDt <= todayEnd) return true
+
+        // Future dates must be within 1 cycle from "today"
+        const limit = new Date()
+        const p = parseInt(period) || 1
+        if (unit === 'day') limit.setDate(limit.getDate() + p)
+        else if (unit === 'week') limit.setDate(limit.getDate() + (p * 7))
+        else if (unit === 'month') limit.setMonth(limit.getMonth() + p)
+        else if (unit === 'year') limit.setFullYear(limit.getFullYear() + p)
+        limit.setHours(23, 59, 59, 999)
+
+        return nextDt <= limit
+    }
+
+    // ===== QUERY HOOKS =====
     const { data: trackings = [], isLoading, error, isError } = useQuery({
         queryKey: ['service-trackings', statusFilter],
         queryFn: () => api.get('/service-trackings', { params: { status: statusFilter } }).then(r => r.data),
@@ -67,6 +132,7 @@ export default function ServiceTrackingPage() {
         queryFn: () => api.get('/jobs').then(r => r.data),
     })
 
+    // ===== MUTATION HOOKS =====
     const saveMutation = useMutation({
         mutationFn: () => modal.tracking
             ? api.put(`/service-trackings/${modal.tracking.id}`, form)
@@ -74,7 +140,7 @@ export default function ServiceTrackingPage() {
         onSuccess: () => {
             qc.invalidateQueries(['service-trackings'])
             toast.success(modal.tracking ? 'Takip güncellendi.' : 'Takip eklendi.')
-            setModal({ open: false, tracking: null })
+            closeMainModal()
             setForm(emptyForm)
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -146,29 +212,20 @@ export default function ServiceTrackingPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
     })
 
-    const openHistory = async (tracking) => {
-        try {
-            const res = await api.get(`/service-trackings/${tracking.id}/logs`)
-            setHistoryModal({ open: true, tracking, logs: res.data })
-        } catch (err) {
-            toast.error('Geçmiş yüklenemedi.')
+    // ===== EFFECT HOOKS =====
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search, statusFilter])
+
+    useEffect(() => {
+        const idParam = searchParams.get('id')
+        if (idParam && trackings.length > 0 && !modal.open) {
+            const tracking = trackings.find(t => t.id.toString() === idParam)
+            if (tracking) openModal(tracking)
         }
-    }
+    }, [searchParams, trackings])
 
-    const openModal = (tracking = null) => {
-        setForm(tracking ? {
-            category_id: tracking.category_id || '',
-            customer_id: tracking.customer_id || '',
-            job_id: tracking.job_id || '',
-            title: tracking.title || '',
-            description: tracking.description || '',
-            period: tracking.period || 1,
-            period_unit: tracking.period_unit || 'month',
-            start_date: tracking.start_date ? new Date(tracking.start_date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10),
-        } : emptyForm)
-        setModal({ open: true, tracking })
-    }
-
+    // ===== DERIVED DATA =====
     const filtered = trackings.filter(t =>
         t.title?.toLowerCase().includes(search.toLowerCase()) ||
         t.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -179,37 +236,6 @@ export default function ServiceTrackingPage() {
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-
-    const isDelayed = (date) => {
-        if (!date) return false
-        return new Date(date) < new Date().setHours(0, 0, 0, 0)
-    }
-
-    const isFuture = (date) => {
-        if (!date) return false
-        return new Date(date) > new Date().setHours(23, 59, 59, 999)
-    }
-
-    const canProcessDate = (date, period, unit) => {
-        if (!date) return false
-        const nextDt = new Date(date)
-        const todayEnd = new Date()
-        todayEnd.setHours(23, 59, 59, 999)
-
-        // Past or today is always allowed
-        if (nextDt <= todayEnd) return true
-
-        // Future dates must be within 1 cycle from "today"
-        const limit = new Date()
-        const p = parseInt(period) || 1
-        if (unit === 'day') limit.setDate(limit.getDate() + p)
-        else if (unit === 'week') limit.setDate(limit.getDate() + (p * 7))
-        else if (unit === 'month') limit.setMonth(limit.getMonth() + p)
-        else if (unit === 'year') limit.setFullYear(limit.getFullYear() + p)
-        limit.setHours(23, 59, 59, 999)
-
-        return nextDt <= limit
-    }
 
     return (
         <div className="space-y-5">
@@ -360,7 +386,7 @@ export default function ServiceTrackingPage() {
 
 
             {/* Save/Edit Modal */}
-            <Modal open={modal.open} onClose={() => setModal({ open: false, tracking: null })} title={modal.tracking ? 'Hizmet Takibi Düzenle' : 'Yeni Hizmet Takibi'} size="lg">
+            <Modal open={modal.open} onClose={closeMainModal} title={modal.tracking ? 'Hizmet Takibi Düzenle' : 'Yeni Hizmet Takibi'} size="lg">
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -442,7 +468,7 @@ export default function ServiceTrackingPage() {
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, tracking: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>

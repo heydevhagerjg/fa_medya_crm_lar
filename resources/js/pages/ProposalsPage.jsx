@@ -67,7 +67,7 @@ export default function ProposalsPage() {
             const prop = proposals.find(p => p.id.toString() === idParam)
             if (prop) openModal(prop)
         }
-    }, [searchParams, proposals, modal.open])
+    }, [searchParams, proposals])
 
     const closeMainModal = () => {
         setModal({ open: false, proposal: null })

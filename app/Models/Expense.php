@@ -8,7 +8,7 @@ class Expense extends Model
 {
     use \App\Traits\BelongsToTenant, \App\Traits\HasTenantCache;
 
-    protected $cacheModule = 'jobs';
+    protected $cacheModule = 'expenses';
 
     protected static function booted()
     {

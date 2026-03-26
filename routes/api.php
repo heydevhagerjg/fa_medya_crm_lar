@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\BackupController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\Settings\ServiceController;
 use App\Http\Controllers\Api\Settings\JobStatusController;
 use App\Http\Controllers\Api\Settings\StepTemplateController;
@@ -66,6 +67,9 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+
+    // Search
+    Route::get('/search', [SearchController::class, 'search']);
 
     // Billing
     Route::get('/billing/subscription', [\App\Http\Controllers\Api\BillingController::class, 'subscription']);

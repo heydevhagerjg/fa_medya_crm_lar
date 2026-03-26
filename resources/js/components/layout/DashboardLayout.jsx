@@ -4,6 +4,7 @@ import { useAuthStore, useThemeStore } from "../../stores/index.js";
 import api from "../../lib/api.js";
 import toast from "react-hot-toast";
 import DropdownMenu from "./DropdownMenu.jsx";
+import GlobalSearch from "./GlobalSearch.jsx";
 import {
     LayoutDashboard,
     Users,
@@ -647,17 +648,7 @@ export default function DashboardLayout() {
 
                     {/* Search */}
                     <div className="flex-1 max-w-sm hidden md:block">
-                        <div className="relative">
-                            <Search
-                                size={15}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9097A6] pointer-events-none"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Arama yapın..."
-                                className="w-full bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-full py-2.5 pl-10 pr-5 text-sm text-[#1A1A2E] dark:text-white placeholder-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905EFC]/25 focus:border-[#905EFC]/40 transition-all"
-                            />
-                        </div>
+                        <GlobalSearch />
                     </div>
 
                     {/* Spacer */}
