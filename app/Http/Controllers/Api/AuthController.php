@@ -248,6 +248,8 @@ class AuthController extends Controller
                 'storage_limit' => $user->tenant->plan_disk_usage_limit,
                 'single_file_limit' => $user->tenant->plan_single_file_limit ?: 50,
                 'is_restoring' => $user->tenant->is_restoring,
+                'restoring_progress' => $user->tenant->is_restoring ? (\Illuminate\Support\Facades\Cache::get("import_progress_{$user->tenant->id}")['progress'] ?? 0) : 0,
+                'restoring_message' => $user->tenant->is_restoring ? (\Illuminate\Support\Facades\Cache::get("import_progress_{$user->tenant->id}")['message'] ?? 'Sistem hazırlanıyor...') : null,
 
                 // Feature Flags
                 'plan_appointment_feature'      => $user->tenant->plan_appointment_feature,

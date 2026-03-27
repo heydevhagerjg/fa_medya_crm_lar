@@ -248,6 +248,7 @@ Route::prefix('admin')->group(function () {
             Route::delete('/backups/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'deleteBackup']); // Delete backup record and file
             Route::get('/backups/{backupId}/download', [\App\Http\Controllers\Admin\TenantController::class, 'downloadBackup']); // Download local backup
             Route::get('/backups/{id}/signed-url', [\App\Http\Controllers\Admin\TenantController::class, 'getDownloadSignedUrl']); // Signed download url
+            Route::post('/import/signed-url', [\App\Http\Controllers\Admin\TenantController::class, 'importSignedUrl']); // Signed upload url
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 
@@ -267,6 +268,7 @@ Route::prefix('admin')->group(function () {
              Route::put('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'update']);
              Route::delete('/{s3_config}', [\App\Http\Controllers\Admin\S3ConfigController::class, 'destroy']);
              Route::post('/test', [\App\Http\Controllers\Admin\S3ConfigController::class, 'testConnection']);
+             Route::post('/{id}/setup-cors', [\App\Http\Controllers\Admin\S3ConfigController::class, 'setupCors']);
         });
 
         Route::prefix('backups')->group(function () {

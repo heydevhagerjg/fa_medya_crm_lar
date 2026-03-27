@@ -110,4 +110,40 @@ class S3ConfigController extends Controller
             return response()->json(['success' => false, 'message' => 'Hata: ' . $message], 400);
         }
     }
+
+    public function setupCors(string $id)
+    {
+        $config = S3Config::findOrFail($id);
+        try {
+            $disk = Storage::build([
+                'driver' => 's3',
+                'key'    => $config->aws_access_key_id,
+                'secret' => $config->aws_secret_access_key,
+                'region' => $config->aws_region,
+                'bucket' => $config->aws_bucket_name,
+                'endpoint' => $config->aws_endpoint,
+                'use_path_style_endpoint' => (bool)$config->use_path_style_endpoint,
+                'throw'  => true,
+            ]);
+            
+            $client = $disk->getClient();
+            $client->putBucketCors([
+                'Bucket' => $config->aws_bucket_name,
+                'CORSConfiguration' => [
+                    'CORSRules' => [
+                        [
+                            'AllowedHeaders' => ['*'],
+                            'AllowedMethods' => ['PUT', 'POST', 'GET', 'DELETE', 'HEAD'],
+                            'AllowedOrigins' => ['*'],
+                            'ExposeHeaders'  => ['ETag', 'Content-Type', 'Content-Length']
+                        ],
+                    ],
+                ],
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'CORS yapılandırması başarıyla tamamlandı. Artık tarayıcıdan doğrudan dosya yüklenebilir.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'CORS hatası: ' . $e->getMessage()], 400);
+        }
+    }
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Save, Server, ShieldCheck, AlertCircle, Plus, Edit2, Trash2 } from 'lucide-react'
+import { Settings, Save, Server, ShieldCheck, AlertCircle, Plus, Edit2, Trash2, Shield } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 
 export default function AdminSettingsPage() {
@@ -61,6 +61,18 @@ export default function AdminSettingsPage() {
         onError: (err) => toast.error(err.response?.data?.message || 'Bağlantı başarısız.'),
     });
 
+    const corsMutation = useMutation({
+        mutationFn: (id) => api.post(`/admin/settings/${id}/setup-cors`),
+        onSuccess: (data) => {
+            if (data.data.success) {
+                toast.success(data.data.message);
+            } else {
+                toast.error(data.data.message);
+            }
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Yapılandırma başarısız.'),
+    });
+
     const openModal = (config = null) => {
         if (config) {
             setEditingState(config.id);
@@ -109,27 +121,34 @@ export default function AdminSettingsPage() {
                                 <div className="p-3 bg-orange-500/10 rounded-2xl text-orange-600 shrink-0">
                                     <Server size={24} />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <div className="overflow-hidden">
+                                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
                                         {config.name}
-                                        {config.is_active ? 
+                                        {config.is_active ?
                                             <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase tracking-wider">Aktif</span>
-                                            : 
+                                            :
                                             <span className="px-2 py-0.5 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold rounded-full uppercase tracking-wider">Pasif</span>
                                         }
                                     </h3>
-                                    <div className="text-sm text-gray-500 flex items-center gap-3 mt-1">
-                                        <span>Region: {config.aws_region}</span>
-                                        <span>&bull;</span>
-                                        <span>Bucket: {config.aws_bucket_name}</span>
+                                    <div className="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate">
+                                        <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded italic">{config.aws_region}</span>
+                                        <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono">{config.aws_bucket_name}</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                <button
+                                    onClick={() => corsMutation.mutate(config.id)}
+                                    disabled={corsMutation.isPending}
+                                    className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-tight bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1.5"
+                                    title="Tarayıcıdan doğrudan yükleme (Direct Upload) için S3 CORS ayarlarını otomatik yapılandırır."
+                                >
+                                    {corsMutation.isPending ? '...' : <><Shield size={14} /> CORS Yapılandır</>}
+                                </button>
                                 <button onClick={() => openModal(config)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors">
                                     <Edit2 size={18} />
                                 </button>
-                                <button onClick={() => {if(window.confirm('Bu s3 bağlantısını silmek istediğinize emin misiniz?')) deleteMutation.mutate(config.id)}} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                <button onClick={() => { if (window.confirm('Bu s3 bağlantısını silmek istediğinize emin misiniz?')) deleteMutation.mutate(config.id) }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
                                     <Trash2 size={18} />
                                 </button>
                             </div>
@@ -199,7 +218,7 @@ export default function AdminSettingsPage() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
-                             <Server size={14} className="text-gray-400" /> Custom Endpoint (Opsiyonel)
+                            <Server size={14} className="text-gray-400" /> Custom Endpoint (Opsiyonel)
                         </label>
                         <input
                             type="text"
@@ -213,7 +232,7 @@ export default function AdminSettingsPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></svg>
-                             Bucket Adı
+                            Bucket Adı
                         </label>
                         <input
                             type="text"
@@ -224,7 +243,7 @@ export default function AdminSettingsPage() {
                             placeholder="famedya-crm-storage"
                         />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                         <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                             <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />

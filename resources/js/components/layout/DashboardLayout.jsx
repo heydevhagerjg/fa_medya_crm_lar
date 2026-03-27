@@ -160,7 +160,7 @@ const settingsMenuGroups = [
     },
 ];
 
-export default function DashboardLayout() {
+export default function DashboardLayout({ children, isRestoring = false }) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [expanded, setExpanded] = useState(() => {
         return localStorage.getItem("sidebar-expanded") === "true";
@@ -170,6 +170,7 @@ export default function DashboardLayout() {
     });
     const { user, setAuth, clearAuth, updateUser } = useAuthStore();
     const { theme, toggleTheme } = useThemeStore();
+    const LinkComponent = isRestoring ? "div" : NavLink;
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -179,7 +180,7 @@ export default function DashboardLayout() {
                 // Token'ı koruyarak sadece kullanıcı bilgisini güncelle
                 updateUser(res.data);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     // Auto-expand sidebar and settings dropdown when on settings page
@@ -226,7 +227,7 @@ export default function DashboardLayout() {
     const handleLogout = async () => {
         try {
             await api.post("/auth/logout");
-        } catch {}
+        } catch { }
         clearAuth();
         navigate("/login");
         toast.success("Çıkış yapıldı.");
@@ -249,20 +250,20 @@ export default function DashboardLayout() {
                     className={`flex items-center gap-3 min-w-0 ${expanded ? "" : "justify-center w-full"}`}
                 >
                     {!expanded && (
-                        <img 
-                            src={theme === 'dark' ? "/logo/small-logo.png" : "/logo/small-logo-dark.png"} 
-                            alt="Logo" 
-                            width={32} 
-                            height={32} 
-                            className="rounded-full" 
+                        <img
+                            src={theme === 'dark' ? "/logo/small-logo.png" : "/logo/small-logo-dark.png"}
+                            alt="Logo"
+                            width={32}
+                            height={32}
+                            className="rounded-full"
                         />
                     )}
                     {expanded && (
-                        <img 
-                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"} 
-                            alt="Logo" 
-                            style={{width:'auto',height:40}} 
-                            className="rounded-full" 
+                        <img
+                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"}
+                            alt="Logo"
+                            style={{ width: 'auto', height: 40 }}
+                            className="rounded-full"
                         />
                     )}
                 </div>
@@ -291,29 +292,29 @@ export default function DashboardLayout() {
                             (item.to !== "/dashboard" &&
                                 location.pathname.startsWith(item.to));
                         return (
-                            <NavLink
+                            <LinkComponent
                                 key={item.to}
-                                to={item.to}
-                                onClick={() => isMobile && setMobileOpen(false)}
+                                {...(!isRestoring ? { to: item.to } : {})}
+                                onClick={() => !isRestoring && isMobile && setMobileOpen(false)}
                                 className={`
                                     relative group flex items-center gap-3 transition-all duration-200 shrink-0 rounded-xl
                                     ${expanded ? "px-3 py-2.5" : "w-11 h-11 mx-auto justify-center"}
-                                    ${
-                                        isActive
-                                            ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
-                                            : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
+                                    ${isActive && !isRestoring
+                                        ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
+                                        : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
                                     }
+                                    ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}
                                 `}
                                 title=""
                             >
                                 <IconComp
                                     size={18}
-                                    strokeWidth={isActive ? 2.5 : 1.8}
+                                    strokeWidth={isActive && !isRestoring ? 2.5 : 1.8}
                                     className="shrink-0"
                                 />
                                 {expanded && (
                                     <span
-                                        className={`text-sm font-semibold truncate ${isActive ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
+                                        className={`text-sm font-semibold truncate ${isActive && !isRestoring ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
                                     >
                                         {item.label}
                                     </span>
@@ -333,7 +334,7 @@ export default function DashboardLayout() {
                                         {item.label}
                                     </span>
                                 )}
-                            </NavLink>
+                            </LinkComponent>
                         );
                     })}
 
@@ -370,14 +371,14 @@ export default function DashboardLayout() {
                                 1024 /
                                 1024 /
                                 user.tenant.storage_limit) *
-                                100,
+                            100,
                         );
                         const color =
                             pct > 90
                                 ? "#ef4444"
                                 : pct > 70
-                                  ? "#f59e0b"
-                                  : "#905EFC";
+                                    ? "#f59e0b"
+                                    : "#905EFC";
                         const usedMb = Math.round(
                             user.tenant.storage_used / 1024 / 1024,
                         );
@@ -471,10 +472,9 @@ export default function DashboardLayout() {
                     onClick={() => isMobile && setMobileOpen(false)}
                     className={`relative group flex items-center gap-3 rounded-xl transition-all
                         ${expanded ? "px-3 py-2.5 w-full" : "w-11 h-11 mx-auto justify-center"}
-                        ${
-                            location.pathname === "/profile"
-                                ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
-                                : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
+                        ${location.pathname === "/profile"
+                            ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
+                            : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
                         }`}
                 >
                     <User size={18} strokeWidth={1.8} className="shrink-0" />
@@ -586,23 +586,23 @@ export default function DashboardLayout() {
                                     (item.to !== "/dashboard" &&
                                         location.pathname.startsWith(item.to));
                                 return (
-                                    <NavLink
+                                    <LinkComponent
                                         key={item.to}
-                                        to={item.to}
-                                        onClick={() => setMobileOpen(false)}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md" : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"}`}
+                                        {...(!isRestoring ? { to: item.to } : {})}
+                                        onClick={() => !isRestoring && setMobileOpen(false)}
+                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive && !isRestoring ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md" : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"} ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}`}
                                     >
                                         <IconComp
                                             size={18}
-                                            strokeWidth={isActive ? 2.5 : 1.8}
+                                            strokeWidth={isActive && !isRestoring ? 2.5 : 1.8}
                                             className="shrink-0"
                                         />
                                         <span
-                                            className={`text-sm font-semibold ${isActive ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
+                                            className={`text-sm font-semibold ${isActive && !isRestoring ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
                                         >
                                             {item.label}
                                         </span>
-                                    </NavLink>
+                                    </LinkComponent>
                                 );
                             })}
                     </nav>
@@ -664,7 +664,7 @@ export default function DashboardLayout() {
 
                     {/* Search */}
                     <div className="flex-1 max-w-sm hidden md:block">
-                        <GlobalSearch />
+                        {!isRestoring && <GlobalSearch />}
                     </div>
 
                     {/* Spacer */}
@@ -727,7 +727,7 @@ export default function DashboardLayout() {
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
                     <div className="p-5 lg:p-8">
-                        <Outlet />
+                        {isRestoring ? children : <Outlet />}
                     </div>
                 </main>
             </div>

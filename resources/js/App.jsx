@@ -61,24 +61,39 @@ const AdminPublicRoute = ({ children }) => {
     return children
 }
 
-const RestoringOverlay = () => (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-gray-950 p-6 text-center animate-in fade-in duration-500">
-        <div className="w-24 h-24 mb-8 relative">
-            <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping"></div>
-            <div className="relative bg-white dark:bg-gray-900 rounded-full w-full h-full flex items-center justify-center border-4 border-indigo-500 shadow-2xl shadow-indigo-500/20">
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+const RestoringOverlay = ({ user }) => {
+    const progress = user?.tenant?.restoring_progress || 0
+    const message = user?.tenant?.restoring_message || 'Sistem hazırlanıyor...'
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-in fade-in duration-500">
+            <div className="w-24 h-24 mb-8 relative">
+                <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping"></div>
+                <div className="relative bg-white dark:bg-gray-900 rounded-full w-full h-full flex items-center justify-center border-4 border-indigo-500 shadow-2xl shadow-indigo-500/20">
+                    <div className="text-xl font-black text-indigo-500">{progress}%</div>
+                </div>
+            </div>
+            
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Yedekten Geri Dönülüyor</h1>
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed mb-8">
+                Verileriniz ve dosyalarınız güvenli bir şekilde sisteme aktarılıyor. Bu işlem birkaç dakika sürebilir.
+            </p>
+
+            {/* Progress Bar Container */}
+            <div className="w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-full h-3 mb-4 overflow-hidden shadow-inner">
+                <div 
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out shadow-lg"
+                    style={{ width: `${progress}%` }}
+                ></div>
+            </div>
+
+            <div className="flex items-center gap-3 px-5 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">
+                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{message}</span>
             </div>
         </div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Yedekten Geri Dönülüyor</h1>
-        <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
-            Verileriniz ve dosyalarınız güvenli bir şekilde sisteme aktarılıyor. Bu işlem birkaç dakika sürebilir.
-        </p>
-        <div className="mt-12 flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 rounded-full border border-gray-100 dark:border-gray-800">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sistem Hazırlanıyor...</span>
-        </div>
-    </div>
-)
+    )
+}
 
 export default function App() {
     const { isAuthenticated, user, updateUser, clearAuth } = useAuthStore()
@@ -105,7 +120,7 @@ export default function App() {
                         clearInterval(interval)
                     }
                 }
-            }, 5000)
+            }, 2000)
         }
         return () => {
             if (interval) clearInterval(interval)
@@ -119,7 +134,13 @@ export default function App() {
     )
 
     const isRestoring = !isAdminRoute && !isPublicRoute && isAuthenticated && user?.tenant?.is_restoring
-    if (isRestoring) return <RestoringOverlay />
+    if (isRestoring) {
+        return (
+            <DashboardLayout isRestoring={true}>
+                <RestoringOverlay user={user} />
+            </DashboardLayout>
+        )
+    }
 
     return (
         <>

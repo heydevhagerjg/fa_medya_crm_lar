@@ -540,15 +540,64 @@ class TenantController extends Controller
         return response()->download($filePath, $backup->filename);
     }
 
+    public function importSignedUrl(Request $request)
+    {
+        $validated = $request->validate([
+            'filename' => 'required|string',
+            'file_type' => 'required|string',
+        ]);
+
+        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        if (!$s3Config) {
+            return response()->json(['message' => 'Aktif S3 bulunamadı.'], 400);
+        }
+
+        $extension = pathinfo($validated['filename'], PATHINFO_EXTENSION);
+        if ($extension !== 'zip') {
+            return response()->json(['message' => 'Sadece ZIP dosyaları kabul edilir.'], 400);
+        }
+
+        $s3Key = 'imports/temp/' . Str::uuid() . '.zip';
+        
+        $disk = Storage::build([
+            'driver' => 's3',
+            'key'    => $s3Config->aws_access_key_id,
+            'secret' => $s3Config->aws_secret_access_key,
+            'region' => $s3Config->aws_region,
+            'bucket' => $s3Config->aws_bucket_name,
+            'endpoint' => $s3Config->aws_endpoint,
+            'use_path_style_endpoint' => (bool)$s3Config->use_path_style_endpoint,
+            'throw'  => true,
+            'version' => 'latest'
+        ]);
+
+        $client = $disk->getClient();
+        $command = $client->getCommand('PutObject', [
+            'Bucket' => $s3Config->aws_bucket_name,
+            'Key'    => $s3Key,
+        ]);
+
+        $signedUrl = (string)$client->createPresignedRequest($command, '+60 minutes')->getUri();
+
+        return response()->json([
+            'upload_url' => $signedUrl,
+            's3_path'    => $s3Key,
+            's3_config_id' => $s3Config->id
+        ]);
+    }
+
     public function import(Request $request, \App\Services\TenantBackupService $service)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'package_id' => 'required|exists:packages,id',
-            'file' => 'required|file|mimes:zip',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|unique:users,email',
+            'admin_password' => 'required|string|min:8',
+            'file' => 'nullable|file|mimes:zip',
+            's3_path' => 'nullable|string',
         ]);
 
-        // 1. Create a "shell" tenant with chosen name and package
         $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
         if (!$s3Config) {
             return response()->json(['message' => 'Aktif S3 bulunamadı.'], 400);
@@ -556,31 +605,43 @@ class TenantController extends Controller
 
         $package = \App\Models\Package::findOrFail($request->package_id);
 
-        $tenant = Tenant::create([
-            'id' => Str::uuid()->toString(),
-            'name' => $request->name,
-            'slug' => Str::slug($request->name) . '-' . rand(1000, 9999),
-            's3_config_id' => $s3Config->id,
-            'package_id' => $package->id,
-        ]);
-
-        $tenant->applyPackage($package);
+        $tenant = null;
+        $adminUser = null;
 
         try {
-            $file = $request->file('file');
-            $tempDir = storage_path('app/temp_backups');
-            if (!file_exists($tempDir)) mkdir($tempDir, 0755, true);
+            // 1. Create a "shell" tenant
+            $tenantId = Str::uuid()->toString();
+            $tenant = Tenant::create([
+                'id' => $tenantId,
+                'name' => $request->name,
+                'slug' => Str::slug($request->name) . '-' . rand(1000, 9999),
+                's3_config_id' => $s3Config->id,
+                'package_id' => $package->id,
+            ]);
+
+            $tenant->applyPackage($package);
+
+            // 2. Create Initial Admin User
+            $adminUser = $service->createAdminForTenant($tenantId, $request->admin_name, $request->admin_email, $request->admin_password);
+
+            $zipPath = null;
             
-            $fileName = \Illuminate\Support\Str::random(40) . '.zip';
-            $zipPath = $tempDir . '/' . $fileName;
-            
-            // Move uploaded file to temp storage for the Job
-            $file->move($tempDir, $fileName);
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $tempDir = storage_path('app/temp_backups');
+                if (!file_exists($tempDir)) mkdir($tempDir, 0755, true);
+                $fileName = Str::random(40) . '.zip';
+                $zipPath = $tempDir . '/' . $fileName;
+                $file->move($tempDir, $fileName);
+            } elseif ($request->s3_path) {
+                $zipPath = 's3://' . $request->s3_path;
+            } else {
+                throw new \Exception("Yedek dosyası seçilmedi.");
+            }
 
             $tenant->update(['is_restoring' => true]);
 
-            // Dispatch background job
-            \App\Jobs\ImportBackupJob::dispatch($zipPath, $tenant->id, $request->input('password'));
+            \App\Jobs\ImportBackupJob::dispatch($zipPath, $tenant->id, $request->input('password'), $adminUser->id);
 
             return response()->json([
                 'status' => 'success',
@@ -588,7 +649,8 @@ class TenantController extends Controller
                 'tenant' => $tenant
             ]);
         } catch (\Exception $e) {
-            $tenant->delete(); // Rollback tenant creation on fail
+            if ($adminUser) $adminUser->delete();
+            if ($tenant) $tenant->delete(); 
             \Illuminate\Support\Facades\Log::error("Admin Import Error: " . $e->getMessage());
             return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
         }

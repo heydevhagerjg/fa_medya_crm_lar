@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload, X, AlertCircle } from 'lucide-react'
+import { Database, Plus, Search, Trash2, Users, UserPlus, Mail, Shield, ShieldCheck, Key, Briefcase, Layers, Check, FolderOpen, ChevronRight, XCircle, Download, Upload, X, AlertCircle, Loader2 } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
+import axios from 'axios'
 
 const emptyForm = { name: '', package_id: '', s3_config_id: '', admin_name: '', admin_email: '', admin_password: '' }
 const emptyUserForm = { name: '', email: '', password: 'password123', role: 'USER' }
@@ -24,7 +25,9 @@ export default function TenantsPage() {
     const [limitForm, setLimitForm] = useState({})
     const [userForm, setUserForm] = useState(emptyUserForm)
     const [importModal, setImportModal] = useState(false)
-    const [importForm, setImportForm] = useState({ name: '', package_id: '', file: null })
+    const [importForm, setImportForm] = useState({ name: '', package_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
+    const [importProgress, setImportProgress] = useState(0)
+    const [importStatus, setImportStatus] = useState(null) // 'uploading' | 'processing' | 'done' | 'error'
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [selectedIds, setSelectedIds] = useState([])
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
@@ -144,22 +147,58 @@ export default function TenantsPage() {
     })
 
     const importMutation = useMutation({
-        mutationFn: (data) => {
-            const formData = new FormData()
-            formData.append('name', data.name)
-            formData.append('package_id', data.package_id)
-            formData.append('file', data.file)
-            return api.post('/admin/tenants/import', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
+        mutationFn: async (data) => {
+            setImportStatus('uploading')
+            setImportProgress(0)
+
+            try {
+                let s3Path = null;
+                
+                // 1. Get Signed URL from Backend
+                const { data: signedData } = await api.post('/admin/tenants/import/signed-url', {
+                    filename: data.file.name,
+                    file_type: data.file.type
+                })
+
+                // 2. Upload directly to S3 (Bypass Nginx/PHP limits)
+                // Note: We removed Content-Type header to match the backend signature (more flexible)
+                await axios.put(signedData.upload_url, data.file, {
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                        setImportProgress(percentCompleted)
+                    }
+                })
+
+                s3Path = signedData.s3_path
+                setImportStatus('processing')
+                setImportProgress(100)
+
+                // 3. Finalize Import via Backend
+                return api.post('/admin/tenants/import', {
+                    name: data.name,
+                    package_id: data.package_id,
+                    admin_name: data.admin_name,
+                    admin_email: data.admin_email,
+                    admin_password: data.admin_password,
+                    s3_path: s3Path
+                })
+            } catch (error) {
+                setImportStatus('error')
+                throw error
+            }
         },
-        onSuccess: () => {
+        onSuccess: (res) => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Yedek başarıyla yüklendi ve aktarıldı.')
+            toast.success('İşlem başlatıldı! Yeni firma oluşturuldu ve yedek aktarma süreci arka planda devam ediyor.')
             setImportModal(false)
-            setImportForm({ name: '', package_id: '', file: null })
+            setImportForm({ name: '', package_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
+            setImportStatus(null)
+            setImportProgress(0)
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Yükleme başarısız.'),
+        onError: (err) => {
+            toast.error(err.response?.data?.message || err.message || 'Yükleme başarısız.')
+            setImportStatus('error')
+        },
     })
 
     const rejectBackupMutation = useMutation({
@@ -810,52 +849,164 @@ export default function TenantsPage() {
             </Modal>
 
             {/* Import Backup Modal */}
-            <Modal open={importModal} onClose={() => setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)">
-                <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4">
-                    <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
-                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                            Bu işlem, seçtiğiniz <b>ZIP</b> yedeğindeki tüm verileri ve dosyaları sisteme aktararak <b>yeni bir firma</b> oluşturur.
+            <Modal open={importModal} onClose={() => !importMutation.isPending && setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)" size="lg">
+                <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl flex items-start gap-3">
+                        <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
+                            Bu işlem CLI'daki <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">custom:import</code> komutunun web versiyonudur. Yedek dosyanız doğrudan S3'e yüklenir ve ardından arka planda içe aktarma işlemi başlatılır.
                         </p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma Adı *</label>
-                        <input
-                            type="text"
-                            value={importForm.name}
-                            onChange={e => setImportForm({ ...importForm, name: e.target.value })}
-                            required
-                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            placeholder="Örn: Yedeği Geri Yüklenen Firma"
-                        />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Firma Bilgileri</label>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma Adı *</label>
+                                    <input
+                                        type="text"
+                                        value={importForm.name}
+                                        onChange={e => setImportForm({ ...importForm, name: e.target.value })}
+                                        required
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        placeholder="Örn: Yedeği Geri Yüklenen Firma"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Paket *</label>
+                                    <select
+                                        value={importForm.package_id}
+                                        onChange={e => setImportForm({ ...importForm, package_id: e.target.value })}
+                                        required
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">Paket Seçiniz</option>
+                                        {packages.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2 pt-2">
+                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Admin Kullanıcı Bilgileri</label>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl bg-gray-50/30 dark:bg-gray-900/20">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ad Soyad *</label>
+                                    <input
+                                        type="text"
+                                        value={importForm.admin_name}
+                                        onChange={e => setImportForm({ ...importForm, admin_name: e.target.value })}
+                                        required
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        placeholder="Tenant Yöneticisi"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-posta *</label>
+                                    <input
+                                        type="email"
+                                        value={importForm.admin_email}
+                                        onChange={e => setImportForm({ ...importForm, admin_email: e.target.value })}
+                                        required
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        placeholder="admin@email.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Şifre *</label>
+                                    <input
+                                        type="password"
+                                        value={importForm.admin_password}
+                                        onChange={e => setImportForm({ ...importForm, admin_password: e.target.value })}
+                                        required
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                             </div>
+                        </div>
+
+                        <div className="md:col-span-2 pt-2">
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Yedek Dosyası</label>
+                            <div className="relative group/upload">
+                                <input
+                                    type="file"
+                                    accept=".zip"
+                                    onChange={e => setImportForm({ ...importForm, file: e.target.files[0] })}
+                                    required
+                                    disabled={importMutation.isPending}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                                />
+                                <div className={`p-8 border-2 border-dashed rounded-3xl text-center transition-all ${importForm.file ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-500/5' : 'border-gray-200 dark:border-gray-800 hover:border-red-400 dark:hover:border-red-500/30 bg-white dark:bg-gray-900'}`}>
+                                    <div className={`mx-auto w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-colors ${importForm.file ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
+                                        <Upload size={24} />
+                                    </div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                                        {importForm.file ? importForm.file.name : 'Yedek Dosyasını (.zip) Seçin'}
+                                    </div>
+                                    <p className="text-xs text-gray-500">Dosyayı buraya sürükleyin veya tıklayın</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Paket *</label>
-                        <select
-                            value={importForm.package_id}
-                            onChange={e => setImportForm({ ...importForm, package_id: e.target.value })}
-                            required
-                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+
+                    {importMutation.isPending && (
+                        <div className="mt-4 p-4 border border-gray-100 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900/50 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                        {importStatus === 'uploading' ? 'S3\'e Doğrudan Yükleniyor...' : 'Arka Plan İşlemi Başlatılıyor...'}
+                                    </span>
+                                </div>
+                                <span className="text-sm font-black text-red-500">{importProgress}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-red-600 transition-all duration-300 ease-out"
+                                    style={{ width: `${importProgress}%` }}
+                                />
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-500 font-medium flex justify-between items-center px-1">
+                                <span>PHP/Nginx limitleri bypass ediliyor...</span>
+                                <span>Büyük dosyalar için uygundur</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-4 pt-4 sticky bottom-0 bg-white dark:bg-gray-900 pb-2">
+                        <button 
+                            type="button" 
+                            disabled={importMutation.isPending}
+                            onClick={() => setImportModal(false)} 
+                            className="flex-1 px-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
                         >
-                            <option value="">Paket Seçiniz</option>
-                            {packages.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yedek Dosyası (.zip) *</label>
-                        <input
-                            type="file"
-                            accept=".zip"
-                            onChange={e => setImportForm({ ...importForm, file: e.target.files[0] })}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-300"
-                        />
-                    </div>
-                    <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setImportModal(false)} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>
-                        <button type="submit" disabled={importMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
-                            {importMutation.isPending ? 'Aktarılıyor...' : 'Yüklemeyi Başlat'}
+                            İptal
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={importMutation.isPending || !importForm.file} 
+                            className="flex-[2] px-4 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-sm font-black shadow-xl shadow-red-500/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-wider"
+                        >
+                            {importMutation.isPending ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    Lütfen Bekleyin
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={18} />
+                                    Yüklemeyi ve İçe Aktarmayı Başlat
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
