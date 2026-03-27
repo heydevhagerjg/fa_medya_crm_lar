@@ -182,11 +182,18 @@ class JobController extends Controller
             }
 
             if (!empty($validated['customerRequests']) || !empty($validated['notes'])) {
-                JobDetail::create([
-                    'job_id'            => $job->id,
-                    'customer_requests' => $validated['customerRequests'] ?? null,
-                    'notes'             => $validated['notes'] ?? null,
-                ]);
+                $jobDetailData = [];
+                if (!empty($validated['customerRequests'])) {
+                    $jobDetailData['customer_requests'] = $validated['customerRequests'];
+                }
+                if (!empty($validated['notes'])) {
+                    $jobDetailData['notes'] = $validated['notes'];
+                }
+                
+                if (!empty($jobDetailData)) {
+                    $jobDetailData['job_id'] = $job->id;
+                    JobDetail::create($jobDetailData);
+                }
             }
 
             if (!empty($validated['customFields'])) {
@@ -225,22 +232,23 @@ class JobController extends Controller
         }
 
         $validated = $request->validate([
-            'customerId'    => 'sometimes|integer',
-            'serviceId'     => 'nullable|integer',
-            'jobStatusId'   => 'nullable|integer',
-            'title'         => 'sometimes|string|max:255',
-            'description'   => 'nullable|string',
-            'status'        => 'nullable|string|in:PENDING,IN_PROGRESS,COMPLETED,CANCELLED',
-            'totalPrice'    => 'nullable|numeric|min:0',
-            'startDate'     => 'nullable|date',
-            'endDate'       => 'nullable|date',
-            'customFields'  => 'nullable|array',
-            'userId'        => 'nullable|uuid|exists:users,id',
-            'notes'         => 'nullable|string',
-            'isVatIncluded' => 'nullable|boolean',
-            'vatRate'       => 'nullable|integer|min:0',
-            'subtotal'      => 'nullable|numeric|min:0',
-            'vatAmount'     => 'nullable|numeric|min:0',
+            'customerId'      => 'sometimes|integer',
+            'serviceId'       => 'nullable|integer',
+            'jobStatusId'     => 'nullable|integer',
+            'title'           => 'sometimes|string|max:255',
+            'description'     => 'nullable|string',
+            'status'          => 'nullable|string|in:PENDING,IN_PROGRESS,COMPLETED,CANCELLED',
+            'totalPrice'      => 'nullable|numeric|min:0',
+            'startDate'       => 'nullable|date',
+            'endDate'         => 'nullable|date',
+            'customFields'    => 'nullable|array',
+            'userId'          => 'nullable|uuid|exists:users,id',
+            'customerRequests' => 'nullable|string',
+            'notes'           => 'nullable|string',
+            'isVatIncluded'   => 'nullable|boolean',
+            'vatRate'         => 'nullable|integer|min:0',
+            'subtotal'        => 'nullable|numeric|min:0',
+            'vatAmount'       => 'nullable|numeric|min:0',
         ]);
 
         if (!empty($validated['userId'])) {
@@ -271,12 +279,17 @@ class JobController extends Controller
             ]);
 
             if (isset($validated['customerRequests']) || isset($validated['notes'])) {
+                $updateData = [];
+                if (isset($validated['customerRequests'])) {
+                    $updateData['customer_requests'] = $validated['customerRequests'];
+                }
+                if (isset($validated['notes'])) {
+                    $updateData['notes'] = $validated['notes'];
+                }
+                
                 JobDetail::updateOrCreate(
                     ['job_id' => $job->id],
-                    [
-                        'customer_requests' => $validated['customerRequests'] ?? null,
-                        'notes'             => $validated['notes'] ?? null,
-                    ]
+                    $updateData
                 );
             }
 

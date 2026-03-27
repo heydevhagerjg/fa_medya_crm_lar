@@ -505,12 +505,7 @@ export default function JobDetailPage() {
     }
 
     const saveNotes = useMutation({
-        mutationFn: (data) => api.put(`/jobs/${id}`, {
-            customerId: job.customerId || job.customer_id,
-            customerRequests: job.jobdetail?.customer_requests || '',
-            notes: job.jobdetail?.notes || '',
-            ...data
-        }),
+        mutationFn: (data) => api.put(`/jobs/${id}`, data),
         onSuccess: () => {
             qc.invalidateQueries(['job', id])
             setEditField(null)
