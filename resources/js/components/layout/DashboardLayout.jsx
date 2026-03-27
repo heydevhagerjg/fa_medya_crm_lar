@@ -248,10 +248,21 @@ export default function DashboardLayout() {
                     className={`flex items-center gap-3 min-w-0 ${expanded ? "" : "justify-center w-full"}`}
                 >
                     {!expanded && (
-                        <img src="/logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
+                        <img 
+                            src={theme === 'dark' ? "/logo/small-logo.png" : "/logo/small-logo-dark.png"} 
+                            alt="Logo" 
+                            width={32} 
+                            height={32} 
+                            className="rounded-full" 
+                        />
                     )}
                     {expanded && (
-                        <img src="/big-logo.png" alt="Logo" style={{width:'auto',height:40}} className="rounded-full" />
+                        <img 
+                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"} 
+                            alt="Logo" 
+                            style={{width:'auto',height:40}} 
+                            className="rounded-full" 
+                        />
                     )}
                 </div>
                 {expanded && !isMobile && (
