@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
                         <Link to="/" className="flex items-center gap-2">
-                            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+                            <img src="/logo/small-logo.png" alt="Logo" className="w-10 h-10 object-contain" />
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
                                 {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
