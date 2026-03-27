@@ -57,6 +57,13 @@ Route::group(['prefix' => 'public', 'middleware' => 'throttle:30,1'], function (
 Route::get('/logo/{tenantId}', [App\Http\Controllers\Api\TenantController::class, 'serveLogo'])
     ->name('api.public.logo');
 
+// Broadcasting auth endpoint - allows Sanctum Bearer token auth for private channels
+// The default /broadcasting/auth only works with session-based (web) auth
+Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+    return \Illuminate\Support\Facades\Broadcast::auth($request);
+})->middleware('auth:sanctum');
+
+
 // Protected routes
 Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan'])->group(function () {
 

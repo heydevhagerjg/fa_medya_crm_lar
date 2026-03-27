@@ -95,6 +95,8 @@ const RestoringOverlay = ({ user }) => {
     )
 }
 
+import ChatPage from './pages/ChatPage.jsx'
+
 export default function App() {
     const { isAuthenticated, user, updateUser, clearAuth } = useAuthStore()
     const [isPolling, setIsPolling] = useState(false)
@@ -171,6 +173,7 @@ export default function App() {
                 <Route path="/files/folder/:folderId" element={<FilesPage />} />
                 <Route path="/settings/*" element={<SettingsPage />} />
                 <Route path="/backup" element={<BackupPage />} />
+                <Route path="/chats" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/api-docs" element={<ApiDocsPage />} />
             </Route>

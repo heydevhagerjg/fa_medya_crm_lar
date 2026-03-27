@@ -13,6 +13,7 @@ import {
     TrendingDown,
     Settings,
     FileText,
+    MessageSquare,
     Database,
     LogOut,
     Menu,
@@ -94,6 +95,11 @@ const navItems = [
         icon: FolderOpen,
         label: "Dosyalar",
         permission: "files.view",
+    },
+    {
+        to: "/chats",
+        icon: MessageSquare,
+        label: "Sohbetler",
     },
     {
         to: "/backup",

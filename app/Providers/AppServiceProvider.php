@@ -62,5 +62,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Central Workflow Automation Subscriber
         \Illuminate\Support\Facades\Event::subscribe(\App\Observers\WorkflowSubscriber::class);
+
+        // Required for Sanctum-based broadcast authentication
+        \Illuminate\Support\Facades\Broadcast::routes(['middleware' => ['auth:sanctum']]);
     }
 }
