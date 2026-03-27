@@ -77,9 +77,21 @@ class CreateTenantBackupJob implements ShouldQueue
                 'error' => $e->getMessage()
             ]);
         } finally {
-            // Arta kalan geçici dosyayı temizle (egeer move basarısız olduysa veya baska hata çıktıysa)
+            // Arta kalan geçici dosyaları temizle
             if ($zipPath && File::exists($zipPath)) {
                 File::delete($zipPath);
+            }
+            
+            // CRITICAL: backup-temp klasörünü tamamıyla temizle (cancel veya hata durumunda)
+            try {
+                $baseTemp = storage_path('app/backup-temp');
+                if (File::isDirectory($baseTemp)) {
+                    // Tüm alt dizinleri ve dosyaları sil
+                    File::deleteDirectory($baseTemp);
+                }
+            } catch (\Exception $cleanupError) {
+                // Log cleanup errors but don't fail the job
+                \Illuminate\Support\Facades\Log::warning("Cleanup warning: backup-temp temizlenemedi - " . $cleanupError->getMessage());
             }
         }
     }

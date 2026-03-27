@@ -485,12 +485,37 @@ class TenantController extends Controller
         $backup = TenantBackup::findOrFail($id);
         
         if ($backup->status === 'processing' || $backup->status === 'pending') {
+            // Signal cancellation to running job
             Cache::put("backup_cancelled_{$id}", true, now()->addMinutes(10));
             
+            // Update status
             $backup->update([
                 'status' => 'failed',
                 'error' => 'Kullanıcı tarafından iptal edildi.'
             ]);
+            
+            // IMPORTANT: Clean up any orphaned temp files
+            try {
+                $baseTemp = storage_path('app/backup-temp');
+                if (File::isDirectory($baseTemp)) {
+                    // List all directories - they are temporary backup working dirs
+                    $dirs = File::directories($baseTemp);
+                    foreach ($dirs as $dir) {
+                        // Safe cleanup: only delete if directory exists and is empty or contains temp files
+                        if (File::isDirectory($dir)) {
+                            File::deleteDirectory($dir);
+                        }
+                    }
+                    
+                    // Remove base temp if now empty
+                    if (File::isDirectory($baseTemp) && count(File::files($baseTemp)) === 0 && count(File::directories($baseTemp)) === 0) {
+                        File::deleteDirectory($baseTemp);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log but don't fail the cancellation
+                \Illuminate\Support\Facades\Log::warning("Backup cancel cleanup warning: " . $e->getMessage());
+            }
 
             return response()->json(['message' => 'Yedekleme iptal edildi.']);
         }

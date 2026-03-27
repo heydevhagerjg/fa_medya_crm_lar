@@ -1,5 +1,27 @@
 # 10-20 GB Veri Yönetimi - Configuration Guide
 
+## 🔧 Latest Fixes (Path Separator Issue)
+
+### Problem Found & Fixed
+- **Root Cause**: Mixed path separators in Windows (`C:\path\app/backup-temp/file`)
+- **Solution**: 
+  - Line 278: Normalize tempDir with `str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $tempDir)`
+  - Line 287: Normalize zipPath similarly
+  - Line 343: Use `DIRECTORY_SEPARATOR` in tempFile path construction
+  - Line 346-349: Added checks for directory existence and writeability
+
+### Files Modified
+```
+app/Services/TenantBackupService.php
+  - Line 278: Path separator normalization for $tempDir
+  - Line 287: Path separator normalization for $zipPath
+  - Line 343: Use DIRECTORY_SEPARATOR for $tempFile
+  - Line 346-349: Added dir checks before fopen()
+  - Line 282: Use DIRECTORY_SEPARATOR for data.json path
+```
+
+---
+
 ## 🎯 Optimizations Applied
 
 ### 1. **Stream-Based ZIP Creation (No Temp Files)**
@@ -23,10 +45,16 @@
 - Applies to both `CreateTenantBackupJob` and `BackupTenantJob`
 - Streaming chunks use PHP's internal buffers (2-3 MB typical)
 
-### 5. **ZipArchive::addStream()**
-- Directly adds S3 stream to ZIP without intermediate file
-- Memory safe: chunks stream directly from S3 to ZIP
-- No disk I/O bottleneck
+### 5. **File Integrity Verification**
+- Gets file size from S3 before download
+- Compares downloaded size vs S3 size
+- Retries if size mismatch
+- Logs detailed error info
+
+### 6. **Path Separator Handling**
+- Normalizes all paths for Windows compatibility
+- Uses `DIRECTORY_SEPARATOR` constant
+- Prevents fopen() failures on mixed-separator paths
 
 ---
 
@@ -108,6 +136,7 @@ Look for:
 - ✅ "Dosya başarıyla ZIP'e eklendi" (Success)
 - ❌ "Dosya stream hatası" (Failed)
 - ⏱️ Timeout values (debug info)
+- ⚠️ "Temp klasör yazılabilir değil" (Directory permission issue)
 
 ### 4. **Monitor Disk Space**
 
@@ -139,6 +168,18 @@ df -h /path/to/storage/app/backup-temp
 ---
 
 ## 🛠️ Troubleshooting
+
+### Issue: "Failed to open stream: No such file or directory"
+
+**Causes:**
+1. Mixed path separators (FIXED in latest version)
+2. Temp directory not writable
+3. Parent directory doesn't exist
+
+**Solution:**
+1. Check temp dir permissions: `chmod 777 storage/app/backup-temp`
+2. Verify disk space available
+3. Check logs for "Temp klasör yazılabilir değil" error
 
 ### Issue: "Timeout waiting for..."
 
@@ -188,18 +229,29 @@ Key files modified for large file support:
 
 1. **TenantBackupService.php**
    - Line 265: 2GB memory limit
+   - Line 278: Path separator normalization for $tempDir
+   - Line 282: Use DIRECTORY_SEPARATOR for JSON path
+   - Line 287: Path separator normalization for $zipPath
    - Line 313: Batch size = 1
-   - Line 337-395: Stream-based processing
-   - Line 342-344: Adaptive timeout logic
+   - Line 343: Use DIRECTORY_SEPARATOR for $tempFile
+   - Line 346-349: Directory existence and writeability checks
+   - Line 349-395: Stream-based processing
 
 2. **CreateTenantBackupJob.php**
    - Line 34: 2GB memory limit
+   - Line 79-96: Enhanced cleanup in finally block
 
 3. **BackupTenantJob.php**
    - Line 37: 2GB memory limit
 
 4. **SystemBackupController.php**
    - Line 54: 2GB memory limit
+
+5. **CleanupBackupTemp.php** (NEW)
+   - Handles orphaned temp file cleanup
+
+6. **routes/console.php**
+   - Contains scheduled cleanup command (4 AM daily)
 
 ---
 
@@ -213,6 +265,7 @@ Key files modified for large file support:
 - [ ] Test with slow network (simulate timeout recovery)
 - [ ] Monitor memory during 20 GB backup
 - [ ] Verify temp files cleaned up after completion
+- [ ] Verify mixed path separators are normalized (Windows)
 
 ---
 
@@ -224,7 +277,7 @@ Key files modified for large file support:
    php artisan queue:work --timeout=7200 --memory=2048
    ```
 
-2. **Ensure storage path exists:**
+2. **Ensure storage path exists and is writable:**
    ```bash
    mkdir -p storage/app/backup-temp
    chmod 777 storage/app/backup-temp
@@ -240,6 +293,25 @@ Key files modified for large file support:
    # Schedule auto-backup every week
    php artisan schedule:run >> /dev/null 2>&1
    ```
+
+---
+
+## 🧪 Manual Testing with Tinker
+
+```php
+# Start tinker
+php artisan tinker
+
+# Test backup creation for a specific tenant
+$tenantId = 'your-tenant-id';
+$backupService = app(\App\Services\TenantBackupService::class);
+$backupService->createFullBackup($tenantId, false, 'your-password');
+
+# Check if backup was created
+\App\Models\TenantBackup::where('tenant_id', $tenantId)
+    ->latest()
+    ->first();
+```
 
 ---
 

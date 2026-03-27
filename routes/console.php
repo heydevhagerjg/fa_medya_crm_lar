@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command('backup:run')->dailyAt('03:00');
 Schedule::command('trash:cleanup')->daily();
+
+// Clean up orphaned backup temp files and failed backups older than 7 days
+Schedule::command('backup:cleanup-temp --older-than=7')->dailyAt('04:00');

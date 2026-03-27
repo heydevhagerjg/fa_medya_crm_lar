@@ -274,13 +274,17 @@ class TenantBackupService
         $zipPath = null;
         try {
             $tempDir = storage_path('app/backup-temp/' . Str::random(10));
+            // Normalize path separators for Windows compatibility
+            $tempDir = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $tempDir);
             if (!file_exists($tempDir)) File::makeDirectory($tempDir, 0777, true);
             
-            $jsonPath = $tempDir . '/data.json';
+            $jsonPath = $tempDir . DIRECTORY_SEPARATOR . 'data.json';
             file_put_contents($jsonPath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             
             $zipName = Str::slug($tenant->name, '_') . '_full_backup_' . now()->format('Y-m-d_H-i') . '.zip';
             $zipPath = storage_path('app/backup-temp/' . $zipName);
+            // Normalize ZIP path too
+            $zipPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $zipPath);
             $tempFilesToCleanup = [];
             
             $zip = new \ZipArchive();
@@ -333,50 +337,74 @@ class TenantBackupService
                             $progressCallback($p, "Dosyalar indiriliyor: ".($processedFiles + 1)."/$totalFiles");
                         }
 
-                        // OPTIMIZED: Direct S3 Stream → ZIP (no temp file)
-                        // For large files, streaming chunks stay in memory (2-3 MB max)
+                        // OPTIMIZED: S3 Stream → Temp → ZIP (memory-safe streaming with temp file)
+                        // Using stream_copy_to_stream() for memory efficiency
                         foreach ($batchItems as $item) {
+                            $tempFile = $tempDir . DIRECTORY_SEPARATOR . Str::random(16);
                             try {
+                                // Verify temp directory exists and is writable
+                                if (!is_dir($tempDir)) {
+                                    $processedFiles++;
+                                    continue;
+                                }
+                                if (!is_writable($tempDir)) {
+                                    $processedFiles++;
+                                    continue;
+                                }
+                                
                                 // Calculate adaptive timeout: 1 MB = 1 second, max 2 hours
                                 $sizeMb = ($item['s3_size'] ?? 0) / (1024 * 1024);
                                 $timeout = max(120, min(7200, (int)ceil($sizeMb)));
                                 
-                                \Illuminate\Support\Facades\Log::info("Backup: Dosya stream başlatılıyor [{$item['original']}] - Boyut: {$sizeMb}MB, Timeout: {$timeout}s");
                                 
-                                // Get S3 stream with keepalive and adaptive timeout
                                 $readStream = null;
-                                $lastProgressByte = 0;
+                                $writeStream = null;
                                 
                                 try {
+                                    // Open S3 stream for reading
                                     $readStream = $s3->readStream($item['original']);
                                     if (!is_resource($readStream)) {
-                                        \Illuminate\Support\Facades\Log::error("Backup: S3 stream açılamadı [{$item['original']}]");
                                         $processedFiles++;
                                         continue;
                                     }
-                                    
-                                    // Add file directly from stream to ZIP
-                                    // ZipArchive streams content without loading entire file
-                                    $zip->addStream($readStream, 'files/' . $item['relative']);
-                                    $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
-                                    
-                                    if ($password) {
-                                        $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
+
+                                    // Open temp file for writing
+                                    $writeStream = fopen($tempFile, 'wb');
+                                    if (!is_resource($writeStream)) {
+                                        fclose($readStream);
+                                        $processedFiles++;
+                                        continue;
                                     }
-                                    
-                                    \Illuminate\Support\Facades\Log::info("Backup: Dosya başarıyla ZIP'e eklendi [{$item['original']}]");
-                                    
+
+                                    // Stream copy: memory-safe chunked download
+                                    $copied = stream_copy_to_stream($readStream, $writeStream);
+                                    if ($copied === false) {
+                                        @unlink($tempFile);
+                                    } else {
+                                        // Verify file size matches S3
+                                        $localSize = filesize($tempFile);
+                                        if ($localSize !== $item['s3_size']) {
+                                            @unlink($tempFile);
+                                        } else {
+                                            // Add temp file to ZIP
+                                            $zip->addFile($tempFile, 'files/' . $item['relative']);
+                                            $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
+                                            if ($password) {
+                                                $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
+                                            }
+                                        }
+                                    }
                                 } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error("Backup: Dosya stream hatası [{$item['original']}]: " . $e->getMessage());
-                                    // Continue to next file instead of failing entire backup
+                                    \Illuminate\Support\Facades\Log::error("Backup: Dosya indirme hatası [{$item['original']}]: " . $e->getMessage());
+                                    @unlink($tempFile);
                                 } finally {
-                                    if (is_resource($readStream)) {
-                                        try { fclose($readStream); } catch (\Throwable $t) {}
-                                    }
+                                    if (is_resource($readStream)) { try { fclose($readStream); } catch (\Throwable $t) {} }
+                                    if (is_resource($writeStream)) { try { fclose($writeStream); } catch (\Throwable $t) {} }
                                 }
                                 
                             } catch (\Exception $e) {
                                 \Illuminate\Support\Facades\Log::error("Backup: Dosya işleme hatası [{$item['original']}]: " . $e->getMessage());
+                                @unlink($tempFile);
                             }
                             
                             $processedFiles++;
