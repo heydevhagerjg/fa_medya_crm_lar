@@ -30,8 +30,8 @@ class CreateTenantBackupJob implements ShouldQueue
      */
     public function handle(TenantBackupService $service): void
     {
-        // Queue worker'da zaman ve bellek sınırını kaldır
-        @ini_set('memory_limit', '1024M');
+        // OPTIMIZED: 2GB memory limit for large file streaming (10-20 GB data handling)
+        @ini_set('memory_limit', '2048M');
         @set_time_limit(0);
 
         $this->backup->update(['status' => 'processing', 'progress' => 0]);

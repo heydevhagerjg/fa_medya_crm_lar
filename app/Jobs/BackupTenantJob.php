@@ -34,7 +34,8 @@ class BackupTenantJob implements ShouldQueue
 
     public function handle(): void
     {
-        @ini_set('memory_limit', '1024M');
+        // OPTIMIZED: 2GB memory limit for large file streaming (10-20 GB data handling)
+        @ini_set('memory_limit', '2048M');
         @set_time_limit(0);
 
         $tenantId = $this->tenantId;

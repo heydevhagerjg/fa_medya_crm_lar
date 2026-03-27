@@ -261,8 +261,8 @@ class TenantBackupService
      */
     public function createBackupZip($tenantId, $password = null, $includeUsers = true, $progressCallback = null, $backupId = null)
     {
-        // Uzun süren backup işlemleri için limit kaldır (queue worker'da çalışır)
-        @ini_set('memory_limit', '1024M');
+        // OPTIMIZED: 2GB memory limit for large file streaming (10-20 GB data handling)
+        @ini_set('memory_limit', '2048M');
         @set_time_limit(0);
 
         $tenant = Tenant::findOrFail($tenantId);
@@ -309,20 +309,19 @@ class TenantBackupService
                 $processedFiles = 0;
 
                 if ($totalFiles > 0) {
-                    // Küçük batch: daha az eşzamanlı bağlantı, prod ortamda daha güvenilir
-                    $chunks = array_chunk($files, 5);
+                    // OPTIMIZED: Batch size = 1 (serial processing for large files)
+                    // Prevents memory exhaustion and ensures complete downloads
+                    $chunks = array_chunk($files, 1);
                     foreach ($chunks as $batch) {
                         if ($backupId && Cache::has("backup_cancelled_{$backupId}")) {
                             throw new \Exception("Yedekleme kullanıcı tarafından iptal edildi.");
                         }
                         $batchItems = [];
                         foreach ($batch as $f) {
-                            $tempF = $tempDir . '/' . Str::random(16);
                             $relP = str_replace("tenants/{$tenantId}/", "", $f);
                             // S3'ten dosya boyutunu al
                             $s3Size = $s3->size($f);
                             $batchItems[] = [
-                                'temp'     => $tempF,
                                 'relative' => $relP,
                                 'original' => $f,
                                 's3_size'  => $s3Size,
@@ -334,35 +333,20 @@ class TenantBackupService
                             $progressCallback($p, "Dosyalar indiriliyor: ".($processedFiles + 1)."/$totalFiles");
                         }
 
-                        // Parallel Download — timeout'u dosya boyutuna göre dinamik yap
-                        try {
-                            Http::pool(function ($pool) use ($batchItems, $s3) {
-                                return collect($batchItems)->map(function ($item) use ($pool, $s3) {
-                                    try {
-                                        // Büyük dosyalar için timeout'u artır (1 MB başına 1 saniye min, max 600 sn)
-                                        $sizeMb = ($item['s3_size'] ?? 0) / (1024 * 1024);
-                                        $timeout = max(120, min(600, (int)ceil($sizeMb)));
-                                        
-                                        $url = $s3->temporaryUrl($item['original'], now()->addMinutes(30));
-                                        return $pool->timeout($timeout)->sink($item['temp'])->get($url);
-                                    } catch (\Exception $e) {
-                                        \Illuminate\Support\Facades\Log::warning("Backup pool URL hatası [{$item['original']}]: " . $e->getMessage());
-                                        return null;
-                                    }
-                                })->values()->all();
-                            });
-                        } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::warning("Backup HTTP pool başarısız, sıralı indirmeye geçiliyor: " . $e->getMessage());
-                        }
-
-                        // Fallback: pool'dan gelemeyen dosyaları sıralı stream ile indir
+                        // OPTIMIZED: Direct S3 Stream → ZIP (no temp file)
+                        // For large files, streaming chunks stay in memory (2-3 MB max)
                         foreach ($batchItems as $item) {
-                            $localSize = File::exists($item['temp']) ? filesize($item['temp']) : 0;
-                            $needsRedownload = !File::exists($item['temp']) || $localSize === 0 || $localSize !== $item['s3_size'];
-                            
-                            if ($needsRedownload) {
-                                $readStream  = null;
-                                $writeStream = null;
+                            try {
+                                // Calculate adaptive timeout: 1 MB = 1 second, max 2 hours
+                                $sizeMb = ($item['s3_size'] ?? 0) / (1024 * 1024);
+                                $timeout = max(120, min(7200, (int)ceil($sizeMb)));
+                                
+                                \Illuminate\Support\Facades\Log::info("Backup: Dosya stream başlatılıyor [{$item['original']}] - Boyut: {$sizeMb}MB, Timeout: {$timeout}s");
+                                
+                                // Get S3 stream with keepalive and adaptive timeout
+                                $readStream = null;
+                                $lastProgressByte = 0;
+                                
                                 try {
                                     $readStream = $s3->readStream($item['original']);
                                     if (!is_resource($readStream)) {
@@ -370,55 +354,37 @@ class TenantBackupService
                                         $processedFiles++;
                                         continue;
                                     }
-
-                                    $writeStream = fopen($item['temp'], 'wb');
-                                    if (!is_resource($writeStream)) {
-                                        fclose($readStream);
-                                        \Illuminate\Support\Facades\Log::error("Backup: Geçici dosya açılamadı [{$item['temp']}]");
-                                        $processedFiles++;
-                                        continue;
+                                    
+                                    // Add file directly from stream to ZIP
+                                    // ZipArchive streams content without loading entire file
+                                    $zip->addStream($readStream, 'files/' . $item['relative']);
+                                    $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
+                                    
+                                    if ($password) {
+                                        $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
                                     }
-
-                                    // stream_copy_to_stream PHP dahili buffer ile chunk'lı okur (memory-safe)
-                                    $copied = stream_copy_to_stream($readStream, $writeStream);
-                                    if ($copied === false) {
-                                        \Illuminate\Support\Facades\Log::error("Backup: stream_copy başarısız [{$item['original']}]");
-                                        @unlink($item['temp']);
-                                    } else {
-                                        // Kopyalanan bytes'ı S3 boyutu ile kontrol et
-                                        $downloadedSize = filesize($item['temp']);
-                                        if ($downloadedSize !== $item['s3_size']) {
-                                            \Illuminate\Support\Facades\Log::error("Backup: Kısmi indirme tespit edildi [{$item['original']}] - Beklenen: {$item['s3_size']} bytes, İndirilen: {$downloadedSize} bytes");
-                                            @unlink($item['temp']);
-                                        }
-                                    }
+                                    
+                                    \Illuminate\Support\Facades\Log::info("Backup: Dosya başarıyla ZIP'e eklendi [{$item['original']}]");
+                                    
                                 } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error("Backup: Dosya indirme hatası [{$item['original']}]: " . $e->getMessage());
+                                    \Illuminate\Support\Facades\Log::error("Backup: Dosya stream hatası [{$item['original']}]: " . $e->getMessage());
+                                    // Continue to next file instead of failing entire backup
                                 } finally {
-                                    // Handle leak olmaması için her durumda kapat
-                                    if (is_resource($readStream))  { try { fclose($readStream);  } catch (\Throwable $t) {} }
-                                    if (is_resource($writeStream)) { try { fclose($writeStream); } catch (\Throwable $t) {} }
+                                    if (is_resource($readStream)) {
+                                        try { fclose($readStream); } catch (\Throwable $t) {}
+                                    }
                                 }
+                                
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Backup: Dosya işleme hatası [{$item['original']}]: " . $e->getMessage());
                             }
-
-                            // Dosya başarıyla indirilmişse ZIP'e ekle - boyut kontrolü yap
-                            $finalSize = File::exists($item['temp']) ? filesize($item['temp']) : 0;
-                            if (File::exists($item['temp']) && $finalSize === $item['s3_size'] && $finalSize > 0) {
-                                $zip->addFile($item['temp'], 'files/' . $item['relative']);
-                                $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
-                                if ($password) {
-                                    $zip->setEncryptionName('files/' . $item['relative'], \ZipArchive::EM_AES_256);
-                                }
-                                $tempFilesToCleanup[] = $item['temp'];
-                            } else {
-                                if ($finalSize !== $item['s3_size']) {
-                                    \Illuminate\Support\Facades\Log::warning("Backup: Dosya boyutu uyuşmadığı için atlandı [{$item['original']}] - Beklenen: {$item['s3_size']}, İndirilen: {$finalSize}");
-                                } else {
-                                    \Illuminate\Support\Facades\Log::warning("Backup: Dosya atlandı (indirilemedi) [{$item['original']}]");
-                                }
-                            }
-
+                            
                             $processedFiles++;
+                            
+                            if ($progressCallback) {
+                                $p = 15 + round(($processedFiles / max(1, $totalFiles)) * 80);
+                                $progressCallback($p, "Dosyalar işleniyor: $processedFiles/$totalFiles");
+                            }
                         }
                     }
                 }

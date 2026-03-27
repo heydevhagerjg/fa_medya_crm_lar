@@ -51,7 +51,7 @@ class SystemBackupController extends Controller
     {
         try {
             @set_time_limit(0);
-            @ini_set('memory_limit', '1024M');
+            @ini_set('memory_limit', '2048M');
             
             // Run backup in background or immediately? Better start it and return
             // We'll use artisan but notice it might take time.
