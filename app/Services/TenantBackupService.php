@@ -450,13 +450,12 @@ class TenantBackupService
     /**
      * Import a full ZIP backup into a target tenant
      * 
-     * @param $zipPath Path to ZIP file
-     * @param $targetTenantId Target tenant ID
-     * @param $password Optional ZIP password
-     * @param $invokerUserId Optional user ID who initiated import
-     * @param $progressCallback Optional progress callback
-     * @param $manageRestoringFlag Whether to manage is_restoring flag (set true/false). 
-     *                             Set to false if caller manages the flag separately.
+     * @param string $zipPath Path to ZIP file
+     * @param string $targetTenantId Target tenant ID
+     * @param string|null $password ZIP password
+     * @param string|null $invokerUserId User ID who initiated import
+     * @param \Closure|null $progressCallback Progress callback
+     * @param bool $manageRestoringFlag Whether to manage is_restoring flag
      */
     public function importBackupZip($zipPath, $targetTenantId, $password = null, $invokerUserId = null, $progressCallback = null, $manageRestoringFlag = true)
     {
@@ -466,6 +465,9 @@ class TenantBackupService
         if ($manageRestoringFlag) {
             $tenant->update(['is_restoring' => true]);
         }
+
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
 
         try {
             $zip = new \ZipArchive();
@@ -511,7 +513,17 @@ class TenantBackupService
             foreach ($data as $items) if (is_array($items)) $totalDbItems += count($items);
             $processedDbItems = 0;
 
-            $tick = function($msg) use ($progressCallback, $totalDbItems, &$processedDbItems) {
+            $cancelKey = "import_cancel_{$targetTenantId}";
+            
+            $checkCancel = function() use ($cancelKey) {
+                if (\Illuminate\Support\Facades\Cache::has($cancelKey)) {
+                    \Illuminate\Support\Facades\Cache::forget($cancelKey);
+                    throw new \Exception("İşlem kullanıcı tarafından iptal edildi.", 499); // 499: Client Closed Request / Manual Cancel
+                }
+            };
+
+            $tick = function($msg) use ($progressCallback, $totalDbItems, &$processedDbItems, $checkCancel) {
+                $checkCancel();
                 $processedDbItems++;
                 if ($progressCallback && ($processedDbItems % 10 == 0 || $processedDbItems == $totalDbItems)) {
                     $percent = 10 + round(($processedDbItems / max(1, $totalDbItems)) * 20); // %10 -> %30 arası
@@ -820,6 +832,8 @@ class TenantBackupService
                 $processedFiles = 0;
 
                 foreach ($fileIndices as $index) {
+                    if (isset($checkCancel)) $checkCancel();
+                    
                     $filename = $zip->getNameIndex($index);
                     $fileStat = $zip->statIndex($index);
                     $totalSize += $fileStat['size'] ?? 0;
@@ -930,6 +944,19 @@ class TenantBackupService
                     $query->where('id', '!=', $keepUserId);
                 }
                 $query->delete();
+            }
+
+            // Cleanup S3 storage for this tenant
+            if ($this->setGlobalS3Config($tenantId)) {
+                try {
+                    $s3 = \Illuminate\Support\Facades\Storage::disk('s3_global');
+                    $s3Path = "tenants/{$tenantId}/";
+                    if ($s3->exists($s3Path)) {
+                        $s3->deleteDirectory($s3Path);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("Tenant S3 cleanup failed for {$tenantId}: " . $e->getMessage());
+                }
             }
         });
     }

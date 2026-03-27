@@ -598,7 +598,17 @@ class TenantController extends Controller
             's3_path' => 'nullable|string',
         ]);
 
-        $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        $s3ConfigId = $request->input('s3_config_id');
+        $s3Config = null;
+        
+        if ($s3ConfigId) {
+            $s3Config = S3Config::find($s3ConfigId);
+        }
+
+        if (!$s3Config) {
+            $s3Config = S3Config::where('is_active', true)->inRandomOrder()->first();
+        }
+
         if (!$s3Config) {
             return response()->json(['message' => 'Aktif S3 bulunamadı.'], 400);
         }
@@ -654,5 +664,56 @@ class TenantController extends Controller
             \Illuminate\Support\Facades\Log::error("Admin Import Error: " . $e->getMessage());
             return response()->json(['message' => 'Hata: ' . $e->getMessage()], 500);
         }
+    }
+    public function getImportProgress($id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        
+        if (!$tenant->is_restoring) {
+            return response()->json(['progress' => 100, 'message' => 'Aktif bir yükleme işlemi yok.', 'is_finished' => true]);
+        }
+
+        $progressData = \Illuminate\Support\Facades\Cache::get("import_progress_{$id}");
+        
+        return response()->json($progressData ?: [
+            'progress' => 0, 
+            'message' => 'İşlem hazırlanıyor...',
+            'is_finished' => false
+        ]);
+    }
+
+    public function cancelImport($id, \App\Services\TenantBackupService $service)
+    {
+        $tenant = Tenant::find($id);
+        
+        if (!$tenant || !$tenant->is_restoring) {
+            return response()->json(['message' => 'İptal edilecek aktif bir yükleme yok.'], 400);
+        }
+
+        // Set cancel flag for the background job
+        \Illuminate\Support\Facades\Cache::put("import_cancel_{$id}", true, now()->addMinutes(15));
+        
+        // Update progress info to show it's cancelling
+        \Illuminate\Support\Facades\Cache::put("import_progress_{$id}", [
+            'progress' => 0,
+            'message' => 'İptal ediliyor ve firma siliniyor...',
+            'status' => 'cancelling'
+        ], now()->addMinutes(15));
+
+        // AGGRESSIVE CLEANUP: If the job hasn't started or is at 0%, we can try to wipe it right here
+        // to prevent UI stuck when queue worker is not running or busy.
+        try {
+            $progressData = \Illuminate\Support\Facades\Cache::get("import_progress_{$id}");
+            // If it's still at 0 or specifically our 'cancelling' message, try cleanup
+            if (!$progressData || $progressData['progress'] <= 5) {
+                $service->resetTenantData($id, null, true);
+                $tenant->delete();
+                return response()->json(['message' => 'İşlem iptal edildi ve firma tamamen silindi.']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Immediate cancel cleanup failed for tenant {$id}: " . $e->getMessage());
+        }
+
+        return response()->json(['message' => 'İptal talebi alındı. Firma kısa süre içinde tamamen silinecek.']);
     }
 }

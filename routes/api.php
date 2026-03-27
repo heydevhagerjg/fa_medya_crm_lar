@@ -249,6 +249,8 @@ Route::prefix('admin')->group(function () {
             Route::get('/backups/{backupId}/download', [\App\Http\Controllers\Admin\TenantController::class, 'downloadBackup']); // Download local backup
             Route::get('/backups/{id}/signed-url', [\App\Http\Controllers\Admin\TenantController::class, 'getDownloadSignedUrl']); // Signed download url
             Route::post('/import/signed-url', [\App\Http\Controllers\Admin\TenantController::class, 'importSignedUrl']); // Signed upload url
+            Route::get('/{id}/import-progress', [\App\Http\Controllers\Admin\TenantController::class, 'getImportProgress']);
+            Route::post('/{id}/cancel-import', [\App\Http\Controllers\Admin\TenantController::class, 'cancelImport']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TenantController::class, 'destroy']);
         });
 

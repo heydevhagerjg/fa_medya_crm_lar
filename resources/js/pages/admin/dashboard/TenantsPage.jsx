@@ -25,7 +25,7 @@ export default function TenantsPage() {
     const [limitForm, setLimitForm] = useState({})
     const [userForm, setUserForm] = useState(emptyUserForm)
     const [importModal, setImportModal] = useState(false)
-    const [importForm, setImportForm] = useState({ name: '', package_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
+    const [importForm, setImportForm] = useState({ name: '', package_id: '', s3_config_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
     const [importProgress, setImportProgress] = useState(0)
     const [importStatus, setImportStatus] = useState(null) // 'uploading' | 'processing' | 'done' | 'error'
     const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -42,6 +42,19 @@ export default function TenantsPage() {
     const { data: tenants = [], isLoading } = useQuery({
         queryKey: ['admin-tenants'],
         queryFn: () => api.get('/admin/tenants').then(r => r.data),
+        refetchInterval: (query) => {
+            const data = query.state.data;
+            return data?.some(t => t.is_restoring) ? 3000 : false;
+        }
+    })
+
+    const cancelImportMutation = useMutation({
+        mutationFn: (id) => api.post(`/admin/tenants/${id}/cancel-import`),
+        onSuccess: () => {
+            qc.invalidateQueries(['admin-tenants'])
+            toast.success('İptal talebi gönderildi.')
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const { data: packages = [] } = useQuery({
@@ -177,6 +190,7 @@ export default function TenantsPage() {
                 return api.post('/admin/tenants/import', {
                     name: data.name,
                     package_id: data.package_id,
+                    s3_config_id: data.s3_config_id,
                     admin_name: data.admin_name,
                     admin_email: data.admin_email,
                     admin_password: data.admin_password,
@@ -191,7 +205,7 @@ export default function TenantsPage() {
             qc.invalidateQueries(['admin-tenants'])
             toast.success('İşlem başlatıldı! Yeni firma oluşturuldu ve yedek aktarma süreci arka planda devam ediyor.')
             setImportModal(false)
-            setImportForm({ name: '', package_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
+            setImportForm({ name: '', package_id: '', s3_config_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
             setImportStatus(null)
             setImportProgress(0)
         },
@@ -200,6 +214,42 @@ export default function TenantsPage() {
             setImportStatus('error')
         },
     })
+
+    function ProgressCell({ tenant }) {
+        const { data: progress } = useQuery({
+            queryKey: ['import-progress', tenant.id],
+            queryFn: () => api.get(`/admin/tenants/${tenant.id}/import-progress`).then(r => r.data),
+            enabled: !!tenant.is_restoring,
+            refetchInterval: 3000
+        })
+
+        if (!progress) return <div className="animate-pulse h-2 bg-gray-100 dark:bg-gray-800 rounded-full w-24 mx-auto" />
+
+        return (
+            <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-blue-600 dark:text-blue-400 uppercase truncate max-w-[100px]">{progress.message || 'Yükleniyor...'}</span>
+                    <span>%{progress.progress || 0}</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                        className="bg-blue-500 h-full transition-all duration-500 ease-out" 
+                        style={{ width: `${progress.progress || 0}%` }}
+                    />
+                </div>
+                <button 
+                    onClick={() => {
+                        if(window.confirm('Bu yükleme işlemini iptal etmek istediğinize emin misiniz? Veritabanı temizlenecektir.')) {
+                            cancelImportMutation.mutate(tenant.id)
+                        }
+                    }}
+                    className="text-[9px] font-black text-red-500 hover:text-red-700 underline uppercase text-left"
+                >
+                    Yüklemeyi İptal Et
+                </button>
+            </div>
+        )
+    }
 
     const rejectBackupMutation = useMutation({
         mutationFn: (tenantId) => api.post(`/admin/tenants/${tenantId}/reject-backup-request`),
@@ -368,7 +418,11 @@ export default function TenantsPage() {
                                         <td className="px-5 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <div className="text-sm text-gray-900 dark:text-white font-bold">{tenant.name}</div>
-                                                {tenant.is_active ? (
+                                                {tenant.is_restoring ? (
+                                                     <span className="px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-bold flex items-center gap-1 animate-pulse">
+                                                        <Loader2 size={10} className="animate-spin" /> YÜKLENİYOR
+                                                     </span>
+                                                ) : tenant.is_active ? (
                                                     <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold flex items-center gap-1">
                                                         AKTİF
                                                     </span>
@@ -381,83 +435,95 @@ export default function TenantsPage() {
                                             <div className="text-[10px] text-gray-500 font-mono mt-0.5">{tenant.slug}</div>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <div
-                                                onClick={() => setPkgModal({ open: true, tenant })}
-                                                className="cursor-pointer inline-flex flex-col"
-                                            >
-                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{tenant.package?.name || 'Paket Tanımlanmamış'}</span>
-                                                <span className="text-[9px] text-gray-400">Değiştirmek için tıkla</span>
-                                            </div>
+                                            {tenant.is_restoring ? (
+                                                <div className="text-xs text-gray-400 italic">Yedek aktarılıyor...</div>
+                                            ) : (
+                                                <div
+                                                    onClick={() => setPkgModal({ open: true, tenant })}
+                                                    className="cursor-pointer inline-flex flex-col"
+                                                >
+                                                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{tenant.package?.name || 'Paket Tanımlanmamış'}</span>
+                                                    <span className="text-[9px] text-gray-400">Değiştirmek için tıkla</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-5 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                {tenant.backup_requested && (
-                                                    <div className="flex flex-col items-center gap-1 group/req">
-                                                        <div className="animate-pulse flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm whitespace-nowrap">
-                                                            <AlertCircle size={12} className="animate-bounce" /> YEDEK TALEBİ
-                                                        </div>
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                if(window.confirm(`${tenant.name} firmasının yedek talebini reddetmek istediğinize emin misiniz?`)) {
-                                                                    rejectBackupMutation.mutate(tenant.id)
-                                                                }
-                                                            }}
-                                                            className="text-[9px] font-black text-red-500 hover:text-red-700 underline uppercase transition-all opacity-0 group-hover/req:opacity-100"
+                                                {tenant.is_restoring ? (
+                                                    <ProgressCell tenant={tenant} />
+                                                ) : (
+                                                    <>
+                                                        {tenant.backup_requested && (
+                                                            <div className="flex flex-col items-center gap-1 group/req">
+                                                                <div className="animate-pulse flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm whitespace-nowrap">
+                                                                    <AlertCircle size={12} className="animate-bounce" /> YEDEK TALEBİ
+                                                                </div>
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        if(window.confirm(`${tenant.name} firmasının yedek talebini reddetmek istediğinize emin misiniz?`)) {
+                                                                            rejectBackupMutation.mutate(tenant.id)
+                                                                        }
+                                                                    }}
+                                                                    className="text-[9px] font-black text-red-500 hover:text-red-700 underline uppercase transition-all opacity-0 group-hover/req:opacity-100"
+                                                                >
+                                                                    Talebi Reddet
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={() => openLimitModal(tenant)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-100 transition-colors"
                                                         >
-                                                            Talebi Reddet
+                                                            <Shield size={14} /> Limitler
                                                         </button>
-                                                    </div>
+                                                        <button
+                                                            onClick={() => openUserModal(tenant)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 transition-colors"
+                                                        >
+                                                            <Users size={14} /> {tenant.users_count || 0}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setBackupsModal({ open: true, tenant })}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold hover:bg-purple-100 transition-colors"
+                                                        >
+                                                            <Database size={14} /> Yedekler
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setS3Modal({ open: true, tenant })}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                        >
+                                                            <FolderOpen size={14} /> S3 {tenant.s3_config?.name ? tenant.s3_config.name : "Atanmamış"}
+                                                        </button>
+                                                    </>
                                                 )}
-                                                <button
-                                                    onClick={() => openLimitModal(tenant)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-100 transition-colors"
-                                                >
-                                                    <Shield size={14} /> Limitler
-                                                </button>
-                                                <button
-                                                    onClick={() => openUserModal(tenant)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 transition-colors"
-                                                >
-                                                    <Users size={14} /> {tenant.users_count || 0}
-                                                </button>
-                                                <button
-                                                    onClick={() => setBackupsModal({ open: true, tenant })}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold hover:bg-purple-100 transition-colors"
-                                                >
-                                                    <Database size={14} /> Yedekler
-                                                </button>
-                                                <button
-                                                    onClick={() => setS3Modal({ open: true, tenant })}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
-                                                >
-                                                    <FolderOpen size={14} /> S3 {tenant.s3_config?.name ? tenant.s3_config.name : "Atanmamış"}
-                                                </button>
                                             </div>
                                         </td>
                                         <td className="px-5 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <button
-                                                    onClick={() => setAddUserModal({ open: true, tenant })}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
-                                                    title="Kullanıcı Ekle"
-                                                >
-                                                    <UserPlus size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleExport(tenant)}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
-                                                    title="Tam Yedek Al (JSON + Dosyalar)"
-                                                >
-                                                    <Download size={16} />
-                                                </button>
-                                                <button onClick={() => openStatusModal(tenant)} className="p-2 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all" title="Durum & Engelleme">
-                                                    <Shield size={18} />
-                                                </button>
-                                                <button onClick={() => setDeleteConfirm(tenant)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
+                                            {!tenant.is_restoring && (
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={() => setAddUserModal({ open: true, tenant })}
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
+                                                        title="Kullanıcı Ekle"
+                                                    >
+                                                        <UserPlus size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExport(tenant)}
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                                                        title="Tam Yedek Al (JSON + Dosyalar)"
+                                                    >
+                                                        <Download size={16} />
+                                                    </button>
+                                                    <button onClick={() => openStatusModal(tenant)} className="p-2 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all" title="Durum & Engelleme">
+                                                        <Shield size={18} />
+                                                    </button>
+                                                    <button onClick={() => setDeleteConfirm(tenant)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Sil">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -532,7 +598,7 @@ export default function TenantsPage() {
                                     onChange={e => setForm({ ...form, admin_email: e.target.value })}
                                     required
                                     className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                    placeholder="admin@firma.com"
+                                    placeholder="admin@email.com"
                                 />
                             </div>
                             <div>
@@ -548,6 +614,7 @@ export default function TenantsPage() {
                             </div>
                         </div>
                     </div>
+
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
@@ -849,7 +916,7 @@ export default function TenantsPage() {
             </Modal>
 
             {/* Import Backup Modal */}
-            <Modal open={importModal} onClose={() => !importMutation.isPending && setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)" size="lg">
+            <Modal open={importModal} onClose={() => (importStatus === 'processing' || !importMutation.isPending) && setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)" size="lg">
                 <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
                     <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl flex items-start gap-3">
                         <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
@@ -886,6 +953,20 @@ export default function TenantsPage() {
                                         <option value="">Paket Seçiniz</option>
                                         {packages.map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Yapılandırması</label>
+                                    <select
+                                        value={importForm.s3_config_id}
+                                        onChange={e => setImportForm({ ...importForm, s3_config_id: e.target.value })}
+                                        disabled={importMutation.isPending}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">Otomatik Seçilsin (Rastgele Aktif)</option>
+                                        {s3Configs.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name || s.aws_bucket_name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -985,11 +1066,11 @@ export default function TenantsPage() {
                     <div className="flex gap-4 pt-4 sticky bottom-0 bg-white dark:bg-gray-900 pb-2">
                         <button 
                             type="button" 
-                            disabled={importMutation.isPending}
+                            disabled={importMutation.isPending && importStatus !== 'processing'}
                             onClick={() => setImportModal(false)} 
                             className="flex-1 px-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
                         >
-                            İptal
+                            {importStatus === 'processing' ? 'Kapat' : 'İptal'}
                         </button>
                         <button 
                             type="submit" 
