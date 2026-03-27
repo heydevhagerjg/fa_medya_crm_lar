@@ -28,7 +28,24 @@ class ImportBackupJob implements ShouldQueue
     public function handle(\App\Services\TenantBackupService $service): void
     {
         try {
-            $service->importBackupZip($this->zipPath, $this->targetTenantId, $this->password, $this->invokerUserId);
+            // Progress callback - Cache'e progress'i yaz
+            $progressKey = "import_progress_{$this->targetTenantId}";
+            
+            $progressCallback = function($percent, $message) use ($progressKey) {
+                \Illuminate\Support\Facades\Cache::put($progressKey, [
+                    'progress' => $percent,
+                    'message' => $message
+                ], now()->addHours(2));
+            };
+            
+            // Start with 0%
+            $progressCallback(0, 'İçe aktarma başlatılıyor...');
+            
+            // Import with progress callback - manageRestoringFlag = true (job handle ediyor)
+            $service->importBackupZip($this->zipPath, $this->targetTenantId, $this->password, $this->invokerUserId, $progressCallback);
+            
+            // Final progress
+            $progressCallback(100, 'İçe aktarma tamamlandı');
         } finally {
             // Delete the temp file
             if (file_exists($this->zipPath)) {

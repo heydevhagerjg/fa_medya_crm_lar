@@ -22,7 +22,7 @@ class AuthController extends Controller
 
         if (!$admin || !Hash::check($validated['password'], $admin->password)) {
             throw ValidationException::withMessages([
-                'email' => ['DEBUG: CONTROLLER REACHED BUT AUTH FAILED'],
+                'email' => ['E-posta veya şifre hatalı.'],
             ]);
         }
 

@@ -22,7 +22,18 @@ api.interceptors.request.use((config) => {
             config.headers.Authorization = `Bearer ${adminToken}`;
         }
     } else {
-        const token = useAuthStore.getState().token || localStorage.getItem('crm_token');
+        // Zustand store'dan al; eğer rehydration tamamlanmadıysa persist storage'dan oku
+        let token = useAuthStore.getState().token;
+        if (!token) {
+            try {
+                const persisted = localStorage.getItem('crm-auth');
+                if (persisted) {
+                    token = JSON.parse(persisted)?.state?.token ?? null;
+                }
+            } catch (_) {
+                // JSON parse hatası durumunda token null kalır
+            }
+        }
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

@@ -77,7 +77,14 @@ class VerifyApiKey
                 }
             }
 
-            $user = \App\Models\User::where('tenant_id', $apiKeyRecord->tenant_id)->first();
+            // Önce ADMIN rolündeki kullanıcıyı al, yoksa herhangi birini seç
+            $user = \App\Models\User::where('tenant_id', $apiKeyRecord->tenant_id)
+                ->where('role', 'ADMIN')
+                ->where('is_approved', true)
+                ->first()
+                ?? \App\Models\User::where('tenant_id', $apiKeyRecord->tenant_id)
+                    ->where('is_approved', true)
+                    ->first();
             if ($user) {
                 \App\Models\ApiKey::where('id', $apiKeyRecord->id)->update(['last_used' => now()]);
                 

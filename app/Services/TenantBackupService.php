@@ -953,16 +953,4 @@ class TenantBackupService
         return $user;
     }
 
-    /**
-     * Helper to format dates for MySQL
-     */
-    private function formatDate($date)
-    {
-        if (!$date) return null;
-        try {
-            return \Illuminate\Support\Carbon::parse($date)->format('Y-m-d H:i:s');
-        } catch (\Exception $e) {
-            return $date;
-        }
-    }
 }

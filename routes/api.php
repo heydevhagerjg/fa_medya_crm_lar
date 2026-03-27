@@ -223,7 +223,7 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
 Route::prefix('admin')->group(function () {
     Route::post('/login', [\App\Http\Controllers\Admin\AuthController::class, 'login']);
     
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'ensure.admin'])->group(function () {
         Route::get('/me', [\App\Http\Controllers\Admin\AuthController::class, 'me']);
         Route::post('/logout', [\App\Http\Controllers\Admin\AuthController::class, 'logout']);
         

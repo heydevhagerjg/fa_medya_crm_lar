@@ -34,6 +34,32 @@ class Tenant extends Model
             $tenant->cashRegisters()->each(fn($cr) => $cr->delete());
             $tenant->apiKeys()->each(fn($ak) => $ak->delete());
             $tenant->activityLogs()->each(fn($al) => $al->delete());
+
+            // Randevu kayıtları
+            \App\Models\AppointmentTitle::where('tenant_id', $tenant->id)->delete();
+            \App\Models\Appointment::where('tenant_id', $tenant->id)->delete();
+
+            // Hizmet takip kayıtları
+            \App\Models\ServiceTrackingLog::where('tenant_id', $tenant->id)->delete();
+            \App\Models\ServiceTracking::where('tenant_id', $tenant->id)->delete();
+            \App\Models\ServiceTrackingCategory::where('tenant_id', $tenant->id)->delete();
+
+            // Teklif kayıtları (Proposal silme zaten cascade ile halloluyor ama explicit ekleyelim)
+            $proposalIds = \App\Models\Proposal::where('tenant_id', $tenant->id)->pluck('id');
+            \App\Models\ProposalItem::whereIn('proposal_id', $proposalIds)->delete();
+            \App\Models\ProposalInstallment::whereIn('proposal_id', $proposalIds)->delete();
+            \App\Models\ProposalRevisionRequest::whereIn('proposal_id', $proposalIds)->delete();
+            \App\Models\Proposal::where('tenant_id', $tenant->id)->delete();
+
+            // Workflow kayıtları
+            $workflowIds = \App\Models\Workflow::where('tenant_id', $tenant->id)->pluck('id');
+            \App\Models\WorkflowLog::where('tenant_id', $tenant->id)->delete();
+            \App\Models\WorkflowCondition::whereIn('workflow_id', $workflowIds)->delete();
+            \App\Models\WorkflowAction::whereIn('workflow_id', $workflowIds)->delete();
+            \App\Models\Workflow::where('tenant_id', $tenant->id)->delete();
+
+            // Roller ve yetkiler
+            \App\Models\Role::where('tenant_id', $tenant->id)->delete();
         });
     }
 

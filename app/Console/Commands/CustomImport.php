@@ -100,27 +100,68 @@ class CustomImport extends Command
 
             // is_restoring flagını SET ET - middleware hemen istekleri bloke etmeye başlayacak
             $tenant->update(['is_restoring' => true]);
-            $this->warn("İçe aktarma başlıyor - sistem restore modunda...");
 
             // Yedek dosyasını temp dizine kopyala
             $tempFile = storage_path('app/imports/temp_' . Str::random(16) . '.zip');
             @mkdir(dirname($tempFile), 0755, true);
             copy($file, $tempFile);
 
+            // Progress tracking için unique key oluştur
+            $progressKey = "import_progress_{$tenant->id}";
+
             // Background job olarak import başlat - Admin user'ı korumak için invokerUserId geçiyoruz
-            // ImportBackupJob, is_restoring = true ile başlayıp (zaten true ama iyileme için), false ile bitirecek
             ImportBackupJob::dispatch($tempFile, $tenant->id, null, $adminUser->id);
 
-            $this->info("\n✅ İçe aktarma işlemi başlatıldı (arka planda çalışıyor)");
+            // CLI'de progress'i göster - polling yap
+            $this->info("\n🔄 İçe aktarma başlatıldı...\n");
+            
+            $lastProgress = -1;
+            $lastDisplay = 0;
+            $timeout = time() + (3600 * 2); // 2 saat timeout
+            
+            while (true) {
+                if (time() > $timeout) {
+                    $this->warn("\nTimeout: İçe aktarma 2 saattan fazla sürüyor.");
+                    break;
+                }
+                
+                // Cache'den progress'i oku
+                $progressData = \Illuminate\Support\Facades\Cache::get($progressKey);
+                
+                if ($progressData) {
+                    $currentProgress = $progressData['progress'] ?? $lastProgress;
+                    $message = $progressData['message'] ?? '';
+                    
+                    // Her update'de yaz (progress değişse bile değişmese bile)
+                    if ($currentProgress != $lastProgress) {
+                        $bar = str_repeat('█', (int)($currentProgress / 5)) . str_repeat('░', (int)((100 - $currentProgress) / 5));
+                        $this->line("  [{$bar}] {$currentProgress}% - {$message}");
+                        $lastProgress = $currentProgress;
+                    }
+                    
+                    // İmport biterse
+                    if ($currentProgress >= 100) {
+                        break;
+                    }
+                } else {
+                    // Henüz job başlamamışsa bekle
+                    if ($lastProgress == -1) {
+                        $this->line("  [" . str_repeat('░', 20) . "] 0% - Job başlatılıyor...");
+                        $lastProgress = 0; // İlk mesajdan sonra başlama bayrak kaldır
+                    }
+                }
+                
+                sleep(1);
+            }
+            
+            $this->line("");
+
+            $this->info("\n✅ İçe aktarma işlemi tamamlandı!");
             $this->info("Giriş Bilgileri:");
             $this->line("E-posta: {$adminEmail}");
             $this->line("Şifre: (Girdiğiniz şifre)");
             $this->line("Firma: {$tenantName}");
-            $this->warn("\n📌 Bilgiler:");
-            $this->line("• Sistem restore modundadır");
-            $this->line("• İçe aktarma arka planda çalışıyor");
-            $this->line("• Tamamlanana kadar \"Yedekten geri dönülüyor... Lütfen bekleyin.\" mesajı göreceksiniz");
-            $this->line("• Queue worker'ın çalışıyor olduğundan emin olun: php artisan queue:listen");
+            $this->warn("\n📌 Sisteme giriş yapabilirsiniz.");
 
 
         }

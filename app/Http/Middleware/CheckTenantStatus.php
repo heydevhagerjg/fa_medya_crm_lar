@@ -22,17 +22,12 @@ class CheckTenantStatus
             $tenant = $user->tenant;
 
             if ($tenant && !$tenant->is_active) {
-                // Mevcut oturum bilgilerini (token) temizleyerek "otomatik kapatma" sağla
-                if ($user->currentAccessToken()) {
-                    $user->currentAccessToken()->delete();
-                }
-
                 $msg = $tenant->suspension_message ?: 'Hesabınız yönetici tarafından geçici olarak askıya alınmıştır.';
                 $msg .= ' Hata olduğunu düşünüyorsanız bizimle iletişime geçin.';
-                
+
                 return response()->json([
-                    'status' => 'suspended',
-                    'message' => $msg
+                    'status'  => 'suspended',
+                    'message' => $msg,
                 ], 403);
             }
         }

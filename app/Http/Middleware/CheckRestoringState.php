@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Cache;
 
 class CheckRestoringState
 {
@@ -24,9 +25,20 @@ class CheckRestoringState
         if ($user && $user->tenant_id) {
             $tenant = \App\Models\Tenant::find($user->tenant_id);
             if ($tenant && $tenant->is_restoring) {
+                // Get progress from cache if available
+                $progressKey = "import_progress_{$tenant->id}";
+                $progressData = Cache::get($progressKey);
+                
+                $progress = $progressData['progress'] ?? 0;
+                $message = $progressData['message'] ?? 'Yedekten geri dönülüyor...';
+                
+                $responseMessage = "Yedekten geri dönülüyor... ({$progress}%) {$message}";
+                
                 return response()->json([
                     'status' => 'restoring',
-                    'message' => 'Yedekten geri dönülüyor... Lütfen bekleyin.'
+                    'message' => $responseMessage,
+                    'progress' => $progress,
+                    'detail' => $message
                 ], 423); // 423 Locked
             }
         }

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore, useAdminStore } from './stores/index.js'
 import DashboardLayout from './components/layout/DashboardLayout.jsx'
 import AdminLayout from './components/layout/AdminLayout.jsx'
@@ -112,7 +112,13 @@ export default function App() {
         }
     }, [isAuthenticated, user?.tenant?.is_restoring])
 
-    const isRestoring = isAuthenticated && user?.tenant?.is_restoring
+    const location = useLocation()
+    const isAdminRoute = location.pathname.startsWith('/admin')
+    const isPublicRoute = ['/', '/login', '/register', '/pricing', '/tos', '/refund', '/privacy', '/public-proposal/'].some(path => 
+        location.pathname === path || location.pathname.startsWith(path + '/')
+    )
+
+    const isRestoring = !isAdminRoute && !isPublicRoute && isAuthenticated && user?.tenant?.is_restoring
     if (isRestoring) return <RestoringOverlay />
 
     return (

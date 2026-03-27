@@ -35,60 +35,70 @@ class AuthController extends Controller
             return response()->json(['message' => 'Seçilen paket şu anda aktif değil.'], 400);
         }
 
-        // Create tenant
-        $tenantId = Str::uuid()->toString();
-        $slug = Str::slug($validated['tenant_name']) . '-' . Str::random(6);
-        $tenant = Tenant::create([
-            'id'   => $tenantId,
-            'name' => $validated['tenant_name'],
-            'slug' => $slug,
-            's3_config_id' => $s3Config->id,
-            'package_id' => $package->id,
-            'plan_personnel_limit' => $package->personnel_limit,
-            'plan_customer_limit' => $package->customer_limit,
-            'plan_job_limit' => $package->job_limit,
-            'plan_appointment_feature' => $package->appointment_feature,
-            'plan_appointment_limit' => $package->appointment_limit,
-            'plan_service_tracking_feature' => $package->service_tracking_feature,
-            'plan_service_tracking_limit' => $package->service_tracking_limit,
-            'plan_service_tracking_category_feature' => $package->service_tracking_category_feature,
-            'plan_proposal_feature' => $package->proposal_feature,
-            'plan_proposal_limit' => $package->proposal_limit,
-            'plan_backup_feature' => $package->backup_feature,
-            'plan_backup_limit' => $package->backup_limit,
-            'plan_services_section_feature' => $package->services_section_feature,
-            'plan_service_limit' => $package->service_limit,
-            'plan_step_templates_feature' => $package->step_templates_feature,
-            'plan_step_template_limit' => $package->step_template_limit,
-            'plan_cash_register_limit' => $package->cash_register_limit,
-            'plan_api_key_feature' => $package->api_key_feature,
-            'plan_disk_usage_limit' => $package->disk_usage_limit,
-        ]);
+        // Tenant ve kullanıcı oluşturma işlemlerini transaction ile sar
+        [$tenant, $user, $tenantId] = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $s3Config, $package) {
+            $tenantId = Str::uuid()->toString();
+            $slug = Str::slug($validated['tenant_name']) . '-' . Str::random(6);
 
-        // Create default cash register for tenant
-        $tenant->cashRegisters()->create([
-            'name'       => 'Varsayılan Kasa',
-            'is_default' => true,
-        ]);
-
-        // Create as Paddle customer with trial (Only if it's a paid package)
-        if (!$package->isFree()) {
-            $tenant->createAsCustomer([
-                'email' => $validated['email'], // Tenant modelinde email olmadığı için manuel gönderiyoruz
-                'trial_ends_at' => now()->addDays($package->trial_days),
+            $tenant = Tenant::create([
+                'id'   => $tenantId,
+                'name' => $validated['tenant_name'],
+                'slug' => $slug,
+                's3_config_id' => $s3Config->id,
+                'package_id' => $package->id,
+                'plan_personnel_limit' => $package->personnel_limit,
+                'plan_customer_limit' => $package->customer_limit,
+                'plan_job_limit' => $package->job_limit,
+                'plan_appointment_feature' => $package->appointment_feature,
+                'plan_appointment_limit' => $package->appointment_limit,
+                'plan_service_tracking_feature' => $package->service_tracking_feature,
+                'plan_service_tracking_limit' => $package->service_tracking_limit,
+                'plan_service_tracking_category_feature' => $package->service_tracking_category_feature,
+                'plan_proposal_feature' => $package->proposal_feature,
+                'plan_proposal_limit' => $package->proposal_limit,
+                'plan_backup_feature' => $package->backup_feature,
+                'plan_backup_limit' => $package->backup_limit,
+                'plan_services_section_feature' => $package->services_section_feature,
+                'plan_service_limit' => $package->service_limit,
+                'plan_step_templates_feature' => $package->step_templates_feature,
+                'plan_step_template_limit' => $package->step_template_limit,
+                'plan_cash_register_limit' => $package->cash_register_limit,
+                'plan_api_key_feature' => $package->api_key_feature,
+                'plan_disk_usage_limit' => $package->disk_usage_limit,
+                'plan_single_file_limit' => $package->single_file_limit,
             ]);
-        }
 
-        // Create user as ADMIN
-        $user = User::create([
-            'id'          => Str::uuid()->toString(),
-            'name'        => $validated['name'],
-            'email'       => $validated['email'],
-            'password'    => Hash::make($validated['password']),
-            'role'        => 'ADMIN',
-            'is_approved' => true,
-            'tenant_id'   => $tenantId,
-        ]);
+            // Create default cash register for tenant
+            $tenant->cashRegisters()->create([
+                'name'       => 'Varsayılan Kasa',
+                'is_default' => true,
+            ]);
+
+            // Create user as ADMIN
+            $user = User::create([
+                'id'          => Str::uuid()->toString(),
+                'name'        => $validated['name'],
+                'email'       => $validated['email'],
+                'password'    => Hash::make($validated['password']),
+                'role'        => 'ADMIN',
+                'is_approved' => true,
+                'tenant_id'   => $tenantId,
+            ]);
+
+            return [$tenant, $user, $tenantId];
+        });
+
+        // Paddle işlemi transaction dışında (harici servis çağrısı)
+        if (!$package->isFree()) {
+            try {
+                $tenant->createAsCustomer([
+                    'email'         => $validated['email'],
+                    'trial_ends_at' => now()->addDays($package->trial_days),
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Paddle customer creation failed for tenant {$tenantId}: " . $e->getMessage());
+            }
+        }
 
         $token = $user->createToken('auth_token', ['*'], now()->addDays(30))->plainTextToken;
 

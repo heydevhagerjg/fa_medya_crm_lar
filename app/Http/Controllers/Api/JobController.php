@@ -16,8 +16,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Config;
-use App\Models\Admin;
-
 class JobController extends Controller
 {
     use HasTenantCache;
@@ -389,17 +387,15 @@ class JobController extends Controller
         ActivityLogService::log($request->user(), 'DELETE', 'JOB', $job->id, $job->title,
             "{$job->title} işi sistemden silindi.");
 
-        if (true) { // disk is now configured via middleware
-            $s3 = Storage::disk('s3_global');
-            
-            // İşin dosyalarını içeren klasörü sil
-            $s3->deleteDirectory("tenants/{$tenantId}/jobs/{$job->id}");
-            
-            // İşin ödemelerine ait dekontları sil
-            foreach ($job->payments as $payment) {
-                if ($payment->receipt_path) {
-                    $s3->delete($payment->receipt_path);
-                }
+        $s3 = Storage::disk('s3_global');
+
+        // İşin dosyalarını içeren klasörü sil
+        $s3->deleteDirectory("tenants/{$tenantId}/jobs/{$job->id}");
+
+        // İşin ödemelerine ait dekontları sil
+        foreach ($job->payments as $payment) {
+            if ($payment->receipt_path) {
+                $s3->delete($payment->receipt_path);
             }
         }
 

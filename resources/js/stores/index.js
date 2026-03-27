@@ -10,14 +10,10 @@ export const useAuthStore = create(
 
             setAuth: (user, token) => {
                 set({ user, token, isAuthenticated: true });
-                localStorage.setItem('crm_token', token);
-                localStorage.setItem('crm_user', JSON.stringify(user));
             },
 
             clearAuth: () => {
                 set({ user: null, token: null, isAuthenticated: false });
-                localStorage.removeItem('crm_token');
-                localStorage.removeItem('crm_user');
             },
 
             updateUser: (user) => set({ user }),

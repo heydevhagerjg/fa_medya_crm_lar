@@ -136,16 +136,18 @@ class WorkflowEngine
     private function handleSendEmail(Model $model, array $parameters)
     {
         $to = $this->replaceVariables($parameters['to'] ?? '', $model);
-        $subject = $this->replaceVariables($parameters['subject'] ?? ' CRM Bildirimi', $model);
+        $subject = $this->replaceVariables($parameters['subject'] ?? 'CRM Bildirimi', $model);
         $body = $this->replaceVariables($parameters['body'] ?? '', $model);
 
-        if (!empty($to)) {
-            Mail::raw($body, function ($message) use ($to, $subject) {
-                $message->to($to)->subject($subject);
+        if (!empty($to) && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $capturedSubject = $subject;
+            $capturedBody    = $body;
+            Mail::raw($capturedBody, function ($message) use ($to, $capturedSubject) {
+                $message->to($to)->subject($capturedSubject);
             });
-            return "Email sent to $to";
+            return "Email sent to {$to}";
         }
-        return "No email address found";
+        return "No valid email address found";
     }
 
     /**
@@ -225,8 +227,8 @@ class WorkflowEngine
     {
         $jobId = null;
         if ($model instanceof \App\Models\JobCrm) $jobId = $model->id;
-        elseif ($model->hasAttribute('job_id')) $jobId = $model->job_id;
-        elseif ($model->job) $jobId = $model->job->id;
+        elseif (isset($model->job_id) && $model->job_id) $jobId = $model->job_id;
+        elseif ($model->relationLoaded('job') && $model->job) $jobId = $model->job->id;
 
         if (!$jobId) return "No linked Job found for task";
 
@@ -254,15 +256,18 @@ class WorkflowEngine
         $offsetDays = (int)($parameters['offset_days'] ?? 0);
         $date = now()->addDays($offsetDays)->toDateString();
         $time = $parameters['time'] ?? '09:00';
+        $durationMinutes = (int)($parameters['duration'] ?? 30);
+
+        $startTime = \Illuminate\Support\Carbon::parse("{$date} {$time}");
+        $endTime = $startTime->copy()->addMinutes($durationMinutes);
 
         $appointment = \App\Models\Appointment::create([
-            'tenant_id' => $model->tenant_id,
+            'tenant_id'   => $model->tenant_id,
             'customer_id' => $customerId,
-            'title' => $title,
-            'appointment_date' => $date,
-            'appointment_time' => $time,
-            'duration' => $parameters['duration'] ?? 30,
-            'status' => 'PENDING'
+            'title'       => $title,
+            'start_time'  => $startTime,
+            'end_time'    => $endTime,
+            'status'      => 'PENDING',
         ]);
 
         return "Appointment created ID " . $appointment->id;

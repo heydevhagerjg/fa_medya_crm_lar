@@ -45,7 +45,7 @@ trait HasTenantCache
      */
     protected function getCacheTTL(): int
     {
-        $hours = (int) env('CACHE_TTL_HOURS', 24);
+        $hours = (int) config('cache.tenant_ttl_hours', 24);
         return $hours * 3600;
     }
 

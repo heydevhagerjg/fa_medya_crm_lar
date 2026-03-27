@@ -50,7 +50,7 @@ class DashboardController extends Controller
         $recentJobsQuery = JobCrm::where('tenant_id', $tenantId);
         if ($isUser) $recentJobsQuery->where('user_id', $user->id);
         $recentJobs = $recentJobsQuery->with(['customer', 'jobStatus'])
-            ->orderBy('created_at')
+            ->orderByDesc('created_at')
             ->limit(5)
             ->get()
             ->map(fn($j) => [
@@ -110,13 +110,22 @@ class DashboardController extends Controller
                 'count' => $item->count
             ]);
 
-        $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(function ($cr) use ($tenantId) {
-            $payments = Payment::where('tenant_id', $tenantId)->where('cash_register_id', $cr->id)->sum('amount');
-            $expenses = Expense::where('tenant_id', $tenantId)->where('cash_register_id', $cr->id)->sum('amount');
+        // N+1 önleme: tüm kasa ödemelerini ve giderlerini tek sorguda getir
+        $paymentTotalsByCashRegister = Payment::where('tenant_id', $tenantId)
+            ->selectRaw('cash_register_id, SUM(amount) as total')
+            ->groupBy('cash_register_id')
+            ->pluck('total', 'cash_register_id');
+
+        $expenseTotalsByCashRegister = Expense::where('tenant_id', $tenantId)
+            ->selectRaw('cash_register_id, SUM(amount) as total')
+            ->groupBy('cash_register_id')
+            ->pluck('total', 'cash_register_id');
+
+        $cashRegisters = CashRegister::where('tenant_id', $tenantId)->get()->map(function ($cr) use ($paymentTotalsByCashRegister, $expenseTotalsByCashRegister) {
             return [
                 'id'        => $cr->id,
                 'name'      => $cr->name,
-                'balance'   => $payments - $expenses,
+                'balance'   => ($paymentTotalsByCashRegister[$cr->id] ?? 0) - ($expenseTotalsByCashRegister[$cr->id] ?? 0),
                 'isDefault' => $cr->is_default,
             ];
         });

@@ -168,7 +168,7 @@ export default function DashboardLayout() {
     const [expandedSettings, setExpandedSettings] = useState(() => {
         return localStorage.getItem("settings-menu-expanded") === "true";
     });
-    const { user, setAuth, clearAuth } = useAuthStore();
+    const { user, setAuth, clearAuth, updateUser } = useAuthStore();
     const { theme, toggleTheme } = useThemeStore();
     const navigate = useNavigate();
     const location = useLocation();
@@ -176,7 +176,8 @@ export default function DashboardLayout() {
     useEffect(() => {
         api.get("/auth/me")
             .then((res) => {
-                setAuth(res.data, localStorage.getItem("crm_token"));
+                // Token'ı koruyarak sadece kullanıcı bilgisini güncelle
+                updateUser(res.data);
             })
             .catch(() => {});
     }, []);
