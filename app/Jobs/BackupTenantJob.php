@@ -54,8 +54,8 @@ class BackupTenantJob implements ShouldQueue
         
         try {
             // Create full ZIP backup (Data + Files)
-            // No password for auto backups unless configured globally? Let's use null for now.
-            $zipPath = $service->createBackupZip($tenantId);
+            // Exclude users to prevent email conflicts when importing to new tenants
+            $zipPath = $service->createBackupZip($tenantId, null, false);
             
             if (file_exists($zipPath)) {
                 $filename = basename($zipPath);

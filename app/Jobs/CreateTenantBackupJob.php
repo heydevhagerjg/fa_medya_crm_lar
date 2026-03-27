@@ -38,7 +38,7 @@ class CreateTenantBackupJob implements ShouldQueue
 
         $zipPath = null;
         try {
-            $zipPath = $service->createBackupZip($this->backup->tenant_id, null, true, function($p, $msg) {
+            $zipPath = $service->createBackupZip($this->backup->tenant_id, null, false, function($p, $msg) {
                 // Use Cache instead of DB for frequent updates
                 \Illuminate\Support\Facades\Cache::put("backup_status_{$this->backup->id}", [
                     'progress' => $p,
