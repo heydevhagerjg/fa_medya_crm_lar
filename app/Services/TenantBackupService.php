@@ -449,12 +449,23 @@ class TenantBackupService
 
     /**
      * Import a full ZIP backup into a target tenant
+     * 
+     * @param $zipPath Path to ZIP file
+     * @param $targetTenantId Target tenant ID
+     * @param $password Optional ZIP password
+     * @param $invokerUserId Optional user ID who initiated import
+     * @param $progressCallback Optional progress callback
+     * @param $manageRestoringFlag Whether to manage is_restoring flag (set true/false). 
+     *                             Set to false if caller manages the flag separately.
      */
-    public function importBackupZip($zipPath, $targetTenantId, $password = null, $invokerUserId = null, $progressCallback = null)
+    public function importBackupZip($zipPath, $targetTenantId, $password = null, $invokerUserId = null, $progressCallback = null, $manageRestoringFlag = true)
     {
-        // 0. Set restoring state
         $tenant = Tenant::findOrFail($targetTenantId);
-        $tenant->update(['is_restoring' => true]);
+        
+        // Only set restoring state if caller doesn't manage it separately
+        if ($manageRestoringFlag) {
+            $tenant->update(['is_restoring' => true]);
+        }
 
         try {
             $zip = new \ZipArchive();
@@ -849,11 +860,15 @@ class TenantBackupService
             
             $zip->close();
             
-            $tenant->update(['is_restoring' => false]);
+            if ($manageRestoringFlag) {
+                $tenant->update(['is_restoring' => false]);
+            }
             if ($progressCallback) $progressCallback(100, "Tamamlandı");
             return true;
         } catch (\Exception $e) {
-            $tenant->update(['is_restoring' => false]);
+            if ($manageRestoringFlag) {
+                $tenant->update(['is_restoring' => false]);
+            }
             throw $e;
         }
     }

@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\Package;
 use App\Models\S3Config;
 use App\Services\TenantBackupService;
+use App\Jobs\ImportBackupJob;
 use Illuminate\Support\Str;
 
 class CustomImport extends Command
@@ -92,63 +93,35 @@ class CustomImport extends Command
 
             $this->info("Firma oluşturuldu: {$tenant->id}");
 
-            // Verileri İçe Aktar
-            $this->info("Yedek verileri içe aktarılıyor...");
-
-            $progressBar = $this->output->createProgressBar(100);
-            $progressBar->start();
-
-            $startTime = microtime(true);
-            $lastUpdate = 0;
-            $timeStr = "Hesaplanıyor...";
-
-            $progressBar->setFormat(" %current%/%max% [%bar%] %percent:3s%% -- %message% (Tahmini Kalan Süre: %remaining_time%)");
-            $progressBar->setMessage($timeStr, 'remaining_time');
-
-            $service->importBackupZip($file, $tenant->id, null, null, function ($percent, $message) use ($progressBar, $startTime, &$lastUpdate, &$timeStr) {
-                $progressBar->setProgress($percent);
-                $now = microtime(true);
-
-                // Tahmini her 0.5 saniyede bir veya önemli ilerlemelerde güncelle
-                if ($percent > 0 && ($now - $lastUpdate > 0.5 || $percent == 100)) {
-                    $elapsed = $now - $startTime;
-
-                    // İlerleme çok küçükse tahmini henüz gösterme
-                    if ($percent >= 2) {
-                        $estimatedTotal = $elapsed / ($percent / 100);
-                        $remaining = max(0, round($estimatedTotal - $elapsed));
-
-                        if ($percent < 100) {
-                            $minutes = floor($remaining / 60);
-                            $seconds = $remaining % 60;
-                            $timeStr = ($minutes > 0 ? "{$minutes}dk " : "") . "{$seconds}sn";
-                        }
-                        else {
-                            $timeStr = "Tamamlandı";
-                        }
-                    }
-                    else {
-                        $timeStr = "Hesaplanıyor...";
-                    }
-                    $lastUpdate = $now;
-                }
-
-                $progressBar->setMessage($message);
-                $progressBar->setMessage($timeStr, 'remaining_time');
-            });
-
-            $progressBar->finish();
-            $this->line("");
-
-            // Yönetici Kullanıcıyı Oluştur (Import işlemi userları sildiği için sonra ekliyoruz)
+            // Yönetici Kullanıcıyı Oluştur (Import ÖNCE oluştur - çünkü resetTenantData() tüm userları siler)
             $this->info("Yönetici kullanıcısı oluşturuluyor...");
-            $service->createAdminForTenant($tenant->id, $adminName, $adminEmail, $adminPassword);
+            $adminUser = $service->createAdminForTenant($tenant->id, $adminName, $adminEmail, $adminPassword);
+            $this->info("Yönetici kullanıcısı başarıyla oluşturuldu.");
 
-            $this->info("\nTEBRİKLER! İçe aktarma başarıyla tamamlandı.");
+            // is_restoring flagını SET ET - middleware hemen istekleri bloke etmeye başlayacak
+            $tenant->update(['is_restoring' => true]);
+            $this->warn("İçe aktarma başlıyor - sistem restore modunda...");
+
+            // Yedek dosyasını temp dizine kopyala
+            $tempFile = storage_path('app/imports/temp_' . Str::random(16) . '.zip');
+            @mkdir(dirname($tempFile), 0755, true);
+            copy($file, $tempFile);
+
+            // Background job olarak import başlat - Admin user'ı korumak için invokerUserId geçiyoruz
+            // ImportBackupJob, is_restoring = true ile başlayıp (zaten true ama iyileme için), false ile bitirecek
+            ImportBackupJob::dispatch($tempFile, $tenant->id, null, $adminUser->id);
+
+            $this->info("\n✅ İçe aktarma işlemi başlatıldı (arka planda çalışıyor)");
             $this->info("Giriş Bilgileri:");
             $this->line("E-posta: {$adminEmail}");
             $this->line("Şifre: (Girdiğiniz şifre)");
             $this->line("Firma: {$tenantName}");
+            $this->warn("\n📌 Bilgiler:");
+            $this->line("• Sistem restore modundadır");
+            $this->line("• İçe aktarma arka planda çalışıyor");
+            $this->line("• Tamamlanana kadar \"Yedekten geri dönülüyor... Lütfen bekleyin.\" mesajı göreceksiniz");
+            $this->line("• Queue worker'ın çalışıyor olduğundan emin olun: php artisan queue:listen");
+
 
         }
         catch (\Exception $e) {
