@@ -68,27 +68,17 @@ class Tenant extends Model
      */
     public function deleteS3Folder()
     {
-        if (!$this->s3_config_id) return;
+        $disk = self::getS3DiskForTenant($this->id);
+        if (!$disk) return;
 
-        $s3Config = $this->s3Config;
-        if (!$s3Config) return;
-
-        // Temporarily configure disk
-        config(['filesystems.disks.s3_cleanup' => [
-            'driver' => 's3',
-            'key' => trim($s3Config->aws_access_key_id),
-            'secret' => trim($s3Config->aws_secret_access_key),
-            'region' => trim($s3Config->aws_region),
-            'bucket' => trim($s3Config->aws_bucket_name),
-            'use_path_style_endpoint' => false,
-            'throw' => false
-        ]]);
-
-        $disk = \Illuminate\Support\Facades\Storage::disk('s3_cleanup');
         $folder = "tenants/{$this->id}";
 
-        if ($disk->exists($folder)) {
-            $disk->deleteDirectory($folder);
+        try {
+            if ($disk->exists($folder)) {
+                $disk->deleteDirectory($folder);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("S3 Directory deletion failed for tenant {$this->id}: " . $e->getMessage());
         }
     }
 
@@ -102,21 +92,18 @@ class Tenant extends Model
         if (!$tenant || !$tenant->s3Config) return null;
 
         $config = $tenant->s3Config;
-        $diskName = "tenant_s3_cleanup_" . str_replace('-', '_', $tenantId);
         
-        if (!config("filesystems.disks.{$diskName}")) {
-            config(["filesystems.disks.{$diskName}" => [
-                'driver' => 's3',
-                'key' => trim($config->aws_access_key_id),
-                'secret' => trim($config->aws_secret_access_key),
-                'region' => trim($config->aws_region),
-                'bucket' => trim($config->aws_bucket_name),
-                'use_path_style_endpoint' => false,
-                'throw' => false
-            ]]);
-        }
-
-        return \Illuminate\Support\Facades\Storage::disk($diskName);
+        return \Illuminate\Support\Facades\Storage::build([
+            'driver' => 's3',
+            'key' => trim($config->aws_access_key_id),
+            'secret' => trim($config->aws_secret_access_key),
+            'region' => trim($config->aws_region),
+            'bucket' => trim($config->aws_bucket_name),
+            'endpoint' => $config->aws_endpoint ? trim($config->aws_endpoint) : null,
+            'use_path_style_endpoint' => (bool)$config->use_path_style_endpoint,
+            'throw' => false,
+            'version' => 'latest'
+        ]);
     }
 
     protected $fillable = [
