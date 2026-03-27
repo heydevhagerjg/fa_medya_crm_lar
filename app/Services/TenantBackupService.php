@@ -319,10 +319,13 @@ class TenantBackupService
                         foreach ($batch as $f) {
                             $tempF = $tempDir . '/' . Str::random(16);
                             $relP = str_replace("tenants/{$tenantId}/", "", $f);
+                            // S3'ten dosya boyutunu al
+                            $s3Size = $s3->size($f);
                             $batchItems[] = [
                                 'temp'     => $tempF,
                                 'relative' => $relP,
                                 'original' => $f,
+                                's3_size'  => $s3Size,
                             ];
                         }
 
@@ -331,13 +334,17 @@ class TenantBackupService
                             $progressCallback($p, "Dosyalar indiriliyor: ".($processedFiles + 1)."/$totalFiles");
                         }
 
-                        // Parallel Download — 120 sn timeout, prod için yeterli
+                        // Parallel Download — timeout'u dosya boyutuna göre dinamik yap
                         try {
                             Http::pool(function ($pool) use ($batchItems, $s3) {
                                 return collect($batchItems)->map(function ($item) use ($pool, $s3) {
                                     try {
+                                        // Büyük dosyalar için timeout'u artır (1 MB başına 1 saniye min, max 600 sn)
+                                        $sizeMb = ($item['s3_size'] ?? 0) / (1024 * 1024);
+                                        $timeout = max(120, min(600, (int)ceil($sizeMb)));
+                                        
                                         $url = $s3->temporaryUrl($item['original'], now()->addMinutes(30));
-                                        return $pool->timeout(120)->sink($item['temp'])->get($url);
+                                        return $pool->timeout($timeout)->sink($item['temp'])->get($url);
                                     } catch (\Exception $e) {
                                         \Illuminate\Support\Facades\Log::warning("Backup pool URL hatası [{$item['original']}]: " . $e->getMessage());
                                         return null;
@@ -350,7 +357,10 @@ class TenantBackupService
 
                         // Fallback: pool'dan gelemeyen dosyaları sıralı stream ile indir
                         foreach ($batchItems as $item) {
-                            if (!File::exists($item['temp']) || filesize($item['temp']) === 0) {
+                            $localSize = File::exists($item['temp']) ? filesize($item['temp']) : 0;
+                            $needsRedownload = !File::exists($item['temp']) || $localSize === 0 || $localSize !== $item['s3_size'];
+                            
+                            if ($needsRedownload) {
                                 $readStream  = null;
                                 $writeStream = null;
                                 try {
@@ -373,6 +383,14 @@ class TenantBackupService
                                     $copied = stream_copy_to_stream($readStream, $writeStream);
                                     if ($copied === false) {
                                         \Illuminate\Support\Facades\Log::error("Backup: stream_copy başarısız [{$item['original']}]");
+                                        @unlink($item['temp']);
+                                    } else {
+                                        // Kopyalanan bytes'ı S3 boyutu ile kontrol et
+                                        $downloadedSize = filesize($item['temp']);
+                                        if ($downloadedSize !== $item['s3_size']) {
+                                            \Illuminate\Support\Facades\Log::error("Backup: Kısmi indirme tespit edildi [{$item['original']}] - Beklenen: {$item['s3_size']} bytes, İndirilen: {$downloadedSize} bytes");
+                                            @unlink($item['temp']);
+                                        }
                                     }
                                 } catch (\Exception $e) {
                                     \Illuminate\Support\Facades\Log::error("Backup: Dosya indirme hatası [{$item['original']}]: " . $e->getMessage());
@@ -383,8 +401,9 @@ class TenantBackupService
                                 }
                             }
 
-                            // Dosya başarıyla indirilmişse ZIP'e ekle
-                            if (File::exists($item['temp']) && filesize($item['temp']) > 0) {
+                            // Dosya başarıyla indirilmişse ZIP'e ekle - boyut kontrolü yap
+                            $finalSize = File::exists($item['temp']) ? filesize($item['temp']) : 0;
+                            if (File::exists($item['temp']) && $finalSize === $item['s3_size'] && $finalSize > 0) {
                                 $zip->addFile($item['temp'], 'files/' . $item['relative']);
                                 $zip->setCompressionName('files/' . $item['relative'], \ZipArchive::CM_STORE);
                                 if ($password) {
@@ -392,7 +411,11 @@ class TenantBackupService
                                 }
                                 $tempFilesToCleanup[] = $item['temp'];
                             } else {
-                                \Illuminate\Support\Facades\Log::warning("Backup: Dosya atlandı (indirilemedi) [{$item['original']}]");
+                                if ($finalSize !== $item['s3_size']) {
+                                    \Illuminate\Support\Facades\Log::warning("Backup: Dosya boyutu uyuşmadığı için atlandı [{$item['original']}] - Beklenen: {$item['s3_size']}, İndirilen: {$finalSize}");
+                                } else {
+                                    \Illuminate\Support\Facades\Log::warning("Backup: Dosya atlandı (indirilemedi) [{$item['original']}]");
+                                }
                             }
 
                             $processedFiles++;
