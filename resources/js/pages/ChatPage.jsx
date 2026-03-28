@@ -283,10 +283,25 @@ export default function ChatPage() {
         } catch { toast.error('Mesajlar yüklenemedi.') }
     }, [])
 
+    const markAsRead = useCallback((chatId) => {
+        if (!chatId) return
+        api.post(`/chats/${chatId}/read`)
+        
+        // Instant UI reset for unread count in the sidebar
+        queryClient.setQueryData(['chats'], (old) => {
+            if (!Array.isArray(old)) return old
+            return old.map(c => c.id === chatId ? { ...c, unread_count: 0 } : c)
+        })
+    }, [queryClient])
+
     useEffect(() => {
-        if (selectedChat?.id) { fetchMessages(selectedChat.id); api.post(`/chats/${selectedChat.id}/read`) }
-        else setMessages([])
-    }, [selectedChat, fetchMessages])
+        if (selectedChat?.id) { 
+            fetchMessages(selectedChat.id)
+            markAsRead(selectedChat.id)
+        } else {
+            setMessages([])
+        }
+    }, [selectedChat, fetchMessages, markAsRead])
 
     useEffect(() => {
         if (!selectedChat?.id || !window.Echo) return
@@ -301,10 +316,10 @@ export default function ChatPage() {
                 }
 
                 setMessages(prev => prev.some(m => m.id === e.id) ? prev : [...prev, e])
-                api.post(`/chats/${selectedChat.id}/read`)
+                markAsRead(selectedChat.id)
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
-    }, [selectedChat, currentUser, queryClient])
+    }, [selectedChat, currentUser, queryClient, markAsRead])
 
     const handleSendMessage = async (content) => {
         if (!selectedChat?.id) return

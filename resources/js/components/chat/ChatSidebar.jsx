@@ -100,7 +100,7 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                     : <span>{chat.name?.charAt(0).toUpperCase() || <Hash size={18} />}</span>
                   }
                 </div>
-                {chat.unread_count > 0 && (
+                {chat.unread_count > 0 && !isActive && (
                   <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-[#905efc] text-white text-[10px] font-bold flex items-center justify-center rounded-full px-1 border-2 border-[#F4F5F7] dark:border-[#0D0D1A]">
                     {chat.unread_count}
                   </span>
@@ -133,7 +133,7 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <h3 className={`text-sm truncate leading-tight ${
-                        chat.unread_count > 0 
+                        chat.unread_count > 0 && !isActive
                           ? 'font-bold text-[#1A1A2E] dark:text-white' 
                           : 'font-semibold text-[#1A1A2E]/80 dark:text-white/80'
                       }`}>
@@ -141,18 +141,18 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                       </h3>
                       {chat.last_message_at && (
                         <span className={`text-[10px] flex-shrink-0 ml-2 ${
-                          chat.unread_count > 0 ? 'text-[#905efc] font-bold' : 'text-[#9097A6]'
+                          chat.unread_count > 0 && !isActive ? 'text-[#905efc] font-bold' : 'text-[#9097A6]'
                         }`}>
                           {formatDistanceToNow(new Date(chat.last_message_at), { addSuffix: false, locale: tr })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      {chat.last_message && !chat.unread_count && (
+                      {chat.last_message && !chat.unread_count && !isActive && (
                         <CheckCheck size={12} className={chat.last_message.read_count > 0 ? 'text-[#905efc] flex-shrink-0' : 'text-[#9097A6] flex-shrink-0'} />
                       )}
                       <p className={`text-[12px] truncate leading-tight ${
-                        chat.unread_count > 0 ? 'text-[#1A1A2E] dark:text-white font-medium' : 'text-[#9097A6]'
+                        chat.unread_count > 0 && !isActive ? 'text-[#1A1A2E] dark:text-white font-medium' : 'text-[#9097A6]'
                       }`}>
                         {chat.last_message
                           ? chat.last_message.content
