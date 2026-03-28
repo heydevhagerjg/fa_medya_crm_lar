@@ -107,7 +107,11 @@ class ChatService
             })
             ->with(['chat.lastMessage', 'chat.participants.user'])
             ->get()
-            ->map(fn($p) => $p->chat)
+            ->map(function ($p) {
+                $chat = $p->chat;
+                $chat->unread_count = $p->unread_count;
+                return $chat;
+            })
             ->sortByDesc('last_message_at')
             ->values();
     }

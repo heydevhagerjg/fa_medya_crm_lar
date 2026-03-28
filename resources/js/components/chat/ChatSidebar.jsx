@@ -81,7 +81,9 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
               className={`relative flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-200 group ${
                 isActive
                   ? 'bg-white dark:bg-white/10 shadow-sm'
-                  : 'hover:bg-white/70 dark:hover:bg-white/5'
+                  : chat.unread_count > 0
+                    ? 'bg-[#905efc]/5 dark:bg-[#905efc]/10 hover:bg-[#905efc]/8 dark:hover:bg-[#905efc]/15'
+                    : 'hover:bg-white/70 dark:hover:bg-white/5'
               }`}
             >
               {/* Avatar */}
@@ -89,7 +91,9 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold ${
                   isActive
                     ? 'bg-[#905efc]/15 text-[#905efc]'
-                    : 'bg-[#1A1A2E]/10 dark:bg-white/10 text-[#1A1A2E] dark:text-white'
+                    : chat.unread_count > 0
+                      ? 'bg-[#905efc]/10 text-[#905efc]'
+                      : 'bg-[#1A1A2E]/10 dark:bg-white/10 text-[#1A1A2E] dark:text-white'
                 }`}>
                   {chat.icon
                     ? <i className={chat.icon} />
@@ -117,7 +121,7 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                     </button>
                     <button
                       onClick={handleCancelDelete}
-                      className="flex-1 py-1 rounded-lg bg-[#E5E9F0] dark:bg-white/10 text-[#1A1A2E] dark:text-white text-[11px] font-bold hover:bg-[#d5d9e0] dark:hover:bg-white/20 transition-colors"
+                      className="flex-1 py-1 rounded-lg bg-[#E5E9F0] dark:bg-white/10 text-[#1A1A2E] dark:text-white text-[11px] font-bold hover:bg-[#d5d9e0] dark:hover:bg-white/20 transition-all"
                     >
                       Vazgeç
                     </button>
@@ -128,20 +132,28 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                 <>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <h3 className="text-sm font-semibold truncate text-[#1A1A2E] dark:text-white">
+                      <h3 className={`text-sm truncate leading-tight ${
+                        chat.unread_count > 0 
+                          ? 'font-bold text-[#1A1A2E] dark:text-white' 
+                          : 'font-semibold text-[#1A1A2E]/80 dark:text-white/80'
+                      }`}>
                         {chat.name}
                       </h3>
                       {chat.last_message_at && (
-                        <span className="text-[10px] text-[#9097A6] flex-shrink-0 ml-2">
+                        <span className={`text-[10px] flex-shrink-0 ml-2 ${
+                          chat.unread_count > 0 ? 'text-[#905efc] font-bold' : 'text-[#9097A6]'
+                        }`}>
                           {formatDistanceToNow(new Date(chat.last_message_at), { addSuffix: false, locale: tr })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      {chat.last_message && (
+                      {chat.last_message && !chat.unread_count && (
                         <CheckCheck size={12} className={chat.last_message.read_count > 0 ? 'text-[#905efc] flex-shrink-0' : 'text-[#9097A6] flex-shrink-0'} />
                       )}
-                      <p className="text-[12px] text-[#9097A6] truncate leading-tight">
+                      <p className={`text-[12px] truncate leading-tight ${
+                        chat.unread_count > 0 ? 'text-[#1A1A2E] dark:text-white font-medium' : 'text-[#9097A6]'
+                      }`}>
                         {chat.last_message
                           ? chat.last_message.content
                           : (chat.description || 'Henüz mesaj yok...')
