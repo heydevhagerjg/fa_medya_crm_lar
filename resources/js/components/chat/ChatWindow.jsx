@@ -1,7 +1,109 @@
 import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
-import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, MessageCircle } from 'lucide-react'
+import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, MessageCircle, X, Check, User } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '../../lib/api.js'
+import { toast } from 'react-hot-toast'
+
+function AddMemberModal({ open, onClose, chat }) {
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState([])
+  const queryClient = useQueryClient()
+
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['users-list'],
+    queryFn: () => api.get('/settings/users').then(r => r.data?.data || [])
+  })
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: (userIds) => api.post(`/chats/${chat.id}/participants`, { participant_ids: userIds }),
+    onSuccess: () => {
+      toast.success('Kullanıcılar gruba eklendi!')
+      queryClient.invalidateQueries(['chats'])
+      onClose()
+      setSelected([])
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Bir hata oluştu')
+    }
+  })
+
+  if (!open) return null
+
+  const existingIds = chat.participants?.map(p => p.user_id) || []
+  const availableUsers = users.filter(u => !existingIds.includes(u.id))
+  const filtered = availableUsers.filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
+
+  const toggleUser = (uId) => setSelected(prev => prev.includes(uId) ? prev.filter(id => id !== uId) : [...prev, uId])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-[#12122A] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5">
+          <h2 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Gruba Üye Ekle</h2>
+          <button onClick={onClose} className="p-2 text-[#9097A6] hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <div className="relative mb-4">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9097A6]" size={18} />
+            <input
+              type="text"
+              placeholder="Kişi ara..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
+            />
+          </div>
+
+          <div className="h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+            {isLoading ? (
+              <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin"/></div>
+            ) : filtered.length > 0 ? (
+              filtered.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => toggleUser(u.id)}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${
+                    selected.includes(u.id) 
+                      ? 'bg-[#905efc]/10 text-[#905efc]' 
+                      : 'hover:bg-[#F4F5F7] dark:hover:bg-white/5 text-[#1A1A2E] dark:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
+                      selected.includes(u.id) ? 'bg-[#905efc] text-white' : 'bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6]'
+                    }`}>
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-sm font-semibold text-left">
+                      <div>{u.name}</div>
+                      <div className="text-[10px] opacity-60 font-normal">{u.role}</div>
+                    </div>
+                  </div>
+                  {selected.includes(u.id) ? <Check size={18} /> : <div className="w-4 h-4 rounded-full border-2 border-[#E5E9F0] dark:border-white/10" />}
+                </button>
+              ))
+            ) : (
+              <div className="text-center py-4 text-xs text-[#9097A6]">Eklenecek yeni kullanıcı bulunamadı.</div>
+            )}
+          </div>
+          
+          <button
+            onClick={() => mutate(selected)}
+            disabled={isPending || selected.length === 0}
+            className="w-full mt-4 py-3 rounded-xl bg-[#905efc] text-white text-sm font-bold hover:bg-[#7c4ef0] active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+          >
+            {isPending ? 'Ekleniyor...' : `Seçili Kişileri Ekle (${selected.length})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function ChatWindow({
   chat,
@@ -15,6 +117,9 @@ export default function ChatWindow({
 }) {
   const scrollRef = useRef(null)
   const [showInfo, setShowInfo] = useState(false)
+  const [showAddMember, setShowAddMember] = useState(false)
+  
+  const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner')
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -40,8 +145,9 @@ export default function ChatWindow({
   const totalCount = chat.participants?.length || 0
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden bg-white dark:bg-[#0A0A18]">
-      {/* Main Chat Area */}
+    <>
+      <div className="flex-1 flex h-full overflow-hidden bg-white dark:bg-[#0A0A18]">
+        {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         
         {/* Chat Header */}
@@ -162,9 +268,11 @@ export default function ChatWindow({
                   <h5 className="text-xs font-bold text-[#9097A6] uppercase tracking-wider">
                     Üyeler ({chat.participants.length})
                   </h5>
-                  <button className="text-[#905efc] hover:opacity-70 transition-opacity">
-                    <UserPlus size={14} />
-                  </button>
+                  {isOwnerOrAdmin && chat.chateable_type === 'Group' && (
+                    <button onClick={() => setShowAddMember(true)} className="text-[#905efc] hover:opacity-70 transition-opacity">
+                      <UserPlus size={14} />
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {chat.participants.map(p => (
@@ -196,5 +304,7 @@ export default function ChatWindow({
         </aside>
       )}
     </div>
+      <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} chat={chat} />
+    </>
   )
 }

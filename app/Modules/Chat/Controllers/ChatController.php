@@ -99,6 +99,37 @@ class ChatController extends Controller
     }
 
     /**
+     * Add new participants to an existing chat.
+     */
+    public function addParticipants(Chat $chat, Request $request): JsonResponse
+    {
+        $request->validate([
+            'participant_ids' => 'required|array',
+            'participant_ids.*' => 'exists:users,id'
+        ]);
+
+        $user = $request->user();
+
+        // Only owner or admin can add participants to a group
+        $isOwner = $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+
+        if (!$isOwner && !$isAdmin) {
+            return response()->json(['message' => 'Sadece sohbet yöneticileri yeni üye ekleyebilir.'], 403);
+        }
+
+        $this->chatService->addParticipants($chat, $request->participant_ids);
+
+        // Optionally dispatch an event if needed
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kullanıcılar eklendi.',
+            'data' => $chat->load('participants.user')
+        ]);
+    }
+
+    /**
      * Show chat details with initial messages.
      */
     public function show(Chat $chat, Request $request): JsonResponse
