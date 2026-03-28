@@ -18,7 +18,7 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
 
     const { data: users = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery({
         queryKey: ['users-list'],
-        queryFn: () => api.get('/settings/users').then(r => {
+        queryFn: () => api.get('/chats/users-list').then(r => {
             const raw = r.data?.data || r.data || []
             return Array.isArray(raw) ? raw : []
         }),
@@ -412,7 +412,7 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="-m-5 lg:-m-8 h-[calc(100vh-70px)] flex overflow-hidden bg-white dark:bg-[#0A0A18] animate-in fade-in zoom-in-95 duration-500">
+        <div className="-m-5 lg:-m-8 h-[calc(100dvh-70px)] flex overflow-hidden bg-white dark:bg-[#0A0A18] animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
 
             <div className={`w-full md:w-[320px] flex-shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
@@ -422,6 +422,7 @@ export default function ChatPage() {
                     onSelectChat={setSelectedChat}
                     onNewChat={() => setIsNewChatModalOpen(true)}
                     onDeleteChat={(chat) => deleteChatMutation.mutate(chat.id)}
+                    currentUser={currentUser}
                 />
             </div>
 

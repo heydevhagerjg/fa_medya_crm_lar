@@ -8,7 +8,10 @@ Route::get('/chats/attachments/{id}', [MessageController::class, 'proxyAttachmen
     ->name('chats.attachment.proxy')
     ->middleware('signed');
 
-Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan:chat'])->group(function () {
+    // ─── UTILS ───────────────────────────────────────────────────────────
+    Route::get('/chats/users-list', [ChatController::class, 'listUsers']);
+
     // ─── CHATS ───────────────────────────────────────────────────────────
     Route::get('/chats', [ChatController::class, 'index']);
     Route::post('/chats', [ChatController::class, 'store']);

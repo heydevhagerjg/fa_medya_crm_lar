@@ -368,7 +368,7 @@ export default function ChatWindow({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className="relative flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
+            className="relative flex-1 overflow-y-auto px-2.5 md:px-6 py-3 md:py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
             style={{ scrollBehavior: 'smooth' }}
           >
             {/* Drag and Drop Overlay */}

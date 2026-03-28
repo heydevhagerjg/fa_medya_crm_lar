@@ -34,6 +34,9 @@ class Package extends Model
         'api_key_feature',
         'disk_usage_limit',
         'single_file_limit',
+        'chat_feature',
+        'chat_limit',
+        'group_chat_limit',
         'is_active',
         'is_popular',
     ];
@@ -47,10 +50,13 @@ class Package extends Model
         'services_section_feature' => 'boolean',
         'step_templates_feature' => 'boolean',
         'api_key_feature' => 'boolean',
+        'chat_feature' => 'boolean',
         'is_active' => 'boolean',
         'is_popular' => 'boolean',
         'disk_usage_limit' => 'integer',
         'single_file_limit' => 'integer',
+        'chat_limit' => 'integer',
+        'group_chat_limit' => 'integer',
     ];
 
     public function tenants(): HasMany

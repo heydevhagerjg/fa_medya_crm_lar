@@ -3,10 +3,14 @@ import { Plus, Search, CheckCheck, Hash, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
-export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNewChat, onDeleteChat }) {
+export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNewChat, onDeleteChat, currentUser }) {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'
+  const canCreate = currentUser?.permissions?.includes('chat.create')
+  const canDeleteGlobal = currentUser?.permissions?.includes('chat.delete')
 
   const filtered = chats.filter(c => {
     const searchLower = (search || '').toString().toLowerCase()
@@ -160,13 +164,15 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
                   </div>
 
                   {/* Delete button — visible on hover */}
-                  <button
-                    onClick={(e) => handleDeleteClick(e, chat.id)}
-                    className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Sohbeti Sil"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {(chat.created_by === currentUser?.id || isAdmin || canDeleteGlobal) && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, chat.id)}
+                      className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                      title="Sohbeti Sil"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -184,15 +190,17 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
       </div>
 
       {/* New Chat Button */}
-      <div className="p-3 border-t border-[#E5E9F0] dark:border-white/5">
-        <button
-          onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-[#905efc] text-white text-sm font-semibold hover:bg-[#7c4ef0] active:scale-95 transition-all shadow-lg shadow-[#905efc]/25"
-        >
-          <Plus size={18} />
-          Yeni Sohbet
-        </button>
-      </div>
+      {(canCreate || isAdmin) && (
+        <div className="p-3 border-t border-[#E5E9F0] dark:border-white/5">
+          <button
+            onClick={onNewChat}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-[#905efc] text-white text-sm font-semibold hover:bg-[#7c4ef0] active:scale-95 transition-all shadow-lg shadow-[#905efc]/25"
+          >
+            <Plus size={18} />
+            Yeni Sohbet
+          </button>
+        </div>
+      )}
     </div>
   )
 }

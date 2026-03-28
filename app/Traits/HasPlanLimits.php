@@ -64,6 +64,8 @@ trait HasPlanLimits
         return match ($resource) {
             'template', 'step_template', 'templates' => 'plan_step_template_limit',
             'service', 'services' => 'plan_service_limit',
+            'chat' => 'plan_chat_limit',
+            'group_chat' => 'plan_group_chat_limit',
             default => 'plan_' . $resource . '_limit',
         };
     }
@@ -85,6 +87,8 @@ trait HasPlanLimits
             'proposal' => DB::table('proposals')->where('tenant_id', $this->id)->count(),
             'backup' => DB::table('backup_keys')->where('tenant_id', $this->id)->count(),
             'service_tracking_category' => DB::table('service_tracking_categories')->where('tenant_id', $this->id)->count(),
+            'chat' => DB::table('chats')->where('tenant_id', $this->id)->where('chateable_type', 'User')->count(),
+            'group_chat' => DB::table('chats')->where('tenant_id', $this->id)->where('chateable_type', 'Group')->count(),
             default => 0,
         };
     }
@@ -130,6 +134,8 @@ trait HasPlanLimits
             'backup' => 'Yedekleme',
             'api_key' => 'API Anahtarı',
             'service_tracking_category' => 'Hizmet Takip Kategorisi',
+            'chat' => 'Sohbet',
+            'group_chat' => 'Grup Sohbeti',
             default => $feature,
         };
     }

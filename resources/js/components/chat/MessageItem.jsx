@@ -71,7 +71,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
 
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isSequential ? 'mt-0.5 mb-0.5' : 'mt-3 mb-0.5'} group`}>
-      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5 max-w-[75%]`}>
+      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5 max-w-[85%] md:max-w-[75%]`}>
 
         {/* Avatar */}
         {!isOwn && (
@@ -135,7 +135,7 @@ function AttachmentImage({ file, onClick, overlay, isImageOnly }) {
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl overflow-hidden border border-white/10 shadow-md ${isImageOnly ? 'w-[240px] h-[180px]' : 'w-[150px] h-[107px]'} bg-black/20 relative flex items-center justify-center cursor-pointer group/img transition-all`}
+      className={`rounded-xl overflow-hidden border border-white/10 shadow-md ${isImageOnly ? 'w-[210px] h-[160px] md:w-[240px] md:h-[180px]' : 'w-[130px] h-[90px] md:w-[150px] md:h-[107px]'} bg-black/20 relative flex items-center justify-center cursor-pointer group/img transition-all`}
     >
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">

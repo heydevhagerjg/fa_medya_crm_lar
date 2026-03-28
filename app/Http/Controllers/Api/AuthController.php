@@ -66,6 +66,9 @@ class AuthController extends Controller
                 'plan_api_key_feature' => $package->api_key_feature,
                 'plan_disk_usage_limit' => $package->disk_usage_limit,
                 'plan_single_file_limit' => $package->single_file_limit,
+                'plan_chat_feature' => $package->chat_feature,
+                'plan_chat_limit' => $package->chat_limit,
+                'plan_group_chat_limit' => $package->group_chat_limit,
             ]);
 
             // Create default cash register for tenant
@@ -259,11 +262,14 @@ class AuthController extends Controller
                 'plan_api_key_feature'          => $user->tenant->plan_api_key_feature,
                 'plan_services_section_feature' => $user->tenant->plan_services_section_feature,
                 'plan_step_templates_feature'   => $user->tenant->plan_step_templates_feature,
+                'plan_chat_feature'             => $user->tenant->plan_chat_feature,
                 
                 // Limits (Optional but useful)
-                'plan_customer_limit'  => $user->tenant->plan_customer_limit,
-                'plan_job_limit'       => $user->tenant->plan_job_limit,
-                'plan_personnel_limit' => $user->tenant->plan_personnel_limit,
+                'plan_customer_limit'    => $user->tenant->plan_customer_limit,
+                'plan_job_limit'         => $user->tenant->plan_job_limit,
+                'plan_personnel_limit'   => $user->tenant->plan_personnel_limit,
+                'plan_chat_limit'        => $user->tenant->plan_chat_limit,
+                'plan_group_chat_limit'  => $user->tenant->plan_group_chat_limit,
             ];
         }
 

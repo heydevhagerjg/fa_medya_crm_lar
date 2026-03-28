@@ -31,6 +31,8 @@ class PermissionSeeder extends Seeder
             'logs.view',
             // Files
             'files.view', 'files.view_all', 'files.upload', 'files.rename', 'files.delete',
+            // Chat
+            'chat.create', 'chat.delete',
         ];
 
         foreach ($permissions as $permission) {

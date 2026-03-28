@@ -34,6 +34,19 @@ class ChatController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+
+        if (!$isAdmin && !$user->can('chat.create')) {
+            return response()->json(['message' => 'Sohbet oluşturma yetkiniz bulunmamaktadır.'], 403);
+        }
+
+        // Plan check (Middleware handles general chat check, we check count here)
+        if ($user->tenant->reachedLimit('chat')) {
+            $limit = $user->tenant->getLimitValue('chat');
+            return response()->json(['message' => "Maksimum {$limit} adet sohbet limitine ulaştınız. Lütfen paketinizi yükseltiniz."], 403);
+        }
+
         $request->validate([
             'entity_type'    => 'required|string',
             'entity_id'      => 'required',
@@ -56,6 +69,19 @@ class ChatController extends Controller
      */
     public function storeGroup(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+
+        if (!$isAdmin && !$user->can('chat.create')) {
+            return response()->json(['message' => 'Grup oluşturma yetkiniz bulunmamaktadır.'], 403);
+        }
+
+        // Plan check
+        if ($user->tenant->reachedLimit('group_chat')) {
+            $limit = $user->tenant->getLimitValue('group_chat');
+            return response()->json(['message' => "Maksimum {$limit} adet grup sohbeti limitine ulaştınız. Lütfen paketinizi yükseltiniz."], 403);
+        }
+
         $request->validate([
             'name'           => 'required|string|max:100',
             'participant_ids'=> 'required|array|min:2',
@@ -75,22 +101,24 @@ class ChatController extends Controller
 
     /**
      * Delete (permanently remove) a chat.
-     * Only the chat owner or a tenant admin can delete.
+     * Only the chat owner or a tenant admin or user with chat.delete can delete.
      */
     public function destroy(Chat $chat, Request $request): JsonResponse
     {
         $user = $request->user();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+        $hasDeletePermission = $user->can('chat.delete');
 
+        // Check if user is a participant
         $isParticipant = $chat->participants()->where('user_id', $user->id)->exists();
         if (!$isParticipant) {
             return response()->json(['message' => 'Bu sohbete erişim yetkiniz yok.'], 403);
         }
 
         $isOwner = $chat->created_by === $user->id;
-        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
 
-        if (!$isOwner && !$isAdmin) {
-            return response()->json(['message' => 'Sohbeti yalnızca oluşturan kişi veya yönetici silebilir.'], 403);
+        if (!$isOwner && !$isAdmin && !$hasDeletePermission) {
+            return response()->json(['message' => 'Sohbeti silme yetkiniz bulunmamaktadır.'], 403);
         }
 
         // Delete all attachments in the chat from S3
@@ -123,6 +151,12 @@ class ChatController extends Controller
 
         $user = $request->user();
 
+        // Check if user is a participant
+        $isParticipant = $chat->participants()->where('user_id', $user->id)->exists();
+        if (!$isParticipant) {
+            return response()->json(['message' => 'Bu sohbete erişim yetkiniz yok.'], 403);
+        }
+
         // Only owner or admin can add participants to a group
         $isOwner = $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
         $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
@@ -154,6 +188,12 @@ class ChatController extends Controller
     public function removeParticipant(Chat $chat, string $userId, Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Check if user is a participant
+        $isParticipant = $chat->participants()->where('user_id', $user->id)->exists();
+        if (!$isParticipant) {
+            return response()->json(['message' => 'Bu sohbete erişim yetkiniz yok.'], 403);
+        }
 
         // Check permissions
         $isOwner = $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
@@ -191,8 +231,11 @@ class ChatController extends Controller
      */
     public function show(Chat $chat, Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+
         // Check if user is a participant
-        $isParticipant = $chat->participants()->where('user_id', $request->user()->id)->exists();
+        $isParticipant = $chat->participants()->where('user_id', $user->id)->exists();
         if (!$isParticipant) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -208,6 +251,23 @@ class ChatController extends Controller
                 'next_cursor' => $pagination['next_cursor'],
                 'has_more' => $pagination['has_more'],
             ]
+        ]);
+    }
+
+    /**
+     * List all users in the tenant for chat selection.
+     */
+    public function listUsers(Request $request): JsonResponse
+    {
+        $users = \App\Models\User::where('tenant_id', $request->user()->tenant_id)
+            ->where('id', '!=', $request->user()->id) // Don't list self if you want, but usually you don't start a chat with yourself this way
+            ->select(['id', 'name', 'role'])
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $users
         ]);
     }
 }

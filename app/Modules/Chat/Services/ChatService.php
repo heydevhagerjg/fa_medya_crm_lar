@@ -118,6 +118,29 @@ class ChatService
     }
 
     /**
+     * Get ALL chats for a tenant (Admins only).
+     */
+    public function getTenantChats(string $tenantId, string $userId): Collection
+    {
+        // Get all chats in the tenant
+        $chats = Chat::where('tenant_id', $tenantId)
+            ->where('is_archived', false)
+            ->with(['lastMessage', 'participants.user'])
+            ->get();
+
+        // Get unread counts for this specific user where they are a participant
+        $participants = ChatParticipant::where('user_id', $userId)
+            ->pluck('unread_count', 'chat_id');
+
+        return $chats->map(function ($chat) use ($participants) {
+            $chat->setAttribute('unread_count', (int)($participants[$chat->id] ?? 0));
+            return $chat;
+        })
+        ->sortByDesc('last_message_at')
+        ->values();
+    }
+
+    /**
      * Create a new group chat with a name and multiple participants.
      */
     public function createGroupChat(

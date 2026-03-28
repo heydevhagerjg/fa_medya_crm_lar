@@ -40,7 +40,7 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
   const canSend = content.trim() || isUploading
 
   return (
-    <div className="px-5 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex-shrink-0">
+    <div className="px-3 md:px-5 py-3 md:py-4 pb-[calc(12px+env(safe-area-inset-bottom))] border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex-shrink-0">
       {/* Upload progress bar */}
       {isUploading && (
         <div className="mb-3">
