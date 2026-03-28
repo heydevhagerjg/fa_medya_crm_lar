@@ -251,6 +251,16 @@ export default function ChatWindow({
                 >
                   <Info size={18} />
                 </button>
+
+                <div className="w-px h-6 bg-[#E5E9F0] dark:bg-white/10 mx-1" />
+
+                <button
+                  onClick={onBack}
+                  title="Sohbeti Kapat"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
               </div>
             </>
           ) : (
