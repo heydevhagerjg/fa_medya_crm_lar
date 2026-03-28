@@ -123,6 +123,9 @@ export default function PricingPage() {
 
                                             {packages.map((pkg, idx) => {
                                                 const value = pkg[feature.key];
+                                                const isChatLimit = feature.key === 'chat_limit' || feature.key === 'group_chat_limit';
+                                                const chatFeatureDisabled = isChatLimit && !pkg.chat_feature;
+
                                                 return (
                                                     <td key={`${pkg.id}-${feature.key}`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
                                                         {feature.type === 'boolean' ? (
@@ -135,6 +138,10 @@ export default function PricingPage() {
                                                                     <X size={18} strokeWidth={3} />
                                                                 </div>
                                                             )
+                                                        ) : chatFeatureDisabled ? (
+                                                            <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-500/10 text-red-500/50">
+                                                                <X size={18} strokeWidth={3} />
+                                                            </div>
                                                         ) : (
                                                             <span className={`text-base font-black ${value === 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}`}>
                                                                 {value === 0 ? 'Sınırsız' : `${value}${feature.suffix || ''}`}
@@ -152,7 +159,7 @@ export default function PricingPage() {
                                         </td>
                                         {packages.map((pkg, idx) => (
                                             <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
-                                                {pkg.trial_days} Gün Ücretsiz
+                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sonsuza Kadar'}
                                             </td>
                                         ))}
                                     </tr>
@@ -200,3 +207,4 @@ export default function PricingPage() {
         </div>
     )
 }
+            
