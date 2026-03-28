@@ -121,7 +121,7 @@ export default function PricingPage() {
                                         </td>
                                         {packages.map((pkg, idx) => (
                                             <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
-                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sonsuza Kadar'}
+                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sürekli'}
                                             </td>
                                         ))}
                                     </tr>

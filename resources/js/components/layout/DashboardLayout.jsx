@@ -166,6 +166,13 @@ const settingsMenuGroups = [
             { id: "logs", label: "Denetim Kayıtları", icon: ShieldAlert },
         ],
     },
+    {
+        group: "Abonelik",
+        items: [
+            { id: "subscription", label: "Abonelik & Ödeme", icon: CreditCard },
+            { id: "plan-usage", label: "Paket Kullanımı", icon: Activity },
+        ],
+    },
 ];
 
 export default function DashboardLayout({ children, isRestoring = false }) {

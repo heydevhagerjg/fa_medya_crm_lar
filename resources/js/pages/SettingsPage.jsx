@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { 
     Settings, Layers, ListTodo, ClipboardList, Wallet, FolderOpen, 
-    CalendarCheck, Activity, Users, Shield, Key, Database, ShieldAlert, Plus
+    CalendarCheck, Activity, Users, Shield, Key, Database, ShieldAlert, Plus,
+    CreditCard
 } from 'lucide-react'
 import { useAuthStore } from '../stores/index.js'
 import PageHeader from '../components/layout/PageHeader.jsx'
@@ -22,6 +23,8 @@ import RolesTab from './Settings/RolesTab.jsx'
 import ApiKeysTab from './Settings/ApiKeysTab.jsx'
 import BackupTab from './Settings/BackupTab.jsx'
 import AuditLogTab from './Settings/AuditLogTab.jsx'
+import SubscriptionTab from './Settings/SubscriptionTab.jsx'
+import PackageUsageTab from './Settings/PackageUsageTab.jsx'
 
 export default function SettingsPage() {
     const { user } = useAuthStore()
@@ -54,6 +57,8 @@ export default function SettingsPage() {
         { id: 'api-keys', label: 'API / Entegrasyon', icon: Key, to: '/settings?tab=api-keys' },
         { id: 'backups', label: 'Veri Yedekleme', icon: Database, to: '/settings?tab=backups' },
         { id: 'logs', label: 'Denetim Kayıtları', icon: ShieldAlert, to: '/settings?tab=logs' },
+        { id: 'subscription', label: 'Abonelik & Ödeme', icon: CreditCard, to: '/settings?tab=subscription' },
+        { id: 'plan-usage', label: 'Paket Kullanımı', icon: Activity, to: '/settings?tab=plan-usage' },
     ]
 
     const menuLabels = {
@@ -71,6 +76,8 @@ export default function SettingsPage() {
         'api-keys': 'API / Entegrasyon',
         'backups': 'Veri Yedekleme',
         'logs': 'Denetim Kayıtları',
+        'subscription': 'Abonelik & Ödeme',
+        'plan-usage': 'Paket Kullanımı',
     }
 
     const renderTab = () => {
@@ -89,6 +96,8 @@ export default function SettingsPage() {
             case 'api-keys': return <ApiKeysTab />
             case 'backups': return <BackupTab />
             case 'logs': return <AuditLogTab />
+            case 'subscription': return <SubscriptionTab />
+            case 'plan-usage': return <PackageUsageTab />
             default: return <GeneralTab tenant={tenant} setTenant={setTenant} />
         }
     }
