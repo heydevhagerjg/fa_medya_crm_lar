@@ -2,7 +2,7 @@ import React from 'react'
 import { FileText, Download, Check, CheckCheck, Shield, Info } from 'lucide-react'
 import { format } from 'date-fns'
 
-export default function MessageItem({ message, isOwn, isSystem }) {
+export default function MessageItem({ message, isOwn, isSystem, isSequential = false }) {
   if (isSystem) {
     return (
       <div className="flex justify-center my-3">
@@ -62,20 +62,24 @@ export default function MessageItem({ message, isOwn, isSystem }) {
     : ''
 
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 group`}>
+    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isSequential ? 'mt-0.5 mb-0.5' : 'mt-3 mb-0.5'} group`}>
       <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5 max-w-[75%]`}>
         
         {/* Avatar */}
         {!isOwn && (
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#1A1A2E]/10 dark:bg-white/10 flex items-center justify-center text-[11px] font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10 self-end mb-0.5">
-            {message.user?.name?.charAt(0).toUpperCase()}
+          <div className="flex-shrink-0 w-8 h-8 self-end mb-0.5 border-transparent">
+            {!isSequential && (
+              <div className="w-8 h-8 rounded-full bg-[#1A1A2E]/10 dark:bg-white/10 flex items-center justify-center text-[11px] font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10 self-end">
+                {message.user?.name?.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
         )}
 
         {/* Bubble */}
         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
           {/* Sender name (for received messages) */}
-          {!isOwn && (
+          {!isOwn && !isSequential && (
             <div className="text-[11px] font-semibold text-[#905efc] mb-1 px-1 flex items-center gap-1">
               {message.user?.name}
               {message.user?.role === 'ADMIN' && <Shield size={9} className="text-[#905efc]" />}
@@ -84,8 +88,8 @@ export default function MessageItem({ message, isOwn, isSystem }) {
 
           <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${
             isOwn
-              ? 'bg-[#905efc] text-white rounded-br-sm shadow-lg shadow-[#905efc]/20'
-              : 'bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white rounded-bl-sm shadow-sm border border-[#E5E9F0] dark:border-white/5'
+              ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
+              : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
           }`}>
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>

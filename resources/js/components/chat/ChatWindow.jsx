@@ -98,15 +98,19 @@ export default function ChatWindow({
             </p>
           </div>
 
-          {messages.map((msg) => {
+          {messages.map((msg, index) => {
             const isOwn = msg.user_id === currentUser?.id
             const isSystem = msg.type === 'system'
+            const prevMsg = index > 0 ? messages[index - 1] : null
+            const isSequential = prevMsg && !isSystem && prevMsg.type !== 'system' && prevMsg.user_id === msg.user_id
+
             return (
               <MessageItem
                 key={msg.id}
                 message={msg}
                 isOwn={isOwn}
                 isSystem={isSystem}
+                isSequential={isSequential}
               />
             )
           })}
