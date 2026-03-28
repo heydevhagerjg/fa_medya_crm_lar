@@ -289,12 +289,12 @@ export default function ChatWindow({
         <div className="flex-1 flex flex-col h-full overflow-hidden">
 
           {/* Chat Header */}
-          <header className="px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
+          <header className="px-3 md:px-6 py-3 md:py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
             {!isSearching ? (
               <>
-                <div className="flex items-center gap-3">
-                  <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-[#9097A6] hover:text-[#905efc] transition-colors">
-                    <ChevronLeft size={22} />
+                <div className="flex items-center gap-1 md:gap-3">
+                  <button onClick={onBack} className="md:hidden p-2 -ml-2 text-[#9097A6] hover:text-[#905efc] transition-colors focus:bg-gray-100 dark:focus:bg-white/5 rounded-full">
+                    <ChevronLeft size={24} />
                   </button>
 
                   <div>

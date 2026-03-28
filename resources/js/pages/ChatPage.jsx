@@ -412,31 +412,35 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-120px)] overflow-hidden rounded-3xl border border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] shadow-[0_8px_40px_-8px_rgba(144,94,252,0.12)] dark:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-500">
+        <div className="-m-5 lg:-m-8 h-[calc(100vh-70px)] flex overflow-hidden bg-white dark:bg-[#0A0A18] animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
 
-            <ChatSidebar
-                chats={chats}
-                selectedChatId={selectedChat?.id}
-                onSelectChat={setSelectedChat}
-                onNewChat={() => setIsNewChatModalOpen(true)}
-                onDeleteChat={(chat) => deleteChatMutation.mutate(chat.id)}
-            />
+            <div className={`w-full md:w-[320px] flex-shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+                <ChatSidebar
+                    chats={chats}
+                    selectedChatId={selectedChat?.id}
+                    onSelectChat={setSelectedChat}
+                    onNewChat={() => setIsNewChatModalOpen(true)}
+                    onDeleteChat={(chat) => deleteChatMutation.mutate(chat.id)}
+                />
+            </div>
 
-            <ChatWindow
-                chat={selectedChat}
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                onFileUpload={handleFileUpload}
-                onDeleteMessage={(id) => deleteMessageMutation.mutate(id)}
-                isUploading={isUploading}
-                isDeleting={deleteChatMutation.isPending}
-                uploadProgress={uploadProgress}
-                isLoading={false}
-                currentUser={currentUser}
-                onUpdateChat={setSelectedChat}
-                onBack={() => setSelectedChat(null)}
-            />
+            <div className={`flex-1 h-full ${!selectedChat ? 'hidden md:flex' : 'flex'}`}>
+                <ChatWindow
+                    chat={selectedChat}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    onFileUpload={handleFileUpload}
+                    onDeleteMessage={(id) => deleteMessageMutation.mutate(id)}
+                    isUploading={isUploading}
+                    isDeleting={deleteChatMutation.isPending}
+                    uploadProgress={uploadProgress}
+                    isLoading={false}
+                    currentUser={currentUser}
+                    onUpdateChat={setSelectedChat}
+                    onBack={() => setSelectedChat(null)}
+                />
+            </div>
 
             <NewChatModal
                 open={isNewChatModalOpen}

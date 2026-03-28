@@ -14,14 +14,41 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
     )
   }
 
+  // Format time
+  const timeStr = message.created_at
+    ? (() => { try { return format(new Date(message.created_at), 'HH:mm') } catch { return '' } })()
+    : ''
+
+  const isImageOnly = !message.content && 
+                     message.attachments?.length === 1 && 
+                     message.attachments[0].file_type === 'image';
+
+  const renderTimestamp = (overlay = false) => (
+    <div className={`flex items-center gap-1 ${overlay ? 'absolute bottom-1.5 right-2 z-10' : 'mt-1'} ${isOwn ? 'justify-end' : 'justify-start'}`}>
+      <span className={`text-[10px] ${overlay ? 'text-white font-semibold drop-shadow-md' : isOwn ? 'text-white/60' : 'text-[#9097A6]'}`}>
+        {timeStr}
+      </span>
+      {isOwn && (
+        message.read_count > 0
+          ? <CheckCheck size={12} className={overlay ? 'text-white drop-shadow-md' : 'text-white/80'} />
+          : <Check size={12} className={overlay ? 'text-white/70 drop-shadow-md' : 'text-white/60'} />
+      )}
+    </div>
+  )
+
   const renderAttachments = () => {
     if (!message.attachments?.length) return null
     return (
-      <div className="mt-2 space-y-2">
+      <div className={`${message.content ? 'mt-2' : ''} space-y-2`}>
         {message.attachments.map((file) => (
           <div key={file.id} className="group relative">
             {file.file_type === 'image' ? (
-              <AttachmentImage file={file} onClick={() => onImageClick && onImageClick(file.id)} />
+              <AttachmentImage 
+                file={file} 
+                onClick={() => onImageClick && onImageClick(file.id)} 
+                overlay={isImageOnly ? renderTimestamp(true) : null}
+                isImageOnly={isImageOnly}
+              />
             ) : (
               <div className="bg-white/10 border border-white/20 p-2.5 rounded-xl flex items-center gap-2.5 backdrop-blur-sm">
                 <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -41,11 +68,6 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
       </div>
     )
   }
-
-  // Format time
-  const timeStr = message.created_at
-    ? (() => { try { return format(new Date(message.created_at), 'HH:mm') } catch { return '' } })()
-    : ''
 
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isSequential ? 'mt-0.5 mb-0.5' : 'mt-3 mb-0.5'} group`}>
@@ -88,7 +110,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
               </button>
             )}
 
-            <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${isOwn
+            <div className={`relative transition-all duration-200 ${isImageOnly ? 'p-1' : 'px-4 py-2.5'} rounded-2xl ${isOwn
               ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
               : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
               }`}>
@@ -97,17 +119,8 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
               )}
               {renderAttachments()}
 
-              {/* Timestamp + Read status */}
-              <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-[#9097A6]'}`}>
-                  {timeStr}
-                </span>
-                {isOwn && (
-                  message.read_count > 0
-                    ? <CheckCheck size={12} className="text-white/80" />
-                    : <Check size={12} className="text-white/60" />
-                )}
-              </div>
+              {/* Standard Timestamp (if not image-only) */}
+              {!isImageOnly && renderTimestamp()}
             </div>
           </div>
         </div>
@@ -116,13 +129,13 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
   )
 }
 
-function AttachmentImage({ file, onClick }) {
+function AttachmentImage({ file, onClick, overlay, isImageOnly }) {
   const [loaded, setLoaded] = React.useState(false)
 
   return (
     <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden border border-white/10 shadow-md w-[150px] h-[107px] bg-black/20 relative flex items-center justify-center cursor-pointer group/img"
+      className={`rounded-xl overflow-hidden border border-white/10 shadow-md ${isImageOnly ? 'w-[240px] h-[180px]' : 'w-[150px] h-[107px]'} bg-black/20 relative flex items-center justify-center cursor-pointer group/img transition-all`}
     >
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">
@@ -136,6 +149,13 @@ function AttachmentImage({ file, onClick }) {
         onLoad={() => setLoaded(true)}
         className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
       />
+
+      {/* WhatsApp style gradient for overlay visibility */}
+      {overlay && (
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+      )}
+      
+      {overlay}
 
       <a
         href={file.download_url || file.url}

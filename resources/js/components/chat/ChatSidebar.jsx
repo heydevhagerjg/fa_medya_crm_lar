@@ -35,7 +35,7 @@ export default function ChatSidebar({ chats, selectedChatId, onSelectChat, onNew
   }
 
   return (
-    <div className="w-[320px] flex-shrink-0 flex flex-col h-full bg-white dark:bg-[#0D0D1A] border-r border-[#E5E9F0] dark:border-white/5">
+    <div className="w-full flex-shrink-0 flex flex-col h-full bg-white dark:bg-[#0D0D1A] border-r border-[#E5E9F0] dark:border-white/5">
 
       {/* Search Bar */}
       <div className="px-4 pt-4 pb-3">
