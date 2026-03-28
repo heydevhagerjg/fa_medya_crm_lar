@@ -682,6 +682,16 @@ export default function TenantsPage() {
                             {limitForm.plan_step_templates_feature && <LimitInput label="Şablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({ ...limitForm, plan_step_template_limit: v })} />}
                         </div>
 
+                        <div className="space-y-4">
+                            <FeatureToggle label="Sohbet Modülü" checked={limitForm.plan_chat_feature} onChange={v => setLimitForm({ ...limitForm, plan_chat_feature: v })} />
+                            {limitForm.plan_chat_feature && (
+                                <>
+                                    <LimitInput label="Sohbet Limiti" value={limitForm.plan_chat_limit} onChange={v => setLimitForm({ ...limitForm, plan_chat_limit: v })} />
+                                    <LimitInput label="Grup Limiti" value={limitForm.plan_group_chat_limit} onChange={v => setLimitForm({ ...limitForm, plan_group_chat_limit: v })} />
+                                </>
+                            )}
+                        </div>
+
                         <FeatureToggle label="API Anahtarı Özelliği" checked={limitForm.plan_api_key_feature} onChange={v => setLimitForm({ ...limitForm, plan_api_key_feature: v })} />
                     </div>
 

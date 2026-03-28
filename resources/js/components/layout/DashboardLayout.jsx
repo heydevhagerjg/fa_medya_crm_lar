@@ -101,6 +101,7 @@ const navItems = [
         to: "/chats",
         icon: MessageSquare,
         label: "Sohbetler",
+        feature: "chat",
     },
     {
         to: "/backup",

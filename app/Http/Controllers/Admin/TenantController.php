@@ -156,6 +156,9 @@ class TenantController extends Controller
             'plan_api_key_feature' => $package->api_key_feature,
             'plan_disk_usage_limit' => $package->disk_usage_limit,
             'plan_single_file_limit' => $package->single_file_limit,
+            'plan_chat_feature' => $package->chat_feature,
+            'plan_chat_limit' => $package->chat_limit,
+            'plan_group_chat_limit' => $package->group_chat_limit,
         ]);
 
         // 2. Create Initial Admin User
@@ -218,6 +221,9 @@ class TenantController extends Controller
             'plan_api_key_feature' => 'required|boolean',
             'plan_disk_usage_limit' => 'required|integer|min:0',
             'plan_single_file_limit' => 'required|integer|min:0',
+            'plan_chat_feature' => 'required|boolean',
+            'plan_chat_limit' => 'required|integer|min:0',
+            'plan_group_chat_limit' => 'required|integer|min:0',
         ]);
 
         $tenant->update($validated);

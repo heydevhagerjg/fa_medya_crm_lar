@@ -43,7 +43,7 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
     const directMutation = useMutation({
         mutationFn: (data) => api.post('/chats', data),
         onSuccess: (res) => { onCreated(res.data.data); toast.success('Sohbet başlatıldı.') },
-        onError: () => toast.error('Sohbet başlatılamadı.')
+        onError: (err) => toast.error(err?.response?.data?.message || 'Sohbet başlatılamadı.')
     })
 
     const groupMutation = useMutation({
