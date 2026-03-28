@@ -293,9 +293,15 @@ export default function ChatWindow({
           style={{ scrollBehavior: 'smooth' }}
         >
           {showUnreadAlert && (
-            <div className="sticky top-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
-              <div className="bg-[#905efc] text-white px-4 py-2 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 border border-white/20">
-                <Bell size={14} /> {chat.unread_count} Okunmamış Mesaj
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
+              <div className="bg-[#905efc] text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Bell size={24} className="animate-bounce" />
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black mb-0.5">{chat.unread_count}</div>
+                  <div className="text-[10px] uppercase tracking-widest font-bold opacity-80">Okunmamış Mesaj</div>
+                </div>
               </div>
             </div>
           )}
