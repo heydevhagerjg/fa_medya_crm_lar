@@ -352,15 +352,29 @@ export default function ChatPage() {
         } catch { toast.error('Mesaj gönderilemedi.') }
     }
 
-    const handleFileUpload = async (file) => {
-        if (!selectedChat?.id) return
+    const handleFileUpload = async (files) => {
+        if (!selectedChat?.id || !files?.length) return
+        
+        const filesArray = Array.isArray(files) ? files : [files]
+        if (filesArray.length > 10) {
+            toast.error('Tek seferde en fazla 10 dosya seçebilirsiniz.')
+            return
+        }
+
         setIsUploading(true)
-        const fd = new FormData(); fd.append('file', file)
         try {
-            await api.post(`/chats/${selectedChat.id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-            toast.success('Dosya yüklendi.')
-        } catch { toast.error('Dosya yüklenemedi.') }
-        finally { setIsUploading(false) }
+            await Promise.all(filesArray.map(async (file) => {
+                const fd = new FormData(); fd.append('file', file)
+                return api.post(`/chats/${selectedChat.id}/attachments`, fd, { 
+                    headers: { 'Content-Type': 'multipart/form-data' } 
+                })
+            }))
+            toast.success(`${filesArray.length} dosya yüklendi.`)
+        } catch { 
+            toast.error('Bazı dosyalar yüklenemedi.') 
+        } finally { 
+            setIsUploading(false) 
+        }
     }
 
     const handleChatCreated = (chat) => {

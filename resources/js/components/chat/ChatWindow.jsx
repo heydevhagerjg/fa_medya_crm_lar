@@ -155,7 +155,9 @@ export default function ChatWindow({
     }
   }
   
-  const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner')
+  const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || 
+                         currentUser?.role === 'SUPER_ADMIN' || 
+                         (chat?.type === 'group' && chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner'));
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId) => api.delete(`/chats/${chat.id}/participants/${userId}`),

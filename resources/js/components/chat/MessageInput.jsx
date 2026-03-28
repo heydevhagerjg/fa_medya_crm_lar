@@ -54,8 +54,14 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading 
           <Plus size={20} />
           <input
             type="file"
+            multiple
             className="hidden"
-            onChange={(e) => e.target.files[0] && onFileUpload(e.target.files[0])}
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                onFileUpload(Array.from(e.target.files))
+                e.target.value = null
+              }
+            }}
             disabled={isUploading}
           />
         </label>
