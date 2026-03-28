@@ -345,9 +345,13 @@ export default function ChatPage() {
                 setMessages(prev => prev.filter(m => String(m.id) !== String(e.messageId)))
             })
             .listen('.chat.deleted', (e) => {
-                toast.error('Bu sohbet kapatıldı veya silindi.')
-                setSelectedChat(null)
-                setMessages([])
+                if (String(e.deletedBy) !== String(currentUser?.id)) {
+                    toast.error('Bu sohbet kapatıldı veya silindi.')
+                }
+                if (selectedChat?.id === e.chatId) {
+                    setSelectedChat(null)
+                    setMessages([])
+                }
                 queryClient.invalidateQueries(['chats'])
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)

@@ -13,13 +13,12 @@ class ChatDeleted implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $chatId;
+    public $deletedBy;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct(string $chatId)
+    public function __construct(string $chatId, ?string $deletedBy = null)
     {
-        $this->chatId = $chatId;
+        $this->chatId = (string)$chatId;
+        $this->deletedBy = (string)$deletedBy;
     }
 
     /**
