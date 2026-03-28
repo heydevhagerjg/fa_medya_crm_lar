@@ -129,6 +129,8 @@ export default function ChatWindow({
   onFileUpload,
   onDeleteMessage,
   isUploading,
+  isDeleting,
+  uploadProgress,
   isLoading,
   onBack,
   currentUser,
@@ -228,7 +230,25 @@ export default function ChatWindow({
 
   return (
     <>
-      <div className="flex-1 flex h-full overflow-hidden bg-white dark:bg-[#0A0A18]">
+      <div className="flex-1 flex h-full overflow-hidden bg-white dark:bg-[#0A0A18] relative">
+        {/* Deleting Overlay */}
+        {isDeleting && (
+          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 dark:bg-[#08081A]/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="flex flex-col items-center gap-6 p-10 rounded-[40px] bg-white dark:bg-[#12122A] shadow-2xl border border-[#905efc]/10">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-[#905efc]/20 border-t-[#905efc] rounded-full animate-spin" />
+                <Trash2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#905efc] animate-pulse" size={28} />
+              </div>
+              <div className="text-center px-4">
+                <h3 className="text-xl font-black text-[#1A1A2E] dark:text-white mb-2">Sohbet Siliniyor</h3>
+                <p className="text-xs text-[#9097A6] max-w-[200px] leading-relaxed mx-auto">
+                  Dosyalar ve mesajlar güvenli bir şekilde temizleniyor. Lütfen bekleyin...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         
@@ -369,6 +389,7 @@ export default function ChatWindow({
           onSendMessage={onSendMessage}
           onFileUpload={onFileUpload}
           isUploading={isUploading}
+          uploadProgress={uploadProgress}
         />
       </div>
 

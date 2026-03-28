@@ -95,16 +95,20 @@ class MessageController extends Controller
             'file' => 'required|file|max:51200' // max 50MB
         ]);
 
-        // 1. Send placeholder message
-        $message = $this->messageService->sendMessage($chat, '', 'file');
+        // 1. Send placeholder message WITHOUT broadcasting
+        $message = $this->messageService->sendMessage($chat, '', 'file', [], null, false);
 
         // 2. Upload to S3
         try {
-            $attachment = $this->fileService->uploadMessageAttachment($message, $request->file('file'));
+            $this->fileService->uploadMessageAttachment($message, $request->file('file'));
+
+            // 3. Manually broadcast with attachments loaded
+            $message->load(['attachments', 'user']);
+            event(new \App\Modules\Chat\Events\MessageCreated($message));
 
             return response()->json([
                 'success' => true,
-                'data' => $message->load('attachments')
+                'data' => $message
             ]);
         } catch (\Exception $e) {
             $message->delete(); // Rollback placeholder

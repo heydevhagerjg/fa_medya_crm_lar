@@ -232,6 +232,7 @@ export default function ChatPage() {
     const [selectedChat, setSelectedChat] = useState(null)
     const [messages, setMessages] = useState([])
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false)
     const [searchParams, setSearchParams] = useSearchParams()
     const openChatId = searchParams.get('open')
@@ -329,7 +330,15 @@ export default function ChatPage() {
                     return
                 }
 
-                setMessages(prev => prev.some(m => m.id === e.id) ? prev : [...prev, e])
+                setMessages(prev => {
+                    const index = prev.findIndex(m => m.id === e.id)
+                    if (index !== -1) {
+                         const updated = [...prev]
+                         updated[index] = e
+                         return updated
+                    }
+                    return [...prev, e]
+                })
                 markAsRead(selectedChat.id)
             })
             .listen('.message.deleted', (e) => {
@@ -362,18 +371,32 @@ export default function ChatPage() {
         }
 
         setIsUploading(true)
+        setUploadProgress({ current: 0, total: filesArray.length })
         try {
             await Promise.all(filesArray.map(async (file) => {
                 const fd = new FormData(); fd.append('file', file)
-                return api.post(`/chats/${selectedChat.id}/attachments`, fd, { 
+                const res = await api.post(`/chats/${selectedChat.id}/attachments`, fd, { 
                     headers: { 'Content-Type': 'multipart/form-data' } 
                 })
+                
+                // Update progress
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }))
+                
+                // Update local state immediately for the uploader
+                if (res.data?.data) {
+                    setMessages(prev => {
+                        if (prev.some(m => m.id === res.data.data.id)) return prev
+                        return [...prev, res.data.data]
+                    })
+                }
+                return res
             }))
             toast.success(`${filesArray.length} dosya yüklendi.`)
         } catch { 
             toast.error('Bazı dosyalar yüklenemedi.') 
         } finally { 
             setIsUploading(false) 
+            setUploadProgress({ current: 0, total: 0 })
         }
     }
 
@@ -402,6 +425,8 @@ export default function ChatPage() {
                 onFileUpload={handleFileUpload}
                 onDeleteMessage={(id) => deleteMessageMutation.mutate(id)}
                 isUploading={isUploading}
+                isDeleting={deleteChatMutation.isPending}
+                uploadProgress={uploadProgress}
                 isLoading={false}
                 currentUser={currentUser}
                 onUpdateChat={setSelectedChat}

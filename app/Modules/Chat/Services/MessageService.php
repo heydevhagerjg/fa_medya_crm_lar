@@ -18,11 +18,13 @@ class MessageService
         string $content,
         string $type = 'text',
         array $metadata = [],
-        ?string $userId = null
+        ?string $userId = null,
+        bool $shouldBroadcast = true
     ): Message {
         $userId = $userId ?? auth()->id();
 
-        return DB::transaction(function () use ($chat, $content, $type, $metadata, $userId) {
+        // Use a transaction with retries to handle deadlocks during concurrent uploads
+        return DB::transaction(function () use ($chat, $content, $type, $metadata, $userId, $shouldBroadcast) {
             $message = $chat->messages()->create([
                 'user_id' => $userId,
                 'content' => $content,
@@ -30,22 +32,25 @@ class MessageService
                 'metadata' => $metadata,
             ]);
 
-            // Update chat last message time & count
-            $chat->update([
+            // Update chat last message time & increment count atomically
+            $chat->timestamps = false; // Prevent unwanted updated_at conflict if possible
+            $chat->increment('message_count', 1, [
                 'last_message_at' => $message->created_at,
-                'message_count' => (int)$chat->message_count + 1,
+                'updated_at' => now()
             ]);
 
-            // Increment unread counts for all other participants
+            // Increment unread counts for all other participants atomically
             $chat->participants()
                 ->where('user_id', '!=', $userId)
                 ->increment('unread_count');
 
-            // Broadcast message
-            event(new \App\Modules\Chat\Events\MessageCreated($message));
+            // Broadcast message only if requested
+            if ($shouldBroadcast) {
+                event(new \App\Modules\Chat\Events\MessageCreated($message));
+            }
 
             return $message;
-        });
+        }, 5);
     }
 
     /**

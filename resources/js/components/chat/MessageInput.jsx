@@ -11,7 +11,7 @@ function LoaderIcon() {
   )
 }
 
-export default function MessageInput({ onSendMessage, onFileUpload, isUploading }) {
+export default function MessageInput({ onSendMessage, onFileUpload, isUploading, uploadProgress }) {
   const [content, setContent] = useState('')
   const textareaRef = useRef(null)
 
@@ -43,8 +43,21 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading 
     <div className="px-5 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex-shrink-0">
       {/* Upload progress bar */}
       {isUploading && (
-        <div className="h-0.5 bg-[#E5E9F0] dark:bg-white/10 rounded-full mb-3 overflow-hidden">
-          <div className="h-full bg-[#905efc] animate-pulse w-1/2 rounded-full" />
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-[#905efc] uppercase tracking-wider animate-pulse">Dosyalar Yükleniyor...</span>
+            {uploadProgress?.total > 0 && (
+              <span className="text-[10px] font-bold text-[#9097A6] bg-[#F4F5F7] dark:bg-white/5 px-2 py-0.5 rounded-full transition-all duration-300">
+                {uploadProgress.current} / {uploadProgress.total}
+              </span>
+            )}
+          </div>
+          <div className="h-1 bg-[#E5E9F0] dark:bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-[#905efc] transition-all duration-500 ease-out rounded-full shadow-[0_0_8px_rgba(144,94,252,0.4)]" 
+              style={{ width: `${uploadProgress?.total > 0 ? (uploadProgress.current / uploadProgress.total) * 100 : 50}%` }}
+            />
+          </div>
         </div>
       )}
 
