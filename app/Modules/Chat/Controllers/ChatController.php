@@ -55,6 +55,31 @@ class ChatController extends Controller
     }
 
     /**
+     * Delete (permanently remove) a chat.
+     * Only the chat owner or a tenant admin can delete.
+     */
+    public function destroy(Chat $chat, Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $isParticipant = $chat->participants()->where('user_id', $user->id)->exists();
+        if (!$isParticipant) {
+            return response()->json(['message' => 'Bu sohbete erişim yetkiniz yok.'], 403);
+        }
+
+        $isOwner = $chat->created_by === $user->id;
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+
+        if (!$isOwner && !$isAdmin) {
+            return response()->json(['message' => 'Sohbeti yalnızca oluşturan kişi veya yönetici silebilir.'], 403);
+        }
+
+        $chat->delete();
+
+        return response()->json(['success' => true, 'message' => 'Sohbet silindi.']);
+    }
+
+    /**
      * Show chat details with initial messages.
      */
     public function show(Chat $chat, Request $request): JsonResponse

@@ -9,6 +9,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chats', [ChatController::class, 'index']);
     Route::post('/chats', [ChatController::class, 'store']);
     Route::get('/chats/{chat}', [ChatController::class, 'show']);
+    Route::delete('/chats/{chat}', [ChatController::class, 'destroy']);
 
     // ─── MESSAGES ────────────────────────────────────────────────────────
     Route::get('/chats/{chat}/messages', [MessageController::class, 'index']);

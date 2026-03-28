@@ -33,6 +33,22 @@ class Chat extends Model
     ];
 
     /**
+     * Cascade-delete related records when a chat is deleted.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Chat $chat) {
+            // Delete all message attachments first
+            $chat->messages()->with('attachments')->get()->each(function ($message) {
+                $message->attachments()->delete();
+            });
+            $chat->messages()->delete();
+            $chat->participants()->delete();
+        });
+    }
+
+
+    /**
      * Polymorphic relation to entity being chatted about.
      */
     public function chateable(): MorphTo

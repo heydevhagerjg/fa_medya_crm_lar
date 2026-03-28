@@ -1,16 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Plus, X, Image as ImageIcon, File as FileIcon, Loader2, Smile } from 'lucide-react'
+import { Send, Plus, Smile, Mic } from 'lucide-react'
+
+function LoaderIcon() {
+  return (
+    <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/>
+      <path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/>
+      <path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>
+    </svg>
+  )
+}
 
 export default function MessageInput({ onSendMessage, onFileUpload, isUploading }) {
   const [content, setContent] = useState('')
   const textareaRef = useRef(null)
 
   const handleSend = () => {
-    if (!content.trim() && !isUploading) return;
+    if (!content.trim() && !isUploading) return
     onSendMessage(content.trim())
     setContent('')
     if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = 'auto'
     }
   }
 
@@ -23,64 +33,64 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading 
 
   const handleChange = (e) => {
     setContent(e.target.value)
-    // Auto-resize
     e.target.style.height = 'auto'
-    e.target.style.height = `${e.target.scrollHeight}px`
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`
   }
 
+  const canSend = content.trim() || isUploading
+
   return (
-    <div className="p-5 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-[#0A0A0A] relative z-20 shadow-[0_-8px_32px_0_rgba(26,26,46,0.04)] dark:shadow-none">
-      <div className="max-w-7xl mx-auto flex items-end gap-3 transition-all duration-300">
-        
-        {/* Upload Button */}
-        <label className="flex-shrink-0 cursor-pointer p-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-primary hover:bg-primary/10 transition-all group active:scale-95 shadow-sm border border-gray-100 dark:border-white/5 h-12 w-12 flex items-center justify-center">
-            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-            <input 
-                type="file" 
-                className="hidden" 
-                onChange={(e) => e.target.files[0] && onFileUpload(e.target.files[0])}
-                disabled={isUploading}
-            />
-        </label>
-
-        {/* Text Input area */}
-        <div className="flex-1 relative bg-gray-50 dark:bg-white/[0.04] rounded-3xl border border-gray-100 dark:border-white/5 px-2 py-2 flex items-end transition-all hover:border-primary/20 focus-within:border-primary/50 shadow-inner group">
-            <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Yazmaya başlayın..."
-                className="w-full bg-transparent border-none focus:ring-0 text-sm py-2.5 px-3 max-h-48 resize-none dark:text-gray-100 placeholder:text-gray-400 placeholder:font-bold placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
-                rows={1}
-            />
-            
-            <div className="flex items-center gap-1.5 p-1 pr-2 pb-1.5">
-                <button className="p-2 text-gray-400 hover:text-amber-500 transition-colors opacity-0 group-hover:opacity-100 duration-300">
-                    <Smile size={18} />
-                </button>
-            </div>
-        </div>
-
-        {/* Send Button */}
-        <button
-          onClick={handleSend}
-          disabled={!content.trim() && !isUploading}
-          className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-90 shadow-lg ${
-            content.trim() || isUploading
-              ? 'bg-primary text-white shadow-primary/30 rotate-0'
-              : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 shadow-none'
-          }`}
-        >
-          {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} className={content.trim() ? 'translate-x-[1px]' : ''} />}
-        </button>
-      </div>
-
+    <div className="px-5 py-4 border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex-shrink-0">
+      {/* Upload progress bar */}
       {isUploading && (
-        <div className="absolute top-0 left-0 w-full h-1 bg-gray-200 dark:bg-white/10 overflow-hidden">
-          <div className="h-full bg-primary animate-progress-indeterminate w-1/3 shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" />
+        <div className="h-0.5 bg-[#E5E9F0] dark:bg-white/10 rounded-full mb-3 overflow-hidden">
+          <div className="h-full bg-[#905efc] animate-pulse w-1/2 rounded-full" />
         </div>
       )}
+
+      <div className="flex items-end gap-3">
+        {/* Attach Button */}
+        <label className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 cursor-pointer transition-all">
+          <Plus size={20} />
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => e.target.files[0] && onFileUpload(e.target.files[0])}
+            disabled={isUploading}
+          />
+        </label>
+
+        {/* Input */}
+        <div className="flex-1 flex items-end bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-2xl px-4 py-2.5 gap-2 focus-within:border-[#905efc]/40 focus-within:bg-white dark:focus-within:bg-white/8 transition-all">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Mesajınızı yazın..."
+            rows={1}
+            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm resize-none max-h-40 text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] leading-relaxed py-0"
+          />
+          <button className="flex-shrink-0 text-[#9097A6] hover:text-amber-400 transition-colors pb-0.5">
+            <Smile size={18} />
+          </button>
+        </div>
+
+        {/* Mic / Send Button */}
+        {canSend ? (
+          <button
+            onClick={handleSend}
+            disabled={isUploading}
+            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[#905efc] text-white shadow-lg shadow-[#905efc]/25 hover:bg-[#7c4ef0] active:scale-90 transition-all"
+          >
+            {isUploading ? <LoaderIcon /> : <Send size={18} className="translate-x-px" />}
+          </button>
+        ) : (
+          <button className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
+            <Mic size={18} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -53,6 +53,23 @@ export default function ChatPage() {
         onError: () => toast.error('Sohbet başlatılamadı.')
     })
 
+    // Delete chat mutation
+    const deleteChatMutation = useMutation({
+        mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
+        onSuccess: (_, chatId) => {
+            queryClient.invalidateQueries(['chats']);
+            if (selectedChat?.id === chatId) {
+                setSelectedChat(null);
+                setMessages([]);
+            }
+            toast.success('Sohbet silindi.');
+        },
+        onError: (err) => {
+            const msg = err?.response?.data?.message || 'Sohbet silinemedi.';
+            toast.error(msg);
+        }
+    })
+
     // Fetch messages for selected chat
     const fetchMessages = useCallback(async (chatId) => {
         try {
@@ -164,7 +181,7 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-120px)] overflow-hidden rounded-[40px] border border-gray-100 dark:border-white/5 bg-white dark:bg-[#050505] shadow-[0_32px_120px_-16px_rgba(26,26,46,0.12)] dark:shadow-none animate-in fade-in zoom-in-95 duration-700">
+        <div className="flex h-[calc(100vh-120px)] overflow-hidden rounded-3xl border border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] shadow-[0_8px_40px_-8px_rgba(144,94,252,0.12)] dark:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
             
             <ChatSidebar 
@@ -172,6 +189,7 @@ export default function ChatPage() {
                 selectedChatId={selectedChat?.id}
                 onSelectChat={(chat) => setSelectedChat(chat)}
                 onNewChat={() => setIsNewChatModalOpen(true)}
+                onDeleteChat={(chat) => deleteChatMutation.mutate(chat.id)}
             />
 
             <ChatWindow 

@@ -44,11 +44,10 @@ location /app {
     proxy_set_header Scheme $scheme;
     proxy_set_header SERVER_PORT $server_port;
     proxy_set_header REMOTE_ADDR $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_addrs;
-    proxy_set_header Upgrade $http_upgrade; # Websocket protokol ayrıştırıcısı
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade";
-
-    proxy_pass http://127.0.0.1:8080; # Plesk trafiği alıp Reverb'e sızdıracak
+    proxy_pass http://127.0.0.1:8080;
 }
 ```
 
@@ -66,12 +65,12 @@ Bunun için bir arka plan yöneticisi kullanmak zorunludur:
 ```ini
 [program:famedya-reverb]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/famedya/artisan reverb:start
+command=php /var/www/vhosts/famedya.com/crm.famedya.com/artisan reverb:start
 autostart=true
 autorestart=true
-user=www-data
+user=root  # Veya Plesk sitenizin FTP/Sistem kullanıcı adı
 redirect_stderr=true
-stdout_logfile=/var/www/famedya/storage/logs/reverb.log
+stdout_logfile=/var/www/vhosts/famedya.com/crm.famedya.com/storage/logs/reverb.log
 ```
 Dosyayı oluşturduktan sonra `supervisorctl update` ve `supervisorctl start famedya-reverb:*` diyerek sonsuza dek başlatın.
 
