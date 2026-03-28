@@ -120,11 +120,55 @@ class ChatController extends Controller
 
         $this->chatService->addParticipants($chat, $request->participant_ids);
 
-        // Optionally dispatch an event if needed
+        // System message
+        $addedUsers = \App\Models\User::whereIn('id', $request->participant_ids)->pluck('name')->toArray();
+        if (!empty($addedUsers)) {
+            $addedNames = implode(', ', $addedUsers);
+            $msg = "{$user->name}, {$addedNames} adlı kişileri gruba ekledi.";
+            $this->messageService->sendMessage($chat, $msg, 'system');
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Kullanıcılar eklendi.',
+            'data' => $chat->load('participants.user')
+        ]);
+    }
+
+    /**
+     * Remove a participant from the group chat.
+     */
+    public function removeParticipant(Chat $chat, string $userId, Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Check permissions
+        $isOwner = $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
+        $isAdmin = in_array($user->role, ['ADMIN', 'SUPER_ADMIN']);
+        $isSelf = $user->id == $userId;
+
+        if (!$isOwner && !$isAdmin && !$isSelf) {
+            return response()->json(['message' => 'Sadece sohbet yöneticileri kişi çıkarabilir.'], 403);
+        }
+
+        $removedUser = \App\Models\User::find($userId);
+        if (!$removedUser) {
+            return response()->json(['message' => 'Kullanıcı bulunamadı.'], 404);
+        }
+
+        $chat->participants()->where('user_id', $userId)->delete();
+
+        // System message
+        if ($isSelf) {
+            $msg = "{$user->name} gruptan ayrıldı.";
+        } else {
+            $msg = "{$user->name}, {$removedUser->name} adlı kişiyi gruptan çıkardı.";
+        }
+        $this->messageService->sendMessage($chat, $msg, 'system');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kullanıcı gruptan çıkarıldı.',
             'data' => $chat->load('participants.user')
         ]);
     }

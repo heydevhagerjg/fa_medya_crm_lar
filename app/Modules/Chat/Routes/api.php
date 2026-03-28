@@ -12,6 +12,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chats/{chat}', [ChatController::class, 'show']);
     Route::delete('/chats/{chat}', [ChatController::class, 'destroy']);
     Route::post('/chats/{chat}/participants', [ChatController::class, 'addParticipants']);
+    Route::delete('/chats/{chat}/participants/{user}', [ChatController::class, 'removeParticipant']);
 
     // ─── MESSAGES ────────────────────────────────────────────────────────
     Route::get('/chats/{chat}/messages', [MessageController::class, 'index']);

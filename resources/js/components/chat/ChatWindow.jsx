@@ -118,8 +118,30 @@ export default function ChatWindow({
   const scrollRef = useRef(null)
   const [showInfo, setShowInfo] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const queryClient = useQueryClient()
   
   const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner')
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId) => api.delete(`/chats/${chat.id}/participants/${userId}`),
+    onSuccess: () => {
+      toast.success('Üye gruptan çıkarıldı')
+      queryClient.invalidateQueries(['chats'])
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Bir hata oluştu')
+    }
+  })
+
+  const filteredMessages = messages.filter(msg => 
+    !searchQuery || msg.content?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  useEffect(() => {
+    if (!isSearching) setSearchQuery('')
+  }, [isSearching])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -152,39 +174,66 @@ export default function ChatWindow({
         
         {/* Chat Header */}
         <header className="px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-[#9097A6] hover:text-[#905efc] transition-colors">
-              <ChevronLeft size={22} />
-            </button>
+          {!isSearching ? (
+            <>
+              <div className="flex items-center gap-3">
+                <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-[#9097A6] hover:text-[#905efc] transition-colors">
+                  <ChevronLeft size={22} />
+                </button>
 
-            <div>
-              <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white leading-tight">{chat.name}</h3>
-              <p className="text-xs text-[#9097A6] mt-0.5">
-                {totalCount > 0
-                  ? `${totalCount} üye${onlineCount > 0 ? `, ${onlineCount} çevrimiçi` : ''}`
-                  : 'Sohbet'}
-              </p>
+                <div>
+                  <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white leading-tight">{chat.name}</h3>
+                  <p className="text-xs text-[#9097A6] mt-0.5">
+                    {totalCount > 0
+                      ? `${totalCount} üye${onlineCount > 0 ? `, ${onlineCount} çevrimiçi` : ''}`
+                      : 'Sohbet'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsSearching(true)}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all"
+                >
+                  <Search size={18} />
+                </button>
+                <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
+                  <Phone size={18} />
+                </button>
+                <button
+                  onClick={() => setShowInfo(!showInfo)}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                    showInfo
+                      ? 'text-[#905efc] bg-[#905efc]/10'
+                      : 'text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8'
+                  }`}
+                >
+                  <Info size={18} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center w-full gap-3 animate-in fade-in slide-in-from-right-4 duration-200">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9097A6]" size={16} />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Mesajlarda ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
+                />
+              </div>
+              <button 
+                onClick={() => setIsSearching(false)} 
+                className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+              >
+                <X size={20} />
+              </button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
-              <Search size={18} />
-            </button>
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
-              <Phone size={18} />
-            </button>
-            <button
-              onClick={() => setShowInfo(!showInfo)}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                showInfo
-                  ? 'text-[#905efc] bg-[#905efc]/10'
-                  : 'text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8'
-              }`}
-            >
-              <Info size={18} />
-            </button>
-          </div>
+          )}
         </header>
 
         {/* Messages Area */}
@@ -204,10 +253,10 @@ export default function ChatWindow({
             </p>
           </div>
 
-          {messages.map((msg, index) => {
+          {filteredMessages.map((msg, index) => {
             const isOwn = msg.user_id === currentUser?.id
             const isSystem = msg.type === 'system'
-            const prevMsg = index > 0 ? messages[index - 1] : null
+            const prevMsg = index > 0 ? filteredMessages[index - 1] : null
             const isSequential = prevMsg && !isSystem && prevMsg.type !== 'system' && prevMsg.user_id === msg.user_id
 
             return (
@@ -276,7 +325,7 @@ export default function ChatWindow({
                 </div>
                 <div className="space-y-2">
                   {chat.participants.map(p => (
-                    <div key={p.user_id} className="flex items-center gap-2.5">
+                    <div key={p.user_id} className="flex items-center gap-2.5 group/member">
                       <div className="w-8 h-8 rounded-xl bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-xs font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10">
                         {p.user?.name?.charAt(0).toUpperCase()}
                       </div>
@@ -287,7 +336,24 @@ export default function ChatWindow({
                         </div>
                         <div className="text-[10px] text-[#9097A6]">{p.role === 'owner' ? 'Sahip' : 'Üye'}</div>
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-[#1ED2A7] shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
+                      
+                      {isOwnerOrAdmin && chat.chateable_type === 'Group' && p.user_id !== currentUser?.id && (
+                        <button 
+                          onClick={() => {
+                            if (window.confirm(`${p.user?.name} adlı üyeyi gruptan çıkarmak istediğinize emin misiniz?`)) {
+                              removeMemberMutation.mutate(p.user_id)
+                            }
+                          }}
+                          className="opacity-0 group-hover/member:opacity-100 p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                          title="Üyeyi çıkar"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                      
+                      {(!isOwnerOrAdmin || chat.chateable_type !== 'Group' || p.user_id === currentUser?.id) && (
+                        <div className="w-2 h-2 rounded-full bg-[#1ED2A7] shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
+                      )}
                     </div>
                   ))}
                 </div>
