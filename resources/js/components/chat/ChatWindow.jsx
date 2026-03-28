@@ -130,10 +130,13 @@ export default function ChatWindow({
   onUpdateChat
 }) {
   const scrollRef = useRef(null)
+  const unreadRef = useRef(null)
   const [showInfo, setShowInfo] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showUnreadAlert, setShowUnreadAlert] = useState(false)
+  const [lastScrolledChatId, setLastScrolledChatId] = useState(null)
   const queryClient = useQueryClient()
   
   const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner')
@@ -159,10 +162,32 @@ export default function ChatWindow({
   }, [isSearching])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (!scrollRef.current || messages.length === 0 || !chat?.id) return
+
+    // Case 1: Initial load of a chat with unread messages
+    if (lastScrolledChatId !== chat.id && chat.unread_count > 0) {
+      const startIndex = Math.max(0, messages.length - chat.unread_count)
+      const firstUnread = messages[startIndex]
+      
+      if (firstUnread) {
+        // Find the message element (assuming we add an ID or data attribute)
+        const el = document.getElementById(`msg-${firstUnread.id}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'auto', block: 'start' })
+          setLastScrolledChatId(chat.id)
+          setShowUnreadAlert(true)
+          setTimeout(() => setShowUnreadAlert(false), 3000)
+          return
+        }
+      }
     }
-  }, [messages])
+
+    // Case 2: Standard scroll to bottom (received new message or first load with no unread)
+    if (lastScrolledChatId !== chat.id || messages.length > 0) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      if (lastScrolledChatId !== chat.id) setLastScrolledChatId(chat.id)
+    }
+  }, [messages, chat?.id, chat?.unread_count, lastScrolledChatId])
 
   if (!chat) {
     return (
@@ -254,9 +279,16 @@ export default function ChatWindow({
         {/* Messages Area */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
+          className="relative flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
           style={{ scrollBehavior: 'smooth' }}
         >
+          {showUnreadAlert && (
+            <div className="sticky top-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+              <div className="bg-[#905efc] text-white px-4 py-2 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 border border-white/20">
+                <Bell size={14} /> {chat.unread_count} Okunmamış Mesaj
+              </div>
+            </div>
+          )}
           {/* Start marker */}
           <div className="flex flex-col items-center py-6 mb-2">
             <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 shadow-md flex items-center justify-center mb-3 border border-[#E5E9F0] dark:border-white/5">
@@ -275,13 +307,14 @@ export default function ChatWindow({
             const isSequential = prevMsg && !isSystem && prevMsg.type !== 'system' && prevMsg.user_id === msg.user_id
 
             return (
-              <MessageItem
-                key={msg.id}
-                message={msg}
-                isOwn={isOwn}
-                isSystem={isSystem}
-                isSequential={isSequential}
-              />
+              <div key={msg.id} id={`msg-${msg.id}`}>
+                <MessageItem
+                  message={msg}
+                  isOwn={isOwn}
+                  isSystem={isSystem}
+                  isSequential={isSequential}
+                />
+              </div>
             )
           })}
 
