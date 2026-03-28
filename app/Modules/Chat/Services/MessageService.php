@@ -36,6 +36,11 @@ class MessageService
                 'message_count' => (int)$chat->message_count + 1,
             ]);
 
+            // Increment unread counts for all other participants
+            $chat->participants()
+                ->where('user_id', '!=', $userId)
+                ->increment('unread_count');
+
             // Broadcast message
             event(new \App\Modules\Chat\Events\MessageCreated($message));
 

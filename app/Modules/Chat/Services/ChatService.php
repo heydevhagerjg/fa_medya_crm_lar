@@ -109,7 +109,8 @@ class ChatService
             ->get()
             ->map(function ($p) {
                 $chat = $p->chat;
-                $chat->unread_count = $p->unread_count;
+                // Use setAttribute to ensure it's included in the JSON response
+                $chat->setAttribute('unread_count', (int)$p->unread_count);
                 return $chat;
             })
             ->sortByDesc('last_message_at')
