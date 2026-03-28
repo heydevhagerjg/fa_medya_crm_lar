@@ -2,7 +2,7 @@ import React from 'react'
 import { FileText, Download, Check, CheckCheck, Shield, Info, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 
-export default function MessageItem({ message, isOwn, isSystem, isSequential = false, onImageClick, onDelete }) {
+export default function MessageItem({ message, isOwn, isSystem, isSequential = false, onImageClick, onDelete, canDeleteAll }) {
   if (isSystem) {
     return (
       <div className="flex justify-center my-3">
@@ -74,7 +74,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
 
           <div className="relative group/bubble">
             {/* Delete Action */}
-            {(isOwn || ['ADMIN', 'SUPER_ADMIN'].includes(message.user?.role)) && (
+            {(isOwn || canDeleteAll) && !isSystem && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

@@ -349,6 +349,7 @@ export default function ChatWindow({
                   isSequential={isSequential}
                   onImageClick={openGallery}
                   onDelete={onDeleteMessage}
+                  canDeleteAll={isOwnerOrAdmin}
                 />
               </div>
             )

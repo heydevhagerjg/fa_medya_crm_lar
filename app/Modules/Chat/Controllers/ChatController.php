@@ -102,7 +102,11 @@ class ChatController extends Controller
             }
         }
 
+        $chatId = $chat->id;
         $chat->delete();
+
+        // Broadcast to all participants that the chat is deleted
+        broadcast(new \App\Modules\Chat\Events\ChatDeleted($chatId))->toOthers();
 
         return response()->json(['success' => true, 'message' => 'Sohbet ve tüm dosyalar silindi.']);
     }

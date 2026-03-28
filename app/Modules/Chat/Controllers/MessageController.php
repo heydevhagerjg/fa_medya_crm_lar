@@ -166,13 +166,15 @@ class MessageController extends Controller
      */
     public function destroy(Chat $chat, Message $message)
     {
-        // 1. Authorization: Only sender OR owner/admin can delete
+        // 1. Authorization: Sender OR Owner/Admin can delete
         $user = auth()->user();
         $isSender = $message->sender_id === $user->id;
-        $isOwnerOrAdmin = $user->role === 'ADMIN' || $user->role === 'SUPER_ADMIN' || $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
+        $isOwnerOrAdmin = $user->role === 'ADMIN' || 
+                          $user->role === 'SUPER_ADMIN' || 
+                          $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
 
         if (!$isSender && !$isOwnerOrAdmin) {
-            abort(403, 'You are not authorized to delete this message.');
+            abort(403, 'Bu mesajı silme yetkiniz yok.');
         }
 
         // 2. Delete Attachments
