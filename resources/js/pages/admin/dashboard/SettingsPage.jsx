@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Settings, Save, Server, ShieldCheck, AlertCircle, Plus, Edit2, Trash2, Shield } from 'lucide-react'
+import { Settings, Save, Server, ShieldCheck, AlertCircle, Plus, Edit2, Trash2, Shield, RefreshCw } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 
 export default function AdminSettingsPage() {
@@ -71,6 +71,18 @@ export default function AdminSettingsPage() {
             }
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Yapılandırma başarısız.'),
+    });
+
+    const cacheMutation = useMutation({
+        mutationFn: () => api.post('/admin/system/optimize'),
+        onSuccess: (data) => {
+            if (data.data.success) {
+                toast.success(data.data.message);
+            } else {
+                toast.error(data.data.message);
+            }
+        },
+        onError: (err) => toast.error(err.response?.data?.message || 'Önbellek temizlenirken hata oluştu.'),
     });
 
     const openModal = (config = null) => {
@@ -160,6 +172,31 @@ export default function AdminSettingsPage() {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* Sistem Optimizasyonu Kartı */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm p-6 mb-8 mt-6">
+                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-start gap-4">
+                         <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-600 shrink-0">
+                               <RefreshCw size={24} className={cacheMutation.isPending ? 'animate-spin' : ''} />
+                         </div>
+                         <div>
+                             <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">Sistemi Optimize Et (Önbelleği Temizle)</h3>
+                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sistemdeki geçici dosyaları, yönlendirmeleri (route) ve konfigürasyon (config) önbelleğini temizler. <b>Verileriniz silinmez, sunucu rahatlar.</b> Olası cache kaynaklı hataları çözmek için kullanabilirsiniz.</p>
+                         </div>
+                    </div>
+                    <div>
+                          <button
+                               onClick={() => cacheMutation.mutate()}
+                               disabled={cacheMutation.isPending}
+                               className="whitespace-nowrap flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 active:scale-95 transition-all disabled:opacity-50"
+                           >
+                               <RefreshCw size={16} className={cacheMutation.isPending ? 'animate-spin' : ''} />
+                               {cacheMutation.isPending ? 'Temizleniyor...' : 'Önbelleği Temizle'}
+                           </button>
+                    </div>
+                 </div>
             </div>
 
             <Modal open={modal} onClose={() => setModal(false)} title={editingState ? 'S3 Konfigürasyonu Düzenle' : 'Yeni S3 Konfigürasyonu'}>

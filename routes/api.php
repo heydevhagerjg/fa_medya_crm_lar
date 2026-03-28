@@ -287,5 +287,8 @@ Route::prefix('admin')->group(function () {
              Route::get('/download', [SystemBackupController::class, 'download']);
              Route::post('/destroy', [SystemBackupController::class, 'destroy']);
         });
+
+        // System Optimization
+        Route::post('/system/optimize', [\App\Http\Controllers\Admin\SystemController::class, 'optimize']);
     });
 });
