@@ -6,15 +6,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
 
-function AddMemberModal({ open, onClose, chat }) {
+function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState([])
   const queryClient = useQueryClient()
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['users-list'],
-    queryFn: () => api.get('/settings/users').then(r => r.data?.data || [])
+    queryFn: () => api.get('/settings/users').then(r => {
+      const raw = r.data?.data || r.data || []
+      return Array.isArray(raw) ? raw : []
+    }),
+    enabled: !!open
   })
+
+  useEffect(() => {
+    if (open) {
+      refetch();
+      setSearch('');
+      setSelected([]);
+    }
+  }, [open, refetch])
 
   const { mutate, isPending } = useMutation({
     mutationFn: (userIds) => api.post(`/chats/${chat.id}/participants`, { participant_ids: userIds }),

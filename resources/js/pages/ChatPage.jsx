@@ -16,15 +16,21 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
     const [groupDesc, setGroupDesc] = useState('')
     const [selected, setSelected] = useState([])
 
-    const { data: users = [], isLoading: usersLoading } = useQuery({
+    const { data: users = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery({
         queryKey: ['users-list'],
         queryFn: () => api.get('/settings/users').then(r => {
             const raw = r.data?.data || r.data || []
             return Array.isArray(raw) ? raw : []
         }),
         enabled: open,
-        staleTime: 60_000,
     })
+
+    useEffect(() => {
+        if (open) {
+            refetchUsers(); // Force fresh data when opening modal
+            reset();
+        }
+    }, [open])
 
     const filteredUsers = users.filter(u =>
         u.id !== currentUser?.id &&
@@ -59,8 +65,6 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
     }
 
     const reset = () => { setSearch(''); setGroupName(''); setGroupDesc(''); setSelected([]); setTab('direct') }
-
-    useEffect(() => { if (!open) reset() }, [open])
 
     if (!open) return null
 
