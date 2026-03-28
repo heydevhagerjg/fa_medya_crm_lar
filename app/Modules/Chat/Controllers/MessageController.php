@@ -181,7 +181,7 @@ class MessageController extends Controller
     {
         // 1. Authorization: Sender OR Owner/Admin can delete
         $user = auth()->user();
-        $isSender = $message->sender_id === $user->id;
+        $isSender = $message->user_id === $user->id;
         $isOwnerOrAdmin = $user->role === 'ADMIN' || 
                           $user->role === 'SUPER_ADMIN' || 
                           $chat->participants()->where('user_id', $user->id)->where('role', 'owner')->exists();
@@ -190,18 +190,21 @@ class MessageController extends Controller
             abort(403, 'Bu mesajı silme yetkiniz yok.');
         }
 
-        // 2. Delete Attachments
-        $fileService = app(\App\Modules\Chat\Services\FileService::class);
-        foreach ($message->attachments as $attachment) {
-            $fileService->deleteAttachment($attachment);
-        }
-
-        // 3. Delete Message
+        // 2. Remember attachments for cleanup after broadcast
+        $attachments = $message->attachments;
         $messageId = $message->id;
+
+        // 3. Delete Message from DB First (FAST)
         $message->delete();
 
-        // 4. Broadcast
-        broadcast(new \App\Modules\Chat\Events\MessageDeleted($chat->id, $messageId))->toOthers();
+        // 4. Broadcast removal immediately
+        broadcast(new \App\Modules\Chat\Events\MessageDeleted($chat->id, $messageId));
+
+        // 5. Cleanup S3 Attachments (Heavy/Slow)
+        $fileService = app(\App\Modules\Chat\Services\FileService::class);
+        foreach ($attachments as $attachment) {
+            $fileService->deleteAttachment($attachment);
+        }
 
         return response()->json([
             'message' => 'Message deleted successfully.',
