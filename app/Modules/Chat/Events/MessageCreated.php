@@ -70,8 +70,9 @@ class MessageCreated implements ShouldBroadcastNow
                 'file_name' => $a->file_name,
                 'file_type' => $a->file_type,
                 'file_size' => $a->file_size,
-                's3_url' => $a->s3_url,
-                'preview_url' => $a->preview_url,
+                'url' => $a->url,
+                'preview_signed' => $a->preview_signed,
+                'mime_type' => $a->mime_type,
             ]),
         ];
     }

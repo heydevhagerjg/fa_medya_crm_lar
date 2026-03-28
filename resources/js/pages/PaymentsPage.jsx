@@ -196,11 +196,10 @@ export default function PaymentsPage() {
     // 6. Derived data and render logic
     const totalPayments = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0)
     const filtered = payments.filter(p => {
-        if (!search) return true;
-        const s = search.toLowerCase();
-        const jobTitle = p.job?.title?.toLowerCase() || 'genel';
-        const desc = p.description?.toLowerCase() || '';
-        return jobTitle.includes(s) || desc.includes(s);
+        const searchLower = (search || '').toString().toLowerCase()
+        const jobTitleMatch = (p.job?.title || 'genel').toString().toLowerCase().includes(searchLower)
+        const descMatch = (p.description || '').toString().toLowerCase().includes(searchLower)
+        return jobTitleMatch || descMatch
     })
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
@@ -216,7 +215,7 @@ export default function PaymentsPage() {
                 actions={[
                     { label: 'Tahsilat Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'İş veya açıklama ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İş veya açıklama ara...' }}
                 breadcrumbs={['Tahsilatlar']}
             />
 

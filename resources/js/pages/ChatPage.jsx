@@ -32,11 +32,13 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
         }
     }, [open])
 
-    const filteredUsers = users.filter(u =>
-        u.id !== currentUser?.id &&
-        (u.name.toLowerCase().includes(search.toLowerCase()) ||
-         u.email?.toLowerCase().includes(search.toLowerCase()))
-    )
+    const filteredUsers = users.filter(u => {
+        const isSelf = u.id === currentUser?.id
+        const searchLower = (search || '').toString().toLowerCase()
+        const nameMatch = (u.name || '').toString().toLowerCase().includes(searchLower)
+        const emailMatch = (u.email || '').toString().toLowerCase().includes(searchLower)
+        return !isSelf && (nameMatch || emailMatch)
+    })
 
     const directMutation = useMutation({
         mutationFn: (data) => api.post('/chats', data),
@@ -294,6 +296,18 @@ export default function ChatPage() {
         })
     }, [queryClient])
 
+    const deleteMessageMutation = useMutation({
+        mutationFn: (messageId) => api.delete(`/chats/${selectedChat.id}/messages/${messageId}`),
+        onSuccess: (res) => {
+            const messageId = res.data?.message_id
+            if (messageId) {
+                setMessages(prev => prev.filter(m => m.id !== messageId))
+            }
+            toast.success('Mesaj silindi.')
+        },
+        onError: () => toast.error('Mesaj silinemedi.')
+    })
+
     useEffect(() => {
         if (selectedChat?.id) { 
             fetchMessages(selectedChat.id)
@@ -317,6 +331,9 @@ export default function ChatPage() {
 
                 setMessages(prev => prev.some(m => m.id === e.id) ? prev : [...prev, e])
                 markAsRead(selectedChat.id)
+            })
+            .listen('.message.deleted', (e) => {
+                setMessages(prev => prev.filter(m => m.id !== e.messageId))
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
     }, [selectedChat, currentUser, queryClient, markAsRead])
@@ -363,6 +380,7 @@ export default function ChatPage() {
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 onFileUpload={handleFileUpload}
+                onDeleteMessage={(id) => deleteMessageMutation.mutate(id)}
                 isUploading={isUploading}
                 isLoading={false}
                 currentUser={currentUser}

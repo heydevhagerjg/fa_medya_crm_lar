@@ -226,13 +226,16 @@ export default function ServiceTrackingPage() {
     }, [searchParams, trackings])
 
     // ===== DERIVED DATA =====
-    const filtered = trackings.filter(t =>
-        t.title?.toLowerCase().includes(search.toLowerCase()) ||
-        t.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        t.job?.title?.toLowerCase().includes(search.toLowerCase()) ||
-        t.job?.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        t.category?.name?.toLowerCase().includes(search.toLowerCase())
-    )
+    const filtered = trackings.filter(t => {
+        const searchLower = (search || '').toString().toLowerCase()
+        const titleMatch = (t.title || '').toString().toLowerCase().includes(searchLower)
+        const customerMatch = (t.customer?.name || '').toString().toLowerCase().includes(searchLower)
+        const jobTitleMatch = (t.job?.title || '').toString().toLowerCase().includes(searchLower)
+        const jobCustomerMatch = (t.job?.customer?.name || '').toString().toLowerCase().includes(searchLower)
+        const categoryMatch = (t.category?.name || '').toString().toLowerCase().includes(searchLower)
+
+        return titleMatch || customerMatch || jobTitleMatch || jobCustomerMatch || categoryMatch
+    })
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -247,7 +250,7 @@ export default function ServiceTrackingPage() {
                 actions={[
                     { label: 'Yeni Takip Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Başlık, müşteri veya kategori ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Başlık, müşteri veya kategori ara...' }}
                 breadcrumbs={['Hizmet Takibi']}
             >
                 <select

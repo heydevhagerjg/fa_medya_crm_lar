@@ -78,9 +78,19 @@ class JobCrm extends Model
         return $this->hasMany(JobFile::class, 'job_id');
     }
 
+    public function jobfile()
+    {
+        return $this->jobFiles();
+    }
+
     public function jobSteps()
     {
         return $this->hasMany(JobStep::class, 'job_id')->orderBy('order');
+    }
+
+    public function jobstep()
+    {
+        return $this->jobSteps();
     }
 
     public function payments()

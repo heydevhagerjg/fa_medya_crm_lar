@@ -145,7 +145,10 @@ export default function JobsPage() {
     })
 
     const filtered = jobs.filter(j => {
-        const matchSearch = j.title?.toLowerCase().includes(search.toLowerCase()) || j.customer?.name?.toLowerCase().includes(search.toLowerCase())
+        const searchLower = (search || '').toString().toLowerCase()
+        const titleMatch = (j.title || '').toString().toLowerCase().includes(searchLower)
+        const customerMatch = (j.customer?.name || '').toString().toLowerCase().includes(searchLower)
+        const matchSearch = titleMatch || customerMatch
         const matchStatus = !filterStatus || (j.jobStatusId || j.job_status_id) == filterStatus
         return matchSearch && matchStatus
     }).sort((a, b) => b.id - a.id)
@@ -163,7 +166,7 @@ export default function JobsPage() {
                 actions={[
                     { label: 'Yeni İş', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'İş veya müşteri ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İş veya müşteri ara...' }}
                 breadcrumbs={['İşler']}
             >
                 <div className="flex flex-col sm:flex-row gap-3">

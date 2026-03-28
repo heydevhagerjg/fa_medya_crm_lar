@@ -211,14 +211,16 @@ export default function FilesPage() {
         let jobsWithActualFiles = jobsWithFiles.filter(job => job.jobfile && job.jobfile.length > 0)
 
         // Sınıfları alfabetik olarak isme göre A'dan Z'ye sırala
-        jobsWithActualFiles = jobsWithActualFiles.sort((a, b) => a.title.localeCompare(b.title, 'tr'))
+        jobsWithActualFiles = jobsWithActualFiles.sort((a, b) => (a.title || '').toString().localeCompare((b.title || '').toString(), 'tr'))
 
         if (!search) return jobsWithActualFiles
 
+        const searchLower = (search || '').toString().toLowerCase()
+
         return jobsWithActualFiles.map(job => {
-            const matchesJob = job.title?.toLowerCase().includes(search.toLowerCase())
+            const matchesJob = (job.title || '').toString().toLowerCase().includes(searchLower)
             const matchedFiles = job.jobfile.filter(f =>
-                (f.file_name || f.fileName || '').toLowerCase().includes(search.toLowerCase())
+                (f.file_name || f.fileName || '').toString().toLowerCase().includes(searchLower)
             )
 
             if (matchesJob || matchedFiles.length > 0) {
@@ -266,7 +268,7 @@ export default function FilesPage() {
                 subtitle="AWS S3 üzerinde barındırılan tüm iş dosyalarınız"
                 icon={FolderOpen}
                 iconColor="text-indigo-500"
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Dosya veya iş ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Dosya veya iş ara...' }}
                 breadcrumbs={['Dosyalar']}
             >
                 <div className="flex items-center gap-3">

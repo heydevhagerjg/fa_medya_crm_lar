@@ -93,9 +93,18 @@ class ChatController extends Controller
             return response()->json(['message' => 'Sohbeti yalnızca oluşturan kişi veya yönetici silebilir.'], 403);
         }
 
+        // Delete all attachments in the chat from S3
+        $fileService = app(\App\Modules\Chat\Services\FileService::class);
+        $messagesWithAttachments = $chat->messages()->has('attachments')->with('attachments')->get();
+        foreach ($messagesWithAttachments as $msg) {
+            foreach ($msg->attachments as $attachment) {
+                $fileService->deleteAttachment($attachment);
+            }
+        }
+
         $chat->delete();
 
-        return response()->json(['success' => true, 'message' => 'Sohbet silindi.']);
+        return response()->json(['success' => true, 'message' => 'Sohbet ve tüm dosyalar silindi.']);
     }
 
     /**

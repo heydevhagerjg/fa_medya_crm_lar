@@ -1,8 +1,8 @@
 import React from 'react'
-import { FileText, Download, Check, CheckCheck, Shield, Info } from 'lucide-react'
+import { FileText, Download, Check, CheckCheck, Shield, Info, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 
-export default function MessageItem({ message, isOwn, isSystem, isSequential = false }) {
+export default function MessageItem({ message, isOwn, isSystem, isSequential = false, onImageClick, onDelete }) {
   if (isSystem) {
     return (
       <div className="flex justify-center my-3">
@@ -21,21 +21,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
         {message.attachments.map((file) => (
           <div key={file.id} className="group relative">
             {file.file_type === 'image' ? (
-              <div className="rounded-xl overflow-hidden border border-white/10 shadow-md">
-                <img
-                  src={file.preview_url || file.s3_url}
-                  alt={file.file_name}
-                  className="max-w-full max-h-56 object-cover"
-                />
-                <a
-                  href={file.s3_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Download className="text-white" size={22} />
-                </a>
-              </div>
+              <AttachmentImage file={file} onClick={() => onImageClick && onImageClick(file.id)} />
             ) : (
               <div className="bg-white/10 border border-white/20 p-2.5 rounded-xl flex items-center gap-2.5 backdrop-blur-sm">
                 <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -45,7 +31,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
                   <div className="text-xs font-semibold truncate text-inherit">{file.file_name}</div>
                   <div className="text-[10px] opacity-60">{(file.file_size / 1024 / 1024).toFixed(2)} MB</div>
                 </div>
-                <a href={file.s3_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 transition-all">
+                <a href={file.download_url || file.url} download={file.file_name} rel="noopener noreferrer" className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 transition-all">
                   <Download size={14} className="text-white" />
                 </a>
               </div>
@@ -86,11 +72,28 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
             </div>
           )}
 
-          <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${
-            isOwn
-              ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
-              : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
-          }`}>
+          <div className="relative group/bubble">
+            {/* Delete Action */}
+            {(isOwn || ['ADMIN', 'SUPER_ADMIN'].includes(message.user?.role)) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Bu mesajı silmek istediğinize emin misiniz?')) onDelete(message.id);
+                }}
+                className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full h-8 w-8 flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10 ${
+                  isOwn ? '-left-10' : '-right-10'
+                }`}
+                title="Sil"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+
+            <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${
+              isOwn
+                ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
+                : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
+            }`}>
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
             )}
@@ -110,6 +113,43 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
           </div>
         </div>
       </div>
+    </div>
+  </div>
+)
+}
+
+function AttachmentImage({ file, onClick }) {
+  const [loaded, setLoaded] = React.useState(false)
+  
+  return (
+    <div 
+      onClick={onClick}
+      className="rounded-xl overflow-hidden border border-white/10 shadow-md w-[280px] h-[200px] bg-black/20 relative flex items-center justify-center cursor-pointer group/img"
+    >
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">
+           <div className="w-10 h-10 border-2 border-white/20 border-t-[#905efc] rounded-full animate-spin"></div>
+        </div>
+      )}
+      
+      <img
+        src={file.preview_signed || file.url}
+        alt={file.file_name}
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+      />
+      
+      <a
+        href={file.download_url || file.url}
+        download={file.file_name}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#905efc] hover:scale-110 z-20 shadow-lg border border-white/10"
+        title="İndir"
+      >
+        <Download className="text-white" size={18} />
+      </a>
     </div>
   )
 }

@@ -62,10 +62,12 @@ export default function TenantBackupPage() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
-    const filteredBackups = backups.filter(b => 
-        b.filename?.toLowerCase().includes(search.toLowerCase()) || 
-        b.tenant?.name?.toLowerCase().includes(search.toLowerCase())
-    )
+    const filteredBackups = backups.filter(b => {
+        const searchLower = (search || '').toString().toLowerCase()
+        const filenameMatch = (b.filename || '').toString().toLowerCase().includes(searchLower)
+        const tenantMatch = (b.tenant?.name || '').toString().toLowerCase().includes(searchLower)
+        return filenameMatch || tenantMatch
+    })
 
     return (
         <div className="space-y-6">

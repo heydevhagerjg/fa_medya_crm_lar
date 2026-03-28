@@ -74,12 +74,13 @@ export default function CustomersPage() {
 
     const filtered = customers
         .filter(c => {
-            const low = search.toLowerCase();
-            const clean = search.replace(/\D/g, '');
-            return c.name?.toLowerCase().includes(low) || 
-                   c.email?.toLowerCase().includes(low) || 
-                   (c.phone && c.phone.includes(clean)) || 
-                   (c.phone && formatPhoneNumber(c.phone).includes(search));
+            const low = (search || '').toString().toLowerCase();
+            const clean = (search || '').toString().replace(/\D/g, '');
+            const nameMatch = (c.name || '').toString().toLowerCase().includes(low);
+            const emailMatch = (c.email || '').toString().toLowerCase().includes(low);
+            const phoneMatch = (c.phone || '').toString().includes(clean);
+            const phoneFormatMatch = (c.phone || '').toString().includes(search);
+            return nameMatch || emailMatch || phoneMatch || phoneFormatMatch;
         })
         .sort((a, b) => b.id - a.id)
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
@@ -95,7 +96,7 @@ export default function CustomersPage() {
                 actions={[
                     { label: 'Müşteri Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'İsim, telefon veya e-posta ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İsim, telefon veya e-posta ara...' }}
                 breadcrumbs={[`Müşteriler (${customers.length} Kayıtlı Veri)`]}
             />
 

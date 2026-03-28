@@ -181,11 +181,10 @@ export default function ExpensesPage() {
 
     const totalExpenses = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
     const filtered = expenses.filter(e => {
-        if (!search) return true;
-        const s = search.toLowerCase();
-        const title = e.title?.toLowerCase() || '';
-        const jobTitle = e.job?.title?.toLowerCase() || 'genel';
-        return title.includes(s) || jobTitle.includes(s);
+        const searchLower = (search || '').toString().toLowerCase()
+        const titleMatch = (e.title || '').toString().toLowerCase().includes(searchLower)
+        const jobTitleMatch = (e.job?.title || 'genel').toString().toLowerCase().includes(searchLower)
+        return titleMatch || jobTitleMatch
     })
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
@@ -201,7 +200,7 @@ export default function ExpensesPage() {
                 actions={[
                     { label: 'Masraf Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Başlık veya iş ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Başlık veya iş ara...' }}
                 breadcrumbs={['Masraflar']}
             />
 

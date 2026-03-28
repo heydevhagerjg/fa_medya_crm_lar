@@ -22,17 +22,13 @@ class FileService
         $uploaderId = $uploaderId ?? auth()->id();
         $tenantId = auth()->user()->tenant_id;
 
-        // 1. Get tenant specific S3 disk
-        $disk = Tenant::getS3DiskForTenant($tenantId);
+        // 1. Get dynamically configured S3 disk (set by TenantS3Middleware)
+        $disk = \Illuminate\Support\Facades\Storage::disk('s3_global');
 
-        if (!$disk) {
-            throw new \Exception("Tenant S3 configuration mismatch for tenant: {$tenantId}");
-        }
-
-        // 2. Prepare storage path
+        // 2. Prepare storage path under tenant folder
         $date = now()->format('Y/m/d');
         $extension = $file->getClientOriginalExtension() ?: 'bin';
-        $filename = "attachments/{$date}/" . Str::uuid() . "." . $extension;
+        $filename = "tenants/{$tenantId}/chat/attachments/{$date}/" . Str::uuid() . "." . $extension;
 
         // 3. Store file in S3
         $disk->put(
@@ -90,5 +86,29 @@ class FileService
         if (str_contains($mime, 'text') || str_contains($mime, 'msword') || str_contains($mime, 'officedocument')) return 'document';
 
         return 'other';
+    }
+
+    /**
+     * Delete an attachment and its files from S3.
+     */
+    public function deleteAttachment(MessageAttachment $attachment): bool
+    {
+        $message = $attachment->message;
+        $chat = $message?->chat;
+        
+        // Use manual build since it might be a background job or admin action
+        $disk = $chat ? Tenant::getS3DiskForTenant($chat->tenant_id) : \Illuminate\Support\Facades\Storage::disk('s3_global');
+
+        if ($disk && $disk->exists($attachment->s3_path)) {
+            $disk->delete($attachment->s3_path);
+            
+            // Delete preview if exists
+            $previewPath = str_replace('attachments/', 'attachments/previews/', $attachment->s3_path);
+            if ($disk->exists($previewPath)) {
+                $disk->delete($previewPath);
+            }
+        }
+
+        return $attachment->delete();
     }
 }

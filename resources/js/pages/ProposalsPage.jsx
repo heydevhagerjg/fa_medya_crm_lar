@@ -295,8 +295,10 @@ export default function ProposalsPage() {
     }
 
     const filtered = proposals.filter(p => {
-        const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase()) ||
-            p.customer?.name?.toLowerCase().includes(search.toLowerCase())
+        const searchLower = (search || '').toString().toLowerCase()
+        const titleMatch = (p.title || '').toString().toLowerCase().includes(searchLower)
+        const customerMatch = (p.customer?.name || '').toString().toLowerCase().includes(searchLower)
+        const matchSearch = titleMatch || customerMatch
         const matchStatus = !filterStatus || p.status === filterStatus
         return matchSearch && matchStatus
     })
@@ -316,7 +318,7 @@ export default function ProposalsPage() {
                 actions={[
                     { label: 'Yeni Teklif Oluştur', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: setSearch, placeholder: 'Teklif veya müşteri ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Teklif veya müşteri ara...' }}
                 breadcrumbs={['Teklifler']}
             >
                 <select

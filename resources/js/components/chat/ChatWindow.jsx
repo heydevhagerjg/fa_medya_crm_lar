@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
+import GalleryLightbox from './GalleryLightbox'
 import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
@@ -46,7 +47,10 @@ function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
 
   const existingIds = chat.participants?.map(p => p.user_id) || []
   const availableUsers = users.filter(u => !existingIds.includes(u.id))
-  const filtered = availableUsers.filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = availableUsers.filter(u => {
+    const searchLower = (search || '').toString().toLowerCase()
+    return (u.name || '').toString().toLowerCase().includes(searchLower)
+  })
 
   const toggleUser = (uId) => setSelected(prev => prev.includes(uId) ? prev.filter(id => id !== uId) : [...prev, uId])
 
@@ -123,6 +127,7 @@ export default function ChatWindow({
   messages,
   onSendMessage,
   onFileUpload,
+  onDeleteMessage,
   isUploading,
   isLoading,
   onBack,
@@ -137,7 +142,18 @@ export default function ChatWindow({
   const [searchQuery, setSearchQuery] = useState('')
   const [showUnreadAlert, setShowUnreadAlert] = useState(false)
   const [lastScrolledChatId, setLastScrolledChatId] = useState(null)
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 })
   const queryClient = useQueryClient()
+  
+  // Flatten all image attachments from the chat history for the gallery
+  const allImages = messages.flatMap(msg => (msg.attachments || []).filter(a => a.file_type === 'image'))
+  
+  const openGallery = (attachmentId) => {
+    const idx = allImages.findIndex(img => img.id === attachmentId)
+    if (idx !== -1) {
+      setLightbox({ open: true, index: idx })
+    }
+  }
   
   const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner')
 
@@ -153,9 +169,11 @@ export default function ChatWindow({
     }
   })
 
-  const filteredMessages = messages.filter(msg => 
-    !searchQuery || msg.content?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredMessages = messages.filter(msg => {
+    if (!searchQuery) return true
+    const searchLower = searchQuery.toString().toLowerCase()
+    return (msg.content || '').toString().toLowerCase().includes(searchLower)
+  })
 
   useEffect(() => {
     if (!isSearching) setSearchQuery('')
@@ -329,6 +347,8 @@ export default function ChatWindow({
                   isOwn={isOwn}
                   isSystem={isSystem}
                   isSequential={isSequential}
+                  onImageClick={openGallery}
+                  onDelete={onDeleteMessage}
                 />
               </div>
             )
@@ -435,6 +455,13 @@ export default function ChatWindow({
       )}
     </div>
       <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} chat={chat} onUpdateChat={onUpdateChat} />
+
+      <GalleryLightbox 
+        open={lightbox.open} 
+        images={allImages} 
+        initialIndex={lightbox.index} 
+        onClose={() => setLightbox({ ...lightbox, open: false })} 
+      />
     </>
   )
 }

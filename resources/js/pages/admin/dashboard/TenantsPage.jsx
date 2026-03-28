@@ -300,7 +300,10 @@ export default function TenantsPage() {
     }
 
     const filtered = tenants
-        .filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
+        .filter(c => {
+            const searchLower = (search || '').toString().toLowerCase()
+            return (c.name || '').toString().toLowerCase().includes(searchLower)
+        })
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     const totalPages = Math.ceil(filtered.length / itemsPerPage)
     const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
