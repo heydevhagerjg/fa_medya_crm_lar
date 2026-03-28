@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
-import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, MessageCircle, X, Check, User } from 'lucide-react'
+import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
