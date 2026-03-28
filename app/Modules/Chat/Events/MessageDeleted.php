@@ -20,8 +20,8 @@ class MessageDeleted implements ShouldBroadcastNow
      */
     public function __construct(string $chatId, string $messageId)
     {
-        $this->chatId = $chatId;
-        $this->messageId = $messageId;
+        $this->chatId = (string)$chatId;
+        $this->messageId = (string)$messageId;
     }
 
     /**

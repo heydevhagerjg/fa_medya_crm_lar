@@ -342,7 +342,7 @@ export default function ChatPage() {
                 markAsRead(selectedChat.id)
             })
             .listen('.message.deleted', (e) => {
-                setMessages(prev => prev.filter(m => m.id !== e.messageId))
+                setMessages(prev => prev.filter(m => String(m.id) !== String(e.messageId)))
             })
             .listen('.chat.deleted', (e) => {
                 toast.error('Bu sohbet kapatıldı veya silindi.')
