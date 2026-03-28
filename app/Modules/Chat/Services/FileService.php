@@ -52,6 +52,12 @@ class FileService
             \App\Modules\Chat\Jobs\GenerateFilePreviewJob::dispatch($attachment);
         }
 
+        // 6. Update Tenant storage usage (base file only)
+        $tenant = auth()->user()->tenant;
+        if ($tenant) {
+            $tenant->increment('storage_used', $file->getSize());
+        }
+
         return $attachment;
     }
 
@@ -107,6 +113,12 @@ class FileService
             if ($disk->exists($previewPath)) {
                 $disk->delete($previewPath);
             }
+        }
+
+        // Update Tenant storage usage (decrement only base file size)
+        $tenant = $chat?->tenant;
+        if ($tenant && $attachment->file_size > 0) {
+            $tenant->decrement('storage_used', $attachment->file_size);
         }
 
         return $attachment->delete();

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
 import GalleryLightbox from './GalleryLightbox'
-import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User } from 'lucide-react'
+import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
@@ -78,22 +78,20 @@ function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
 
           <div className="h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
             {isLoading ? (
-              <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin"/></div>
+              <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" /></div>
             ) : filtered.length > 0 ? (
               filtered.map(u => (
                 <button
                   key={u.id}
                   onClick={() => toggleUser(u.id)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${
-                    selected.includes(u.id) 
-                      ? 'bg-[#905efc]/10 text-[#905efc]' 
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${selected.includes(u.id)
+                      ? 'bg-[#905efc]/10 text-[#905efc]'
                       : 'hover:bg-[#F4F5F7] dark:hover:bg-white/5 text-[#1A1A2E] dark:text-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
-                      selected.includes(u.id) ? 'bg-[#905efc] text-white' : 'bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6]'
-                    }`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${selected.includes(u.id) ? 'bg-[#905efc] text-white' : 'bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6]'
+                      }`}>
                       {u.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="text-sm font-semibold text-left">
@@ -108,7 +106,7 @@ function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
               <div className="text-center py-4 text-xs text-[#9097A6]">Eklenecek yeni kullanıcı bulunamadı.</div>
             )}
           </div>
-          
+
           <button
             onClick={() => mutate(selected)}
             disabled={isPending || selected.length === 0}
@@ -146,20 +144,20 @@ export default function ChatWindow({
   const [lastScrolledChatId, setLastScrolledChatId] = useState(null)
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
   const queryClient = useQueryClient()
-  
+
   // Flatten all image attachments from the chat history for the gallery
   const allImages = messages.flatMap(msg => (msg.attachments || []).filter(a => a.file_type === 'image'))
-  
+
   const openGallery = (attachmentId) => {
     const idx = allImages.findIndex(img => img.id === attachmentId)
     if (idx !== -1) {
       setLightbox({ open: true, index: idx })
     }
   }
-  
-  const isOwnerOrAdmin = currentUser?.role === 'ADMIN' || 
-                         currentUser?.role === 'SUPER_ADMIN' || 
-                         (chat?.type === 'group' && chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner'));
+
+  const isOwnerOrAdmin = currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'SUPER_ADMIN' ||
+    (chat?.type === 'group' && chat?.participants?.some(p => p.user_id === currentUser?.id && p.role === 'owner'));
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId) => api.delete(`/chats/${chat.id}/participants/${userId}`),
@@ -190,7 +188,7 @@ export default function ChatWindow({
     if (lastScrolledChatId !== chat.id && chat.unread_count > 0) {
       const startIndex = Math.max(0, messages.length - chat.unread_count)
       const firstUnread = messages[startIndex]
-      
+
       if (firstUnread) {
         // Find the message element (assuming we add an ID or data attribute)
         const el = document.getElementById(`msg-${firstUnread.id}`)
@@ -250,241 +248,240 @@ export default function ChatWindow({
         )}
 
         {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        
-        {/* Chat Header */}
-        <header className="px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
-          {!isSearching ? (
-            <>
-              <div className="flex items-center gap-3">
-                <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-[#9097A6] hover:text-[#905efc] transition-colors">
-                  <ChevronLeft size={22} />
-                </button>
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
 
-                <div>
-                  <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white leading-tight">{chat.name}</h3>
-                  <p className="text-xs text-[#9097A6] mt-0.5">
-                    {totalCount > 0
-                      ? `${totalCount} üye${onlineCount > 0 ? `, ${onlineCount} çevrimiçi` : ''}`
-                      : 'Sohbet'}
-                  </p>
+          {/* Chat Header */}
+          <header className="px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
+            {!isSearching ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-[#9097A6] hover:text-[#905efc] transition-colors">
+                    <ChevronLeft size={22} />
+                  </button>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white leading-tight">{chat.name}</h3>
+                    <p className="text-xs text-[#9097A6] mt-0.5">
+                      {totalCount > 0
+                        ? `${totalCount} üye${onlineCount > 0 ? `, ${onlineCount} çevrimiçi` : ''}`
+                        : 'Sohbet'}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setIsSearching(true)}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all"
-                >
-                  <Search size={18} />
-                </button>
-                <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
-                  <Phone size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsSearching(true)}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all"
+                  >
+                    <Search size={18} />
+                  </button>
+                  <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
+                    <Phone size={18} />
+                  </button>
+                  <button
+                    onClick={() => setShowInfo(!showInfo)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${showInfo
+                        ? 'text-[#905efc] bg-[#905efc]/10'
+                        : 'text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8'
+                      }`}
+                  >
+                    <Info size={18} />
+                  </button>
+
+                  <div className="w-px h-6 bg-[#E5E9F0] dark:bg-white/10 mx-1" />
+
+                  <button
+                    onClick={onBack}
+                    title="Sohbeti Kapat"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center w-full gap-3 animate-in fade-in slide-in-from-right-4 duration-200">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9097A6]" size={16} />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Mesajlarda ara..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
+                  />
+                </div>
                 <button
-                  onClick={() => setShowInfo(!showInfo)}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                    showInfo
-                      ? 'text-[#905efc] bg-[#905efc]/10'
-                      : 'text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8'
-                  }`}
-                >
-                  <Info size={18} />
-                </button>
-
-                <div className="w-px h-6 bg-[#E5E9F0] dark:bg-white/10 mx-1" />
-
-                <button
-                  onClick={onBack}
-                  title="Sohbeti Kapat"
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                  onClick={() => setIsSearching(false)}
+                  className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                 >
                   <X size={20} />
                 </button>
               </div>
-            </>
-          ) : (
-            <div className="flex items-center w-full gap-3 animate-in fade-in slide-in-from-right-4 duration-200">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9097A6]" size={16} />
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Mesajlarda ara..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
-                />
-              </div>
-              <button 
-                onClick={() => setIsSearching(false)} 
-                className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          )}
-        </header>
+            )}
+          </header>
 
-        {/* Messages Area */}
-        <div
-          ref={scrollRef}
-          className="relative flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
-          style={{ scrollBehavior: 'smooth' }}
-        >
-          {showUnreadAlert && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
-              <div className="bg-[#905efc] text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Bell size={24} className="animate-bounce" />
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black mb-0.5">{chat.unread_count}</div>
-                  <div className="text-[10px] uppercase tracking-widest font-bold opacity-80">Okunmamış Mesaj</div>
-                </div>
-              </div>
-            </div>
-          )}
-          {/* Start marker */}
-          <div className="flex flex-col items-center py-6 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 shadow-md flex items-center justify-center mb-3 border border-[#E5E9F0] dark:border-white/5">
-              <MessageCircle size={24} className="text-[#905efc]" />
-            </div>
-            <p className="text-xs font-semibold text-[#9097A6] mb-1">Sohbet Başladı</p>
-            <p className="text-[11px] text-[#9097A6]/70 text-center max-w-[200px] leading-relaxed">
-              Uçtan uca şifrelenmiş, güvenli mesajlaşma
-            </p>
-          </div>
-
-          {filteredMessages.map((msg, index) => {
-            const isOwn = msg.user_id === currentUser?.id
-            const isSystem = msg.type === 'system'
-            const prevMsg = index > 0 ? filteredMessages[index - 1] : null
-            const isSequential = prevMsg && !isSystem && prevMsg.type !== 'system' && prevMsg.user_id === msg.user_id
-
-            return (
-              <div key={msg.id} id={`msg-${msg.id}`}>
-                <MessageItem
-                  message={msg}
-                  isOwn={isOwn}
-                  isSystem={isSystem}
-                  isSequential={isSequential}
-                  onImageClick={openGallery}
-                  onDelete={onDeleteMessage}
-                  canDeleteAll={isOwnerOrAdmin}
-                />
-              </div>
-            )
-          })}
-
-          {isLoading && (
-            <div className="flex justify-center p-4">
-              <div className="w-6 h-6 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" />
-            </div>
-          )}
-        </div>
-
-        {/* Message Input */}
-        <MessageInput
-          onSendMessage={onSendMessage}
-          onFileUpload={onFileUpload}
-          isUploading={isUploading}
-          uploadProgress={uploadProgress}
-        />
-      </div>
-
-      {/* Chat Info Panel */}
-      {showInfo && (
-        <aside className="w-72 flex-shrink-0 border-l border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Sohbet Bilgisi</h3>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
-            {/* Chat Avatar + Name */}
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#905efc]/10 text-[#905efc] flex items-center justify-center text-2xl font-bold mb-3">
-                {chat.name?.charAt(0).toUpperCase() || <Hash size={28} />}
-              </div>
-              <h4 className="text-base font-bold text-[#1A1A2E] dark:text-white">{chat.name}</h4>
-              {chat.description && (
-                <p className="text-xs text-[#9097A6] mt-1 leading-relaxed">{chat.description}</p>
-              )}
-            </div>
-
-            {/* Members */}
-            {chat.participants?.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="text-xs font-bold text-[#9097A6] uppercase tracking-wider">
-                    Üyeler ({chat.participants.length})
-                  </h5>
-                  {isOwnerOrAdmin && chat.chateable_type === 'Group' && (
-                    <button onClick={() => setShowAddMember(true)} className="text-[#905efc] hover:opacity-70 transition-opacity">
-                      <UserPlus size={14} />
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {chat.participants.map(p => (
-                    <div key={p.user_id} className="flex items-center gap-2.5 group/member">
-                      <div className="w-8 h-8 rounded-xl bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-xs font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10">
-                        {p.user?.name?.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold text-[#1A1A2E] dark:text-white truncate flex items-center gap-1">
-                          {p.user?.name}
-                          {p.role === 'owner' && <Shield size={10} className="text-[#905efc]" />}
-                        </div>
-                        <div className="text-[10px] text-[#9097A6]">{p.role === 'owner' ? 'Sahip' : 'Üye'}</div>
-                      </div>
-                      
-                      {isOwnerOrAdmin && chat.chateable_type === 'Group' && p.user_id !== currentUser?.id && (
-                        <button 
-                          onClick={() => {
-                            if (window.confirm(`${p.user?.name} adlı üyeyi gruptan çıkarmak istediğinize emin misiniz?`)) {
-                              removeMemberMutation.mutate(p.user_id)
-                            }
-                          }}
-                          className="opacity-0 group-hover/member:opacity-100 p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                          title="Üyeyi çıkar"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                      
-                      {(!isOwnerOrAdmin || chat.chateable_type !== 'Group' || p.user_id === currentUser?.id) && (
-                        <div className="w-2 h-2 rounded-full bg-[#1ED2A7] shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
-                      )}
-                    </div>
-                  ))}
+          {/* Messages Area */}
+          <div
+            ref={scrollRef}
+            className="relative flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
+            style={{ scrollBehavior: 'smooth' }}
+          >
+            {showUnreadAlert && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
+                <div className="bg-[#905efc] text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                    <Bell size={24} className="animate-bounce" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-black mb-0.5">{chat.unread_count}</div>
+                    <div className="text-[10px] uppercase tracking-widest font-bold opacity-80">Okunmamış Mesaj</div>
+                  </div>
                 </div>
               </div>
             )}
+            {/* Start marker */}
+            <div className="flex flex-col items-center py-6 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 shadow-md flex items-center justify-center mb-3 border border-[#E5E9F0] dark:border-white/5">
+                <MessageCircle size={24} className="text-[#905efc]" />
+              </div>
+              <p className="text-xs font-semibold text-[#9097A6] mb-1">Sohbet Başladı</p>
+              <p className="text-[11px] text-[#9097A6]/70 text-center max-w-[200px] leading-relaxed">
+                Uçtan uca şifrelenmiş, güvenli mesajlaşma
+              </p>
+            </div>
 
-            {/* Actions */}
-            <div className="pt-2 border-t border-[#E5E9F0] dark:border-white/5 space-y-2">
-              <button className="w-full py-2.5 px-3 rounded-xl bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] text-xs font-semibold flex items-center justify-between hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-all">
-                Sessize Al <BellOff size={14} />
+            {filteredMessages.map((msg, index) => {
+              const isOwn = msg.user_id === currentUser?.id
+              const isSystem = msg.type === 'system'
+              const prevMsg = index > 0 ? filteredMessages[index - 1] : null
+              const isSequential = prevMsg && !isSystem && prevMsg.type !== 'system' && prevMsg.user_id === msg.user_id
+
+              return (
+                <div key={msg.id} id={`msg-${msg.id}`}>
+                  <MessageItem
+                    message={msg}
+                    isOwn={isOwn}
+                    isSystem={isSystem}
+                    isSequential={isSequential}
+                    onImageClick={openGallery}
+                    onDelete={onDeleteMessage}
+                    canDeleteAll={isOwnerOrAdmin}
+                  />
+                </div>
+              )
+            })}
+
+            {isLoading && (
+              <div className="flex justify-center p-4">
+                <div className="w-6 h-6 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          {/* Message Input */}
+          <MessageInput
+            onSendMessage={onSendMessage}
+            onFileUpload={onFileUpload}
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
+          />
+        </div>
+
+        {/* Chat Info Panel */}
+        {showInfo && (
+          <aside className="w-72 flex-shrink-0 border-l border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Sohbet Bilgisi</h3>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
               </button>
             </div>
-          </div>
-        </aside>
-      )}
-    </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {/* Chat Avatar + Name */}
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[#905efc]/10 text-[#905efc] flex items-center justify-center text-2xl font-bold mb-3">
+                  {chat.name?.charAt(0).toUpperCase() || <Hash size={28} />}
+                </div>
+                <h4 className="text-base font-bold text-[#1A1A2E] dark:text-white">{chat.name}</h4>
+                {chat.description && (
+                  <p className="text-xs text-[#9097A6] mt-1 leading-relaxed">{chat.description}</p>
+                )}
+              </div>
+
+              {/* Members */}
+              {chat.participants?.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-xs font-bold text-[#9097A6] uppercase tracking-wider">
+                      Üyeler ({chat.participants.length})
+                    </h5>
+                    {isOwnerOrAdmin && chat.chateable_type === 'Group' && (
+                      <button onClick={() => setShowAddMember(true)} className="text-[#905efc] hover:opacity-70 transition-opacity">
+                        <UserPlus size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {chat.participants.map(p => (
+                      <div key={p.user_id} className="flex items-center gap-2.5 group/member">
+                        <div className="w-8 h-8 rounded-xl bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-xs font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10">
+                          {p.user?.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-[#1A1A2E] dark:text-white truncate flex items-center gap-1">
+                            {p.user?.name}
+                            {p.role === 'owner' && <Shield size={10} className="text-[#905efc]" />}
+                          </div>
+                          <div className="text-[10px] text-[#9097A6]">{p.role === 'owner' ? 'Sahip' : 'Üye'}</div>
+                        </div>
+
+                        {isOwnerOrAdmin && chat.chateable_type === 'Group' && p.user_id !== currentUser?.id && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`${p.user?.name} adlı üyeyi gruptan çıkarmak istediğinize emin misiniz?`)) {
+                                removeMemberMutation.mutate(p.user_id)
+                              }
+                            }}
+                            className="opacity-0 group-hover/member:opacity-100 p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                            title="Üyeyi çıkar"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+
+                        {(!isOwnerOrAdmin || chat.chateable_type !== 'Group' || p.user_id === currentUser?.id) && (
+                          <div className="w-2 h-2 rounded-full bg-[#1ED2A7] shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="pt-2 border-t border-[#E5E9F0] dark:border-white/5 space-y-2">
+                <button className="w-full py-2.5 px-3 rounded-xl bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] text-xs font-semibold flex items-center justify-between hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-all">
+                  Sessize Al <BellOff size={14} />
+                </button>
+              </div>
+            </div>
+          </aside>
+        )}
+      </div>
       <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} chat={chat} onUpdateChat={onUpdateChat} />
 
-      <GalleryLightbox 
-        open={lightbox.open} 
-        images={allImages} 
-        initialIndex={lightbox.index} 
-        onClose={() => setLightbox({ ...lightbox, open: false })} 
+      <GalleryLightbox
+        open={lightbox.open}
+        images={allImages}
+        initialIndex={lightbox.index}
+        onClose={() => setLightbox({ ...lightbox, open: false })}
       />
     </>
   )

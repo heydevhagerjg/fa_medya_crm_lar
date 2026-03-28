@@ -313,5 +313,39 @@ class TenantController extends Controller
              return response()->file(public_path('images/placeholder-logo.png'));
          }
      }
+    /**
+     * Recalculate tenant storage usage
+     */
+    public function recalculateStorage(Request $request): JsonResponse
+    {
+        try {
+            $tenant = Tenant::findOrFail($request->user()->tenant_id);
+            
+            // 1. Chat Attachments
+            $chatSize = \App\Modules\Chat\Models\MessageAttachment::whereHas('message.chat', function($q) use ($tenant) {
+                $q->where('tenant_id', $tenant->id);
+            })->sum('file_size');
+
+            // 2. Job Files (using jobs_crm table)
+            $jobFilesSize = \App\Models\JobFile::whereHas('job', function($q) use ($tenant) {
+                $q->where('tenant_id', $tenant->id);
+            })->sum('file_size');
+
+            $total = (int)$chatSize + (int)$jobFilesSize;
+            
+            $tenant->update(['storage_used' => $total]);
+
+            return response()->json([
+                'success' => true,
+                'storage_used' => $total,
+                'message' => 'Depolama alanı yeniden hesaplandı.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Yeniden hesaplama hatası: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

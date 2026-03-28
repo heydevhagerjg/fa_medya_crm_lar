@@ -95,6 +95,15 @@ class MessageController extends Controller
             'file' => 'required|file|max:51200' // max 50MB
         ]);
 
+        $file = $request->file('file');
+        $tenant = $request->user()->tenant;
+
+        if ($tenant && !$tenant->canUploadFile($file->getSize())) {
+            return response()->json([
+                'message' => 'Disk alanınız yetersiz. Lütfen paketinizi yükseltin.'
+            ], 403);
+        }
+
         // 1. Send placeholder message WITHOUT broadcasting
         $message = $this->messageService->sendMessage($chat, '', 'file', [], null, false);
 

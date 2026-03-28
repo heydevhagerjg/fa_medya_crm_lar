@@ -175,6 +175,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
     const [expandedSettings, setExpandedSettings] = useState(() => {
         return localStorage.getItem("settings-menu-expanded") === "true";
     });
+    const [isRecalculating, setIsRecalculating] = useState(false);
     const { user, setAuth, clearAuth, updateUser } = useAuthStore();
     const { theme, toggleTheme } = useThemeStore();
     const LinkComponent = isRestoring ? "div" : NavLink;
@@ -279,6 +280,27 @@ export default function DashboardLayout({ children, isRestoring = false }) {
         clearAuth();
         navigate("/login");
         toast.success("Çıkış yapıldı.");
+    };
+
+    const handleRecalculateStorage = async () => {
+        if (isRecalculating) return;
+        setIsRecalculating(true);
+        const loadingToast = toast.loading('Depolama alanı hesaplanıyor...');
+        try {
+            const res = await api.post('/tenant/recalculate-storage');
+            updateUser({
+                ...user,
+                tenant: {
+                    ...user.tenant,
+                    storage_used: res.data.storage_used
+                }
+            });
+            toast.success('Depolama alanı güncellendi.', { id: loadingToast });
+        } catch (err) {
+            toast.error(err?.response?.data?.message || 'Hesaplama hatası', { id: loadingToast });
+        } finally {
+            setIsRecalculating(false);
+        }
     };
 
     const todayStr = new Date().toLocaleDateString("tr-TR", {
@@ -431,26 +453,37 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                             user.tenant.storage_used / 1024 / 1024,
                         );
                         return expanded ? (
-                            <div className="px-3 py-2.5 mb-1">
+                            <div
+                                onClick={handleRecalculateStorage}
+                                className={`px-3 py-2.5 mb-1 cursor-pointer hover:bg-[#F4F5F7] dark:hover:bg-white/5 rounded-xl transition-all group/storage ${isRecalculating ? 'opacity-50 pointer-events-none' : ''}`}
+                                title="Depolama alanını yeniden hesaplamak için tıklayın"
+                            >
                                 <div className="flex justify-between text-[10px] font-bold text-[#9097A6] mb-1.5 uppercase tracking-wider">
-                                    <span>Depolama</span>
-                                    <span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span>Depolama</span>
+                                        {isRecalculating && <Activity size={10} className="animate-pulse text-[#905EFC]" />}
+                                    </div>
+                                    <span className="group-hover/storage:text-[#905EFC] transition-colors">
                                         {usedMb} / {user.tenant.storage_limit}{" "}
                                         MB
                                     </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-[#E5E9F0] dark:bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-[#E5E9F0] dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
                                     <div
-                                        className="h-full rounded-full transition-all duration-500"
+                                        className={`h-full rounded-full transition-all duration-700 ease-out ${isRecalculating ? 'animate-pulse' : ''}`}
                                         style={{
                                             width: `${pct}%`,
                                             backgroundColor: color,
+                                            boxShadow: `0 0 8px ${color}40`
                                         }}
                                     />
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative group w-11 h-11 flex items-center justify-center cursor-default mb-1">
+                            <div
+                                onClick={handleRecalculateStorage}
+                                className={`relative group w-11 h-11 flex items-center justify-center cursor-pointer mb-1 hover:bg-[#E5E9F0] dark:hover:bg-white/10 rounded-xl transition-all ${isRecalculating ? 'animate-spin-slow' : ''}`}
+                            >
                                 <svg
                                     width="44"
                                     height="44"

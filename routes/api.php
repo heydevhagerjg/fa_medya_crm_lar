@@ -78,6 +78,7 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::post('/tenant/recalculate-storage', [TenantController::class, 'recalculateStorage']);
 
     // Search
     Route::get('/search', [SearchController::class, 'search']);
