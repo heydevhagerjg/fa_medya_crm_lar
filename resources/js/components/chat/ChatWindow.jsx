@@ -18,8 +18,9 @@ function AddMemberModal({ open, onClose, chat }) {
 
   const { mutate, isPending } = useMutation({
     mutationFn: (userIds) => api.post(`/chats/${chat.id}/participants`, { participant_ids: userIds }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success('Kullanıcılar gruba eklendi!')
+      if (res.data?.data) onUpdateChat && onUpdateChat(res.data.data);
       queryClient.invalidateQueries(['chats'])
       onClose()
       setSelected([])
@@ -113,7 +114,8 @@ export default function ChatWindow({
   isUploading,
   isLoading,
   onBack,
-  currentUser
+  currentUser,
+  onUpdateChat
 }) {
   const scrollRef = useRef(null)
   const [showInfo, setShowInfo] = useState(false)
@@ -126,8 +128,9 @@ export default function ChatWindow({
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId) => api.delete(`/chats/${chat.id}/participants/${userId}`),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success('Üye gruptan çıkarıldı')
+      if (res.data?.data) onUpdateChat && onUpdateChat(res.data.data);
       queryClient.invalidateQueries(['chats'])
     },
     onError: (err) => {
@@ -370,7 +373,7 @@ export default function ChatWindow({
         </aside>
       )}
     </div>
-      <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} chat={chat} />
+      <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} chat={chat} onUpdateChat={onUpdateChat} />
     </>
   )
 }

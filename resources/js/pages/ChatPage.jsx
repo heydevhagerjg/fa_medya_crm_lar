@@ -251,6 +251,21 @@ export default function ChatPage() {
         }
     }, [openChatId, chats, selectedChat, searchParams, setSearchParams])
 
+    // Keep selected chat synced if group info/participants change in background 
+    useEffect(() => {
+        if (selectedChat && chats.length > 0) {
+            const current = chats.find(c => c.id === selectedChat.id)
+            if (!current) {
+                // User is no longer in this chat
+                setSelectedChat(null)
+                setMessages([])
+            } else if (JSON.stringify(current.participants) !== JSON.stringify(selectedChat.participants)) {
+                // Data changed (like participants added/removed), sync it
+                setSelectedChat(current)
+            }
+        }
+    }, [chats, selectedChat])
+
     const deleteChatMutation = useMutation({
         mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
         onSuccess: (_, chatId) => {
@@ -277,11 +292,19 @@ export default function ChatPage() {
         if (!selectedChat?.id || !window.Echo) return
         window.Echo.private(`chat.${selectedChat.id}`)
             .listen('.message.created', (e) => {
+                if (e.metadata && String(e.metadata.removed_user_id) === String(currentUser?.id)) {
+                    toast.error('Bu gruptan çıkarıldınız.')
+                    setSelectedChat(null)
+                    setMessages([])
+                    queryClient.invalidateQueries(['chats'])
+                    return
+                }
+
                 setMessages(prev => prev.some(m => m.id === e.id) ? prev : [...prev, e])
                 api.post(`/chats/${selectedChat.id}/read`)
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
-    }, [selectedChat])
+    }, [selectedChat, currentUser, queryClient])
 
     const handleSendMessage = async (content) => {
         if (!selectedChat?.id) return
@@ -328,6 +351,7 @@ export default function ChatPage() {
                 isUploading={isUploading}
                 isLoading={false}
                 currentUser={currentUser}
+                onUpdateChat={setSelectedChat}
                 onBack={() => setSelectedChat(null)}
             />
 

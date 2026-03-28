@@ -164,7 +164,7 @@ class ChatController extends Controller
         } else {
             $msg = "{$user->name}, {$removedUser->name} adlı kişiyi gruptan çıkardı.";
         }
-        $this->messageService->sendMessage($chat, $msg, 'system');
+        $this->messageService->sendMessage($chat, $msg, 'system', ['removed_user_id' => $userId]);
 
         return response()->json([
             'success' => true,
