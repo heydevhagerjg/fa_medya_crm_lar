@@ -195,26 +195,24 @@ export default function DashboardLayout({ children, isRestoring = false }) {
         if (!user?.id || !window.Echo) return;
 
         const channel = window.Echo.private(`user.chats.${user.id}`)
-            .listen('.chat.created', () => {
+            .listen('.chat.created', (e) => {
                 queryClient.invalidateQueries(['chats']);
-                // Only show toast when not already on /chats
                 if (!location.pathname.startsWith('/chats')) {
                     toast('💬 Yeni bir sohbet başlatıldı', {
                         duration: 4000,
                         style: { cursor: 'pointer' },
-                        onClick: () => navigate('/chats'),
+                        onClick: () => navigate(`/chats?open=${e?.chat?.id || e?.id || ''}`),
                     });
                 }
             })
             .listen('.message.created', (e) => {
                 queryClient.invalidateQueries(['chats']);
-                // Only show toast when not already on /chats page
                 if (!location.pathname.startsWith('/chats') && e.user?.name) {
                     toast(
                         (t) => (
                             <span
                                 style={{ cursor: 'pointer' }}
-                                onClick={() => { toast.dismiss(t.id); navigate('/chats'); }}
+                                onClick={() => { toast.dismiss(t.id); navigate(`/chats?open=${e.chat_id}`); }}
                             >
                                 <strong>{e.user.name}</strong>: {e.content?.slice(0, 60) || 'Yeni mesaj'}
                             </span>

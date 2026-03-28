@@ -57,7 +57,11 @@ class ChatService
                 $this->addParticipants($chat, $participantIds);
             }
 
-            event(new ChatCreated($chat));
+            try {
+                event(new ChatCreated($chat));
+            } catch (\Exception $e) {
+                app('log')->error('Broadcasting failed: ' . $e->getMessage());
+            }
 
             return $chat;
         });
@@ -128,7 +132,11 @@ class ChatService
             // Add all specified participants as members
             $this->addParticipants($chat, $participantIds);
 
-            event(new ChatCreated($chat));
+            try {
+                event(new ChatCreated($chat));
+            } catch (\Exception $e) {
+                app('log')->error('Broadcasting failed: ' . $e->getMessage());
+            }
 
             return $chat->load('participants.user');
         });

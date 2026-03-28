@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
 import ChatSidebar from '../components/chat/ChatSidebar'
@@ -226,6 +227,8 @@ export default function ChatPage() {
     const [messages, setMessages] = useState([])
     const [isUploading, setIsUploading] = useState(false)
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false)
+    const [searchParams, setSearchParams] = useSearchParams()
+    const openChatId = searchParams.get('open')
 
     const { data: chats = [] } = useQuery({
         queryKey: ['chats'],
@@ -234,6 +237,19 @@ export default function ChatPage() {
             return Array.isArray(raw) ? raw : Object.values(raw)
         }),
     })
+
+    // Auto-select chat from ?open query parameter
+    useEffect(() => {
+        if (openChatId && chats.length > 0) {
+            const chatToOpen = chats.find(c => String(c.id) === openChatId)
+            if (chatToOpen && (!selectedChat || selectedChat.id !== chatToOpen.id)) {
+                setSelectedChat(chatToOpen)
+                // Remove the param without reloading the page
+                searchParams.delete('open')
+                setSearchParams(searchParams, { replace: true })
+            }
+        }
+    }, [openChatId, chats, selectedChat, searchParams, setSearchParams])
 
     const deleteChatMutation = useMutation({
         mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
