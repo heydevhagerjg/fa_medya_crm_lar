@@ -23,11 +23,22 @@ class ChatService
         $tenantId = $tenantId ?? auth()->user()->tenant_id;
 
         return DB::transaction(function () use ($entityType, $entityId, $participantIds, $name, $tenantId) {
-            // Find existing polymorphic chat
-            $chat = Chat::where('tenant_id', $tenantId)
-                ->where('chateable_type', $entityType)
-                ->where('chateable_id', $entityId)
-                ->first();
+            $chat = null;
+
+            if ($entityType === 'User') {
+                // Ensure a direct chat strictly belongs to these two users
+                $chat = Chat::where('tenant_id', $tenantId)
+                    ->where('chateable_type', 'User')
+                    ->whereHas('participants', fn($q) => $q->where('user_id', auth()->id()))
+                    ->whereHas('participants', fn($q) => $q->where('user_id', $entityId))
+                    ->first();
+            } else {
+                // Find existing polymorphic chat for non-User types
+                $chat = Chat::where('tenant_id', $tenantId)
+                    ->where('chateable_type', $entityType)
+                    ->where('chateable_id', $entityId)
+                    ->first();
+            }
 
             if ($chat) {
                 // Optionally add new participants if they don't exist

@@ -255,11 +255,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (selectedChat && chats.length > 0) {
             const current = chats.find(c => c.id === selectedChat.id)
-            if (!current) {
-                // User is no longer in this chat
-                setSelectedChat(null)
-                setMessages([])
-            } else if (JSON.stringify(current.participants) !== JSON.stringify(selectedChat.participants)) {
+            if (current && JSON.stringify(current.participants) !== JSON.stringify(selectedChat.participants)) {
                 // Data changed (like participants added/removed), sync it
                 setSelectedChat(current)
             }
