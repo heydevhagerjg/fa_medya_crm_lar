@@ -366,9 +366,10 @@ export default function ChatPage() {
     }
 
     const handleFileUpload = async (files) => {
-        if (!selectedChat?.id || !files?.length) return
+        if (!selectedChat?.id || !files) return
         
-        const filesArray = Array.isArray(files) ? files : [files]
+        const filesArray = Array.from(files)
+        if (filesArray.length === 0) return;
         if (filesArray.length > 10) {
             toast.error('Tek seferde en fazla 10 dosya seçebilirsiniz.')
             return

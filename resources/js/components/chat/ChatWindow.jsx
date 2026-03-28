@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
 import GalleryLightbox from './GalleryLightbox'
-import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2 } from 'lucide-react'
+import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2, Download } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
@@ -143,7 +143,45 @@ export default function ChatWindow({
   const [showUnreadAlert, setShowUnreadAlert] = useState(false)
   const [lastScrolledChatId, setLastScrolledChatId] = useState(null)
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+  const [isDragging, setIsDragging] = useState(false)
   const queryClient = useQueryClient()
+
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (dragCounter.current === 1) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      onFileUpload(Array.from(files));
+    }
+  };
 
   // Flatten all image attachments from the chat history for the gallery
   const allImages = messages.flatMap(msg => (msg.attachments || []).filter(a => a.file_type === 'image'))
@@ -326,9 +364,26 @@ export default function ChatWindow({
           {/* Messages Area */}
           <div
             ref={scrollRef}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             className="relative flex-1 overflow-y-auto px-6 py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
             style={{ scrollBehavior: 'smooth' }}
           >
+            {/* Drag and Drop Overlay */}
+            {isDragging && (
+              <div className="absolute inset-4 z-50 rounded-3xl border-2 border-dashed border-[#905efc] bg-[#905efc]/5 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-200 pointer-events-none">
+                <div className="w-20 h-20 rounded-3xl bg-[#905efc] text-white flex items-center justify-center shadow-xl shadow-[#905efc]/40 animate-bounce">
+                  <Download size={40} strokeWidth={2.5} />
+                </div>
+                <div className="text-center">
+                  <h4 className="text-xl font-black text-[#1A1A2E] dark:text-white mb-2">Dosyaları Buraya Bırakın</h4>
+                  <p className="text-sm font-semibold text-[#9097A6]">Yükleme otomatik olarak başlayacaktır</p>
+                </div>
+              </div>
+            )}
+
             {showUnreadAlert && (
               <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
                 <div className="bg-[#905efc] text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
