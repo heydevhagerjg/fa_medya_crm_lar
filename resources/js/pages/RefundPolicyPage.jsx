@@ -116,7 +116,7 @@ export default function RefundPolicyPage() {
             <footer className="py-12 border-t border-gray-100 dark:border-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <img src="/logo/small-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                         <span className="text-lg font-black text-gray-900 dark:text-white">{import.meta.env.VITE_APP_NAME.toUpperCase()}</span>
                     </div>
                     <div className="text-gray-500 dark:text-gray-500 text-sm font-medium">

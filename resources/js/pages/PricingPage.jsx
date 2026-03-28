@@ -12,6 +12,9 @@ const features = [
     { key: 'proposal_feature', label: 'Teklif Yönetimi', type: 'boolean' },
     { key: 'backup_feature', label: 'Bulut Yedekleme', type: 'boolean' },
     { key: 'api_key_feature', label: 'API Erişimi', type: 'boolean' },
+    { key: 'chat_feature', label: 'Sohbet Modülü', type: 'boolean' },
+    { key: 'chat_limit', label: 'Sohbet Limiti', type: 'numeric' },
+    { key: 'group_chat_limit', label: 'Grup Sohbeti Limiti', type: 'numeric' },
     { key: 'disk_usage_limit', label: 'Depolama Alanı', type: 'numeric', suffix: ' MB' },
 ]
 
@@ -35,7 +38,7 @@ export default function PricingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16 sm:h-20">
                         <Link to="/" className="flex items-center gap-2">
-                            <img src="/logo.png" alt="Logo" className="w-9 h-9 object-contain" />
+                            <img src="/logo/small-logo.png" alt="Logo" className="w-9 h-9 object-contain" />
                             <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
                                 {import.meta.env.VITE_APP_NAME.toUpperCase()}
                             </span>
@@ -181,7 +184,7 @@ export default function PricingPage() {
             <footer className="mt-20 py-12 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <img src="/logo/small-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                         <span className="text-lg font-black text-gray-900 dark:text-white uppercase">{import.meta.env.VITE_APP_NAME}</span>
                     </div>
                     <div className="text-gray-500 text-sm font-medium">
