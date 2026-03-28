@@ -8,14 +8,19 @@ Route::get('/chats/attachments/{id}', [MessageController::class, 'proxyAttachmen
     ->name('chats.attachment.proxy')
     ->middleware('signed');
 
-Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3', 'check.plan:chat'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restoring', 'tenant.s3'])->group(function () {
     // ─── UTILS ───────────────────────────────────────────────────────────
     Route::get('/chats/users-list', [ChatController::class, 'listUsers']);
 
     // ─── CHATS ───────────────────────────────────────────────────────────
     Route::get('/chats', [ChatController::class, 'index']);
-    Route::post('/chats', [ChatController::class, 'store']);
-    Route::post('/chats/group', [ChatController::class, 'storeGroup']);
+    
+    // Chat limit kontrolü sadece oluşturma operasyonlarına uygulanıyor
+    Route::middleware('check.plan:chat')->group(function () {
+        Route::post('/chats', [ChatController::class, 'store']);
+        Route::post('/chats/group', [ChatController::class, 'storeGroup']);
+    });
+    
     Route::get('/chats/{chat}', [ChatController::class, 'show']);
     Route::delete('/chats/{chat}', [ChatController::class, 'destroy']);
     Route::post('/chats/{chat}/participants', [ChatController::class, 'addParticipants']);
