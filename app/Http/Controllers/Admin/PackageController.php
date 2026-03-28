@@ -42,6 +42,9 @@ class PackageController extends Controller
             'api_key_feature' => 'required|boolean',
             'disk_usage_limit' => 'required|integer|min:0',
             'single_file_limit' => 'required|integer|min:0',
+            'chat_feature' => 'required|boolean',
+            'chat_limit' => 'required|integer|min:0',
+            'group_chat_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
             'is_popular' => 'nullable|boolean',
         ]);
@@ -86,6 +89,9 @@ class PackageController extends Controller
             'api_key_feature' => 'required|boolean',
             'disk_usage_limit' => 'required|integer|min:0',
             'single_file_limit' => 'required|integer|min:0',
+            'chat_feature' => 'required|boolean',
+            'chat_limit' => 'required|integer|min:0',
+            'group_chat_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
             'is_popular' => 'nullable|boolean',
         ]);

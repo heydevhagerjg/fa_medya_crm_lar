@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
-import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save, CreditCard, Star } from 'lucide-react'
+import { Box, Plus, Search, Trash2, Edit2, Check, X, Shield, HardDrive, Users, Briefcase, FileText, Calendar, Activity, Layers, Database, Save, CreditCard, Star, MessageSquare } from 'lucide-react'
 import Modal from '../../../components/ui/Modal.jsx'
 import Pagination from '../../../components/ui/Pagination.jsx'
 
@@ -33,6 +33,9 @@ const emptyPackage = {
     api_key_feature: false,
     disk_usage_limit: 0,
     single_file_limit: 50,
+    chat_feature: false,
+    chat_limit: 0,
+    group_chat_limit: 0,
     is_active: true,
     is_popular: false
 }
@@ -342,7 +345,8 @@ export default function PackagesPage() {
                                     { key: 'proposal', label: 'Teklif Modülü', icon: FileText, color: 'orange' },
                                     { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
                                     { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
-                                    { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' }
+                                    { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' },
+                                    { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
                                     const limitKey = mod.key === 'services_section' ? 'service_limit' : 
