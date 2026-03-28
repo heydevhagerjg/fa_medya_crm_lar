@@ -114,6 +114,17 @@ export default function PricingPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {/* Additional Trial Row */}
+                                    <tr className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                                        <td className="sticky left-0 z-20 p-5 px-8 bg-white dark:bg-[#0b0f1a] border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-[4px_0_12px_rgba(0,0,0,0.03)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.15)] opacity-100">
+                                            Deneme Süresi
+                                        </td>
+                                        {packages.map((pkg, idx) => (
+                                            <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
+                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sonsuza Kadar'}
+                                            </td>
+                                        ))}
+                                    </tr>
                                     {features.map((feature, fIdx) => (
                                         <tr key={feature.key} className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
                                             {/* Sticky Left Column with Feature Name */}
@@ -152,17 +163,6 @@ export default function PricingPage() {
                                             })}
                                         </tr>
                                     ))}
-                                    {/* Additional Trial Row */}
-                                    <tr className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                                        <td className="sticky left-0 z-20 p-5 px-8 bg-white dark:bg-[#0b0f1a] border-r border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-[4px_0_12px_rgba(0,0,0,0.03)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.15)] opacity-100">
-                                            Deneme Süresi
-                                        </td>
-                                        {packages.map((pkg, idx) => (
-                                            <td key={`${pkg.id}-trial`} className={`p-5 border-b border-gray-100 dark:border-gray-800 text-center text-sm font-bold text-gray-500 ${idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-white/5' : ''}`}>
-                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sonsuza Kadar'}
-                                            </td>
-                                        ))}
-                                    </tr>
                                 </tbody>
                             </table>
                         </div>
