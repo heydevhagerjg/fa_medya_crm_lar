@@ -50,7 +50,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isSequential ? 'mt-0.5 mb-0.5' : 'mt-3 mb-0.5'} group`}>
       <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5 max-w-[75%]`}>
-        
+
         {/* Avatar */}
         {!isOwn && (
           <div className="flex-shrink-0 w-8 h-8 self-end mb-0.5 border-transparent">
@@ -80,75 +80,73 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
                   e.stopPropagation();
                   if (window.confirm('Bu mesajı silmek istediğinize emin misiniz?')) onDelete(message.id);
                 }}
-                className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full h-8 w-8 flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10 ${
-                  isOwn ? '-left-10' : '-right-10'
-                }`}
+                className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full h-8 w-8 flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10 ${isOwn ? '-left-10' : '-right-10'
+                  }`}
                 title="Sil"
               >
                 <Trash2 size={14} />
               </button>
             )}
 
-            <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${
-              isOwn
-                ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
-                : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
-            }`}>
-            {message.content && (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-            )}
-            {renderAttachments()}
-
-            {/* Timestamp + Read status */}
-            <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-              <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-[#9097A6]'}`}>
-                {timeStr}
-              </span>
-              {isOwn && (
-                message.read_count > 0
-                  ? <CheckCheck size={12} className="text-white/80" />
-                  : <Check size={12} className="text-white/60" />
+            <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-200 ${isOwn
+              ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
+              : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
+              }`}>
+              {message.content && (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
               )}
+              {renderAttachments()}
+
+              {/* Timestamp + Read status */}
+              <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-[#9097A6]'}`}>
+                  {timeStr}
+                </span>
+                {isOwn && (
+                  message.read_count > 0
+                    ? <CheckCheck size={12} className="text-white/80" />
+                    : <Check size={12} className="text-white/60" />
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-)
+  )
 }
 
 function AttachmentImage({ file, onClick }) {
   const [loaded, setLoaded] = React.useState(false)
-  
+
   return (
-    <div 
+    <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden border border-white/10 shadow-md w-[280px] h-[200px] bg-black/20 relative flex items-center justify-center cursor-pointer group/img"
+      className="rounded-xl overflow-hidden border border-white/10 shadow-md w-[150px] h-[107px] bg-black/20 relative flex items-center justify-center cursor-pointer group/img"
     >
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">
-           <div className="w-10 h-10 border-2 border-white/20 border-t-[#905efc] rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-2 border-white/20 border-t-[#905efc] rounded-full animate-spin"></div>
         </div>
       )}
-      
+
       <img
         src={file.preview_signed || file.url}
         alt={file.file_name}
         onLoad={() => setLoaded(true)}
         className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
       />
-      
+
       <a
         href={file.download_url || file.url}
         download={file.file_name}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#905efc] hover:scale-110 z-20 shadow-lg border border-white/10"
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#905efc] hover:scale-110 z-20 shadow-lg border border-white/10"
         title="İndir"
       >
-        <Download className="text-white" size={18} />
+        <Download className="text-white" size={14} />
       </a>
     </div>
   )
