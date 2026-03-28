@@ -96,4 +96,41 @@ class ChatService
             ->sortByDesc('last_message_at')
             ->values();
     }
+
+    /**
+     * Create a new group chat with a name and multiple participants.
+     */
+    public function createGroupChat(
+        string $name,
+        array $participantIds,
+        ?string $description = null,
+        ?string $tenantId = null
+    ): Chat {
+        $tenantId = $tenantId ?? auth()->user()->tenant_id;
+
+        return DB::transaction(function () use ($name, $participantIds, $description, $tenantId) {
+            $chat = Chat::create([
+                'tenant_id'      => $tenantId,
+                'chateable_type' => 'Group',
+                'chateable_id'   => (string) \Illuminate\Support\Str::uuid(),
+                'name'           => $name,
+                'description'    => $description,
+                'created_by'     => auth()->id(),
+            ]);
+
+            // Add creator as owner
+            $chat->participants()->create([
+                'user_id'   => auth()->id(),
+                'role'      => 'owner',
+                'joined_at' => now(),
+            ]);
+
+            // Add all specified participants as members
+            $this->addParticipants($chat, $participantIds);
+
+            event(new ChatCreated($chat));
+
+            return $chat->load('participants.user');
+        });
+    }
 }

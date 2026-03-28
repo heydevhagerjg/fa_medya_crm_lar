@@ -5,194 +5,306 @@ import ChatSidebar from '../components/chat/ChatSidebar'
 import ChatWindow from '../components/chat/ChatWindow'
 import { useAuthStore } from '../stores/index.js'
 import { Toaster, toast } from 'react-hot-toast'
-import { MessageSquare, Layout, Activity, BellRing, UserPlus, Search as SearchIcon, Loader2 } from 'lucide-react'
-import Modal from '../components/ui/Modal'
+import { Search as SearchIcon, Users, User, Check, X } from 'lucide-react'
 
+// ─── New Chat Modal ────────────────────────────────────────────────────────────
+function NewChatModal({ open, onClose, currentUser, onCreated }) {
+    const [tab, setTab] = useState('direct') // 'direct' | 'group'
+    const [search, setSearch] = useState('')
+    const [groupName, setGroupName] = useState('')
+    const [groupDesc, setGroupDesc] = useState('')
+    const [selected, setSelected] = useState([])
+
+    const { data: users = [], isLoading: usersLoading } = useQuery({
+        queryKey: ['users-list'],
+        queryFn: () => api.get('/settings/users').then(r => {
+            const raw = r.data?.data || r.data || []
+            return Array.isArray(raw) ? raw : []
+        }),
+        enabled: open,
+        staleTime: 60_000,
+    })
+
+    const filteredUsers = users.filter(u =>
+        u.id !== currentUser?.id &&
+        (u.name.toLowerCase().includes(search.toLowerCase()) ||
+         u.email?.toLowerCase().includes(search.toLowerCase()))
+    )
+
+    const directMutation = useMutation({
+        mutationFn: (data) => api.post('/chats', data),
+        onSuccess: (res) => { onCreated(res.data.data); toast.success('Sohbet başlatıldı.') },
+        onError: () => toast.error('Sohbet başlatılamadı.')
+    })
+
+    const groupMutation = useMutation({
+        mutationFn: (data) => api.post('/chats/group', data),
+        onSuccess: (res) => { onCreated(res.data.data); toast.success('Grup sohbeti oluşturuldu.') },
+        onError: (err) => toast.error(err?.response?.data?.message || 'Grup oluşturulamadı.')
+    })
+
+    const handleDirectChat = (u) => {
+        directMutation.mutate({ entity_type: 'User', entity_id: u.id, participant_ids: [u.id], name: u.name })
+    }
+
+    const handleGroupCreate = () => {
+        if (!groupName.trim()) return toast.error('Grup adı gereklidir.')
+        if (selected.length < 2) return toast.error('En az 2 katılımcı seçin.')
+        groupMutation.mutate({ name: groupName.trim(), description: groupDesc.trim() || null, participant_ids: selected })
+    }
+
+    const toggleSelect = (id) => {
+        setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+    }
+
+    const reset = () => { setSearch(''); setGroupName(''); setGroupDesc(''); setSelected([]); setTab('direct') }
+
+    useEffect(() => { if (!open) reset() }, [open])
+
+    if (!open) return null
+
+    const isPending = directMutation.isPending || groupMutation.isPending
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <div
+                className="relative w-full max-w-md bg-white dark:bg-[#0D0D1A] rounded-3xl shadow-2xl border border-[#E5E9F0] dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E9F0] dark:border-white/5">
+                    <h2 className="text-base font-bold text-[#1A1A2E] dark:text-white">Yeni Sohbet</h2>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+
+                {/* Tab Switcher */}
+                <div className="flex gap-1 mx-6 mt-4 p-1 bg-[#F4F5F7] dark:bg-white/5 rounded-2xl">
+                    <button
+                        onClick={() => setTab('direct')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                            tab === 'direct'
+                                ? 'bg-white dark:bg-white/10 text-[#905efc] shadow-sm'
+                                : 'text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white'
+                        }`}
+                    >
+                        <User size={14} /> Bireysel
+                    </button>
+                    <button
+                        onClick={() => setTab('group')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                            tab === 'group'
+                                ? 'bg-white dark:bg-white/10 text-[#905efc] shadow-sm'
+                                : 'text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white'
+                        }`}
+                    >
+                        <Users size={14} /> Grup
+                    </button>
+                </div>
+
+                <div className="px-6 py-4 space-y-3">
+                    {/* Group fields */}
+                    {tab === 'group' && (
+                        <div className="space-y-2">
+                            <input
+                                type="text"
+                                placeholder="Grup adı *"
+                                value={groupName}
+                                onChange={e => setGroupName(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Açıklama (isteğe bağlı)"
+                                value={groupDesc}
+                                onChange={e => setGroupDesc(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                            />
+                        </div>
+                    )}
+
+                    {/* Search */}
+                    <div className="relative">
+                        <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9097A6]" size={14} />
+                        <input
+                            type="text"
+                            placeholder={tab === 'group' ? 'Katılımcı ara... (en az 2)' : 'Personel ara...'}
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                        />
+                    </div>
+
+                    {/* Selected chips (group) */}
+                    {tab === 'group' && selected.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {selected.map(id => {
+                                const u = users.find(u => u.id === id)
+                                return u ? (
+                                    <span key={id} className="flex items-center gap-1 pl-2.5 pr-1 py-1 bg-[#905efc]/10 text-[#905efc] rounded-full text-xs font-semibold">
+                                        {u.name}
+                                        <button onClick={() => toggleSelect(id)} className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#905efc]/20 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    </span>
+                                ) : null
+                            })}
+                        </div>
+                    )}
+
+                    {/* User list */}
+                    <div className="max-h-56 overflow-y-auto space-y-0.5 -mx-1 px-1">
+                        {usersLoading ? (
+                            <div className="flex justify-center py-8">
+                                <div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" />
+                            </div>
+                        ) : filteredUsers.length === 0 ? (
+                            <p className="text-center text-xs text-[#9097A6] py-6">Kullanıcı bulunamadı</p>
+                        ) : filteredUsers.map(u => {
+                            const isSelected = selected.includes(u.id)
+                            return (
+                                <div
+                                    key={u.id}
+                                    onClick={() => tab === 'direct' ? handleDirectChat(u) : toggleSelect(u.id)}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-all ${
+                                        isSelected
+                                            ? 'bg-[#905efc]/8 dark:bg-[#905efc]/15'
+                                            : 'hover:bg-[#F4F5F7] dark:hover:bg-white/5'
+                                    }`}
+                                >
+                                    <div className="w-9 h-9 rounded-xl bg-[#905efc]/10 text-[#905efc] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                        {u.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-semibold text-[#1A1A2E] dark:text-white truncate">{u.name}</div>
+                                        <div className="text-[11px] text-[#9097A6] truncate">{u.email}</div>
+                                    </div>
+                                    {tab === 'group' && (
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                            isSelected ? 'bg-[#905efc] border-[#905efc]' : 'border-[#E5E9F0] dark:border-white/20'
+                                        }`}>
+                                            {isSelected && <Check size={11} className="text-white" strokeWidth={3} />}
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Group create button */}
+                {tab === 'group' && (
+                    <div className="px-6 pb-5">
+                        <button
+                            onClick={handleGroupCreate}
+                            disabled={isPending || selected.length < 2 || !groupName.trim()}
+                            className="w-full py-3 rounded-2xl bg-[#905efc] text-white text-sm font-bold hover:bg-[#7c4ef0] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#905efc]/25"
+                        >
+                            {isPending ? (
+                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Oluşturuluyor...</>
+                            ) : (
+                                <><Users size={16} /> Grubu Oluştur {selected.length >= 2 ? `(${selected.length + 1} kişi)` : ''}</>
+                            )}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+// ─── ChatPage ─────────────────────────────────────────────────────────────────
 export default function ChatPage() {
     const { user: currentUser } = useAuthStore()
     const queryClient = useQueryClient()
     const [selectedChat, setSelectedChat] = useState(null)
-    const selectedChatIdRef = React.useRef(selectedChat?.id)
-
-    useEffect(() => {
-        selectedChatIdRef.current = selectedChat?.id;
-    }, [selectedChat?.id]);
     const [messages, setMessages] = useState([])
     const [isUploading, setIsUploading] = useState(false)
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false)
-    const [userSearch, setUserSearch] = useState('')
 
-    // Fetch user's chats
-    const { data: chats = [], isLoading: isChatsLoading } = useQuery({
+    const { data: chats = [] } = useQuery({
         queryKey: ['chats'],
         queryFn: () => api.get('/chats').then(r => {
-            const raw = r.data?.data || [];
-            return Array.isArray(raw) ? raw : Object.values(raw);
+            const raw = r.data?.data || []
+            return Array.isArray(raw) ? raw : Object.values(raw)
         }),
     })
 
-    // Fetch potential participants (users)
-    const { data: users = [] } = useQuery({
-        queryKey: ['users-list'],
-        queryFn: () => api.get('/settings/users').then(r => {
-            const raw = r.data?.data || r.data || [];
-            return Array.isArray(raw) ? raw : [];
-        }),
-        enabled: isNewChatModalOpen
-    })
-
-    // Create chat mutation
-    const createChatMutation = useMutation({
-        mutationFn: (data) => api.post('/chats', data),
-        onSuccess: (res) => {
-            queryClient.invalidateQueries(['chats']);
-            setSelectedChat(res.data.data);
-            setIsNewChatModalOpen(false);
-            toast.success('Sohbet başlatıldı.');
-        },
-        onError: () => toast.error('Sohbet başlatılamadı.')
-    })
-
-    // Delete chat mutation
     const deleteChatMutation = useMutation({
         mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
         onSuccess: (_, chatId) => {
-            queryClient.invalidateQueries(['chats']);
-            if (selectedChat?.id === chatId) {
-                setSelectedChat(null);
-                setMessages([]);
-            }
-            toast.success('Sohbet silindi.');
+            queryClient.invalidateQueries(['chats'])
+            if (selectedChat?.id === chatId) { setSelectedChat(null); setMessages([]) }
+            toast.success('Sohbet silindi.')
         },
-        onError: (err) => {
-            const msg = err?.response?.data?.message || 'Sohbet silinemedi.';
-            toast.error(msg);
-        }
+        onError: (err) => toast.error(err?.response?.data?.message || 'Sohbet silinemedi.')
     })
 
-    // Fetch messages for selected chat
     const fetchMessages = useCallback(async (chatId) => {
         try {
-            const res = await api.get(`/chats/${chatId}/messages`);
-            setMessages(res.data?.data || []);
-        } catch (err) {
-            toast.error('Mesajlar yüklenemedi.');
-        }
+            const res = await api.get(`/chats/${chatId}/messages`)
+            setMessages(res.data?.data || [])
+        } catch { toast.error('Mesajlar yüklenemedi.') }
     }, [])
 
     useEffect(() => {
-        if (selectedChat?.id) {
-            fetchMessages(selectedChat.id);
-            // Mark as read
-            api.post(`/chats/${selectedChat.id}/read`);
-        } else {
-            setMessages([]);
-        }
+        if (selectedChat?.id) { fetchMessages(selectedChat.id); api.post(`/chats/${selectedChat.id}/read`) }
+        else setMessages([])
     }, [selectedChat, fetchMessages])
 
-    // Echo Listeners
     useEffect(() => {
-        if (!currentUser?.id) return;
-
-        // Listen for new chats
-        if (!window.Echo) {
-            console.error('Laravel Echo is not initialized. Notifications and real-time updates may not work.');
-            return;
-        }
-
-        const userChannel = window.Echo.private(`user.chats.${currentUser.id}`)
-            .listen('.chat.created', (e) => {
-                queryClient.invalidateQueries(['chats']);
-                toast('Yeni Sohbet!', { icon: <BellRing className="text-primary" size={16} /> });
+        if (!selectedChat?.id || !window.Echo) return
+        window.Echo.private(`chat.${selectedChat.id}`)
+            .listen('.message.created', (e) => {
+                setMessages(prev => prev.some(m => m.id === e.id) ? prev : [...prev, e])
+                api.post(`/chats/${selectedChat.id}/read`)
             })
-            .listen('.message.created', (e) => {
-                if (e.user_id !== currentUser.id) {
-                    if (e.chat_id !== selectedChatIdRef.current) {
-                        toast(`Yeni mesaj: ${e.user?.name || 'Biri'}`, { icon: <MessageSquare className="text-primary" size={16} /> });
-                    }
-                    queryClient.invalidateQueries(['chats']);
-                }
-            });
-
-        return () => {
-            window.Echo.leave(`user.chats.${currentUser.id}`);
-        }
-    }, [currentUser, queryClient])
-
-    useEffect(() => {
-        if (!selectedChat?.id) return;
-
-        // Listen for new messages in current chat
-        if (!window.Echo) return;
-
-        const chatChannel = window.Echo.private(`chat.${selectedChat.id}`)
-            .listen('.message.created', (e) => {
-                setMessages(prev => {
-                    // Deduplicate: if sender already added optimistically, skip
-                    const exists = prev.some(m => m.id === e.id);
-                    return exists ? prev : [...prev, e];
-                });
-                // Auto-read
-                api.post(`/chats/${selectedChat.id}/read`);
-            });
-
-        return () => {
-            window.Echo.leave(`chat.${selectedChat.id}`);
-        }
+        return () => window.Echo.leave(`chat.${selectedChat.id}`)
     }, [selectedChat])
 
-    // Handlers
     const handleSendMessage = async (content) => {
-        if (!selectedChat?.id) return;
-        
+        if (!selectedChat?.id) return
         try {
-            const res = await api.post(`/chats/${selectedChat.id}/messages`, { content });
-            // Optimistic update: Immediately add message to local state
-            // Echo event will trigger for OTHER users; sender sees it right away
-            if (res.data?.data) {
-                setMessages(prev => {
-                    // Deduplicate by id in case Echo also fires for sender
-                    const exists = prev.some(m => m.id === res.data.data.id);
-                    return exists ? prev : [...prev, res.data.data];
-                });
-            }
-        } catch (err) {
-            toast.error('Mesaj gönderilemedi.');
-        }
+            const res = await api.post(`/chats/${selectedChat.id}/messages`, { content })
+            if (res.data?.data) setMessages(prev => prev.some(m => m.id === res.data.data.id) ? prev : [...prev, res.data.data])
+        } catch { toast.error('Mesaj gönderilemedi.') }
     }
 
     const handleFileUpload = async (file) => {
-        if (!selectedChat?.id) return;
-        
-        setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-
+        if (!selectedChat?.id) return
+        setIsUploading(true)
+        const fd = new FormData(); fd.append('file', file)
         try {
-            await api.post(`/chats/${selectedChat.id}/attachments`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            toast.success('Dosya yüklendi.');
-        } catch (err) {
-            toast.error('Dosya yüklenemedi.');
-        } finally {
-            setIsUploading(false);
-        }
+            await api.post(`/chats/${selectedChat.id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+            toast.success('Dosya yüklendi.')
+        } catch { toast.error('Dosya yüklenemedi.') }
+        finally { setIsUploading(false) }
+    }
+
+    const handleChatCreated = (chat) => {
+        queryClient.invalidateQueries(['chats'])
+        setSelectedChat(chat)
+        setIsNewChatModalOpen(false)
     }
 
     return (
         <div className="flex h-[calc(100vh-120px)] overflow-hidden rounded-3xl border border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] shadow-[0_8px_40px_-8px_rgba(144,94,252,0.12)] dark:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
-            
-            <ChatSidebar 
-                chats={chats} 
+
+            <ChatSidebar
+                chats={chats}
                 selectedChatId={selectedChat?.id}
-                onSelectChat={(chat) => setSelectedChat(chat)}
+                onSelectChat={setSelectedChat}
                 onNewChat={() => setIsNewChatModalOpen(true)}
                 onDeleteChat={(chat) => deleteChatMutation.mutate(chat.id)}
             />
 
-            <ChatWindow 
+            <ChatWindow
                 chat={selectedChat}
                 messages={messages}
                 onSendMessage={handleSendMessage}
@@ -203,60 +315,12 @@ export default function ChatPage() {
                 onBack={() => setSelectedChat(null)}
             />
 
-            {/* Background elements */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/2 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/2 rounded-full blur-[120px] animate-pulse delay-1000" />
-            </div>
-
-            {/* New Chat Modal */}
-            <Modal 
-                open={isNewChatModalOpen} 
-                onClose={() => setIsNewChatModalOpen(false)} 
-                title="Yeni Sohbet Başlat"
-                size="md"
-            >
-                <div className="space-y-4">
-                    <div className="relative">
-                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                        <input 
-                            type="text" 
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary"
-                            placeholder="Personel ara..."
-                            value={userSearch}
-                            onChange={(e) => setUserSearch(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                        {users
-                            .filter(u => u.id !== currentUser?.id && u.name.toLowerCase().includes(userSearch.toLowerCase()))
-                            .map(u => (
-                            <div 
-                                key={u.id}
-                                onClick={() => createChatMutation.mutate({
-                                    entity_type: 'User',
-                                    entity_id: u.id,
-                                    participant_ids: [u.id],
-                                    name: u.name
-                                })}
-                                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-white/10 transition-all group"
-                            >
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black group-hover:scale-110 transition-transform">
-                                    {u.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-black text-gray-900 dark:text-white truncate">{u.name}</div>
-                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{u.email}</div>
-                                </div>
-                                <UserPlus size={16} className="text-gray-300 group-hover:text-primary transition-colors" />
-                            </div>
-                        ))}
-
-                        {users.length === 0 && <div className="py-8 text-center text-gray-400 text-xs font-black uppercase tracking-widest">Kullanıcı bulunamadı.</div>}
-                    </div>
-                </div>
-            </Modal>
+            <NewChatModal
+                open={isNewChatModalOpen}
+                onClose={() => setIsNewChatModalOpen(false)}
+                currentUser={currentUser}
+                onCreated={handleChatCreated}
+            />
         </div>
     )
 }

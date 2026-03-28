@@ -30,15 +30,15 @@ class ChatController extends Controller
     }
 
     /**
-     * Retrieve or create a chat for an entity.
+     * Create a direct (1-on-1) chat with a single user.
      */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'entity_type' => 'required|string',
-            'entity_id' => 'required',
-            'participant_ids' => 'sometimes|array',
-            'name' => 'sometimes|string|nullable'
+            'entity_type'    => 'required|string',
+            'entity_id'      => 'required',
+            'participant_ids'=> 'sometimes|array',
+            'name'           => 'sometimes|string|nullable',
         ]);
 
         $chat = $this->chatService->createOrGetChat(
@@ -48,11 +48,30 @@ class ChatController extends Controller
             $request->get('name')
         );
 
-        return response()->json([
-            'success' => true,
-            'data' => $chat
-        ]);
+        return response()->json(['success' => true, 'data' => $chat]);
     }
+
+    /**
+     * Create a group chat with a name and multiple participants.
+     */
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name'           => 'required|string|max:100',
+            'participant_ids'=> 'required|array|min:2',
+            'participant_ids.*' => 'exists:users,id',
+            'description'    => 'sometimes|string|nullable|max:255',
+        ]);
+
+        $chat = $this->chatService->createGroupChat(
+            $request->name,
+            $request->participant_ids,
+            $request->get('description')
+        );
+
+        return response()->json(['success' => true, 'data' => $chat], 201);
+    }
+
 
     /**
      * Delete (permanently remove) a chat.
