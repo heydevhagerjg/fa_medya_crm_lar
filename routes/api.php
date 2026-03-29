@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\JobStepController;
 use App\Http\Controllers\Api\JobFileController;
+use App\Http\Controllers\Api\CustomFieldFileController;
 use App\Http\Controllers\Admin\SystemBackupController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LogController;
@@ -119,6 +120,7 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
     Route::post('/jobs/{id}/steps/template', [JobStepController::class, 'applyTemplate']);
 
     // Files
+    Route::post('/custom-field-upload', [CustomFieldFileController::class, 'store']);
     Route::get('/files', [JobFileController::class, 'index']);
     Route::get('/files/{id}/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);

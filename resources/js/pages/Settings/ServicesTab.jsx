@@ -5,6 +5,7 @@ import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
+import FieldLabelCombobox from '../../components/ui/FieldLabelCombobox.jsx'
 import { useAuthStore } from '../../stores/index.js'
 
 export default function ServicesTab() {
@@ -108,13 +109,19 @@ export default function ServicesTab() {
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                             {form.customFields.map((field, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
-                                    <input type="text" value={field.label} onChange={e => updateField(idx, 'label', e.target.value)} placeholder="Alan adı" className="flex-1 px-3 py-1.5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-transparent text-[#1A1A2E] dark:text-white placeholder-[#9097A6] focus:outline-none focus:border-[#905EFC]" />
+                                    <FieldLabelCombobox
+                                        value={field.label}
+                                        onChange={(val) => updateField(idx, 'label', val)}
+                                        onSelect={(type) => updateField(idx, 'type', type)}
+                                        className="flex-1 px-3 py-1.5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-transparent text-[#1A1A2E] dark:text-white placeholder-[#9097A6] focus:outline-none focus:border-[#905EFC]"
+                                    />
                                     <select value={field.type} onChange={e => updateField(idx, 'type', e.target.value)} className="px-2 py-1.5 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-white dark:bg-white/5 text-[#1A1A2E] dark:text-white focus:outline-none">
                                         <option value="text">Metin</option>
                                         <option value="number">Sayı</option>
                                         <option value="date">Tarih</option>
                                         <option value="textarea">Çok Satırlı</option>
                                         <option value="select">Seçim</option>
+                                        <option value="file">Dosya</option>
                                     </select>
                                     <label className="flex items-center gap-1 text-xs text-[#9097A6]">
                                         <input type="checkbox" checked={field.required} onChange={e => updateField(idx, 'required', e.target.checked)} />

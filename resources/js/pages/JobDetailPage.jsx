@@ -13,6 +13,68 @@ import Modal from '../components/ui/Modal.jsx'
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
 
+const parseFileValue = (val) => {
+    if (!val) return null
+    try {
+        const parsed = JSON.parse(val)
+        if (parsed && parsed.url) return parsed
+        return null
+    } catch {
+        return null
+    }
+}
+
+function CustomFieldFileInput({ value, onChange, required }) {
+    const [uploading, setUploading] = useState(false)
+    const fileData = parseFileValue(value)
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        e.target.value = ''
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+            const res = await api.post('/custom-field-upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            onChange(JSON.stringify(res.data))
+            toast.success(`"${file.name}" yüklendi.`)
+        } catch {
+            toast.error('Dosya yüklenemedi.')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    return (
+        <div className="space-y-2">
+            {fileData ? (
+                <div className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <File size={16} className="text-blue-500 shrink-0" />
+                    <a href={fileData.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1">
+                        {fileData.name}
+                    </a>
+                    {fileData.size && <span className="text-[10px] text-gray-400 shrink-0">{(fileData.size / 1024).toFixed(1)} KB</span>}
+                    <button type="button" onClick={() => onChange('')} className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                        <X size={14} />
+                    </button>
+                </div>
+            ) : null}
+            <label className={`flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <Upload size={16} className="text-gray-400" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {uploading ? 'Yükleniyor...' : fileData ? 'Dosyayı Değiştir' : 'Dosya Seç'}
+                </span>
+                <input type="file" className="hidden" onChange={handleFileSelect} required={required && !fileData} />
+            </label>
+        </div>
+    )
+}
+
 export default function JobDetailPage() {
     const { id } = useParams()
     const { user } = useAuthStore()
@@ -1132,7 +1194,13 @@ export default function JobDetailPage() {
                         {services.find(s => s.id == editForm.serviceId)?.customfield?.map(cf => (
                             <div key={cf.id} className="sm:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
-                                {cf.type === 'textarea' ? (
+                                {cf.type === 'file' ? (
+                                    <CustomFieldFileInput
+                                        value={editForm.customFields?.[cf.id] || ''}
+                                        onChange={(val) => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: val } }))}
+                                        required={cf.required}
+                                    />
+                                ) : cf.type === 'textarea' ? (
                                     <textarea value={editForm.customFields?.[cf.id] || ''} onChange={e => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
                                 ) : (
                                     <input type={cf.type || 'text'} value={editForm.customFields?.[cf.id] || ''} onChange={e => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: e.target.value } }))} required={cf.required} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
@@ -1167,7 +1235,13 @@ export default function JobDetailPage() {
                             {services.find(s => s.id === (job.serviceId || job.service_id))?.customfield?.map(cf => (
                                 <div key={cf.id}>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
-                                    {cf.type === 'textarea' ? (
+                                    {cf.type === 'file' ? (
+                                        <CustomFieldFileInput
+                                            value={customFieldForm[cf.id] || ''}
+                                            onChange={(val) => setCustomFieldForm(p => ({ ...p, [cf.id]: val }))}
+                                            required={cf.required}
+                                        />
+                                    ) : cf.type === 'textarea' ? (
                                         <textarea value={customFieldForm[cf.id] || ''} onChange={e => setCustomFieldForm(p => ({ ...p, [cf.id]: e.target.value }))} required={cf.required} rows={3} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
                                     ) : (
                                         <input type={cf.type || 'text'} value={customFieldForm[cf.id] || ''} onChange={e => setCustomFieldForm(p => ({ ...p, [cf.id]: e.target.value }))} required={cf.required} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500" />
