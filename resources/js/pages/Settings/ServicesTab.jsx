@@ -122,6 +122,7 @@ export default function ServicesTab() {
                                         <option value="textarea">Çok Satırlı</option>
                                         <option value="select">Seçim</option>
                                         <option value="file">Dosya</option>
+                                        <option value="3d_viewer">3D Görüntü</option>
                                     </select>
                                     <label className="flex items-center gap-1 text-xs text-[#9097A6]">
                                         <input type="checkbox" checked={field.required} onChange={e => updateField(idx, 'required', e.target.checked)} />

@@ -180,7 +180,7 @@ Sistemdeki temel API rotaları aşağıdaki gibidir. Bütün rotalar (public aut
 | **GET** | `/settings/backup/s3/list` | Buluttaki mevcut (önceki) yedekleri listeler. |
 | **POST** | `/settings/backup-keys` | Özel İmport Key veritabanı şifreleri ekler. |
 | **GET/POST/PUT** | `/settings/services` | Dinamik hizmetleri ve hizmet özel alanlarını ayarlardan yönetir. |
-| **GET/POST/PUT** | `/settings/statuses` | İşler için kullanılan etiketleri ve durumları (Hazırlanıyor vs) yönetir. |
+| **GET/POST/PUT** | `/settings?tab=statuses` | İşler için kullanılan etiketleri ve durumları (Hazırlanıyor vs) yönetir. |
 | **PUT** | `/settings/tenant` | Güncel kiracı / AWS S3 depolama ayarlarını kaydeder. |
 | **POST** | `/settings/tenant/test` | Girilen AWS S3 depolama ayarlarını test eder. |
 

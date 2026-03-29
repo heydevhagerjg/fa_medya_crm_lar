@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import api from '../lib/api.js'
@@ -9,6 +9,8 @@ import {
     LayoutPanelLeft, ListCheck, ListTodo, MoreVertical, Search, Sheet, SquareCheck, Star, TrendingUp, Users, Wallet, FolderOpen, Image as ImageIcon
 } from 'lucide-react'
 import Modal from '../components/ui/Modal.jsx'
+const ThreeDViewer = lazy(() => import('../components/ui/ThreeDViewer.jsx'))
+const DicomViewer = lazy(() => import('../components/ui/DicomViewer.jsx'))
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 const formatDate = (val) => val ? new Date(val).toLocaleDateString('tr-TR') : '-'
@@ -70,6 +72,83 @@ function CustomFieldFileInput({ value, onChange, required }) {
                     {uploading ? 'Yükleniyor...' : fileData ? 'Dosyayı Değiştir' : 'Dosya Seç'}
                 </span>
                 <input type="file" className="hidden" onChange={handleFileSelect} required={required && !fileData} />
+            </label>
+        </div>
+    )
+}
+
+function CustomField3DInput({ value, onChange, required }) {
+    const [uploading, setUploading] = useState(false)
+    const [showViewer, setShowViewer] = useState(false)
+    const fileData = parseFileValue(value)
+    const isDcm = fileData && /\.dcm$/i.test(fileData.name || '')
+    const is3DModel = fileData && /\.(stl|obj|ply)$/i.test(fileData.name || '')
+    const is3DFile = isDcm || is3DModel
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        e.target.value = ''
+
+        const ext = file.name.split('.').pop().toLowerCase()
+        if (!['stl', 'obj', 'ply', 'dcm'].includes(ext)) {
+            toast.error('Desteklenen formatlar: STL, OBJ, PLY, DCM')
+            return
+        }
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+            const res = await api.post('/custom-field-upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            onChange(JSON.stringify(res.data))
+            toast.success(`"${file.name}" yüklendi.`)
+            setShowViewer(true)
+        } catch {
+            toast.error('Dosya yüklenemedi.')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    return (
+        <div className="space-y-3">
+            {fileData ? (
+                <>
+                    <div className="flex items-center gap-2 p-2 border border-purple-200 dark:border-purple-700 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                        <span className="text-base shrink-0">🦷</span>
+                        <span className="text-sm text-purple-700 dark:text-purple-300 truncate flex-1 font-medium">{fileData.name}</span>
+                        {fileData.size && <span className="text-[10px] text-gray-400 shrink-0">{(fileData.size / 1024 / 1024).toFixed(2)} MB</span>}
+                        <button type="button" onClick={() => setShowViewer(!showViewer)} className="px-2 py-0.5 text-[11px] font-bold bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors shrink-0">
+                            {showViewer ? 'Gizle' : isDcm ? 'Röntgen Görüntüle' : '3D Görüntüle'}
+                        </button>
+                        <button type="button" onClick={() => { onChange(''); setShowViewer(false) }} className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                            <X size={14} />
+                        </button>
+                    </div>
+                    {showViewer && is3DFile && (
+                        <Suspense fallback={<div className="h-[400px] flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl"><div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                            {isDcm
+                                ? <DicomViewer fileUrl={fileData.url} fileName={fileData.name} />
+                                : <ThreeDViewer fileUrl={fileData.url} fileName={fileData.name} />
+                            }
+                        </Suspense>
+                    )}
+                </>
+            ) : null}
+            <label className={`flex items-center gap-2 px-3 py-3 border-2 border-dashed border-purple-300 dark:border-purple-600 rounded-lg cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <span className="text-lg">🦷</span>
+                <div className="flex-1">
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-300 block">
+                        {uploading ? 'Yükleniyor...' : fileData ? '3D Dosyayı Değiştir' : '3D Röntgen Dosyası Seç'}
+                    </span>
+                    <span className="text-[10px] text-gray-400">STL, OBJ, PLY, DCM formatları desteklenir</span>
+                </div>
+                <Upload size={18} className="text-purple-400" />
+                <input type="file" className="hidden" accept=".stl,.obj,.ply,.dcm" onChange={handleFileSelect} required={required && !fileData} />
             </label>
         </div>
     )
@@ -1194,7 +1273,13 @@ export default function JobDetailPage() {
                         {services.find(s => s.id == editForm.serviceId)?.customfield?.map(cf => (
                             <div key={cf.id} className="sm:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
-                                {cf.type === 'file' ? (
+                                {cf.type === '3d_viewer' ? (
+                                    <CustomField3DInput
+                                        value={editForm.customFields?.[cf.id] || ''}
+                                        onChange={(val) => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: val } }))}
+                                        required={cf.required}
+                                    />
+                                ) : cf.type === 'file' ? (
                                     <CustomFieldFileInput
                                         value={editForm.customFields?.[cf.id] || ''}
                                         onChange={(val) => setEditForm(p => ({ ...p, customFields: { ...p.customFields, [cf.id]: val } }))}
@@ -1235,7 +1320,13 @@ export default function JobDetailPage() {
                             {services.find(s => s.id === (job.serviceId || job.service_id))?.customfield?.map(cf => (
                                 <div key={cf.id}>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{cf.label} {cf.required ? '*' : ''}</label>
-                                    {cf.type === 'file' ? (
+                                    {cf.type === '3d_viewer' ? (
+                                        <CustomField3DInput
+                                            value={customFieldForm[cf.id] || ''}
+                                            onChange={(val) => setCustomFieldForm(p => ({ ...p, [cf.id]: val }))}
+                                            required={cf.required}
+                                        />
+                                    ) : cf.type === 'file' ? (
                                         <CustomFieldFileInput
                                             value={customFieldForm[cf.id] || ''}
                                             onChange={(val) => setCustomFieldForm(p => ({ ...p, [cf.id]: val }))}

@@ -121,6 +121,7 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
 
     // Files
     Route::post('/custom-field-upload', [CustomFieldFileController::class, 'store']);
+    Route::post('/custom-field-download', [CustomFieldFileController::class, 'download']);
     Route::get('/files', [JobFileController::class, 'index']);
     Route::get('/files/{id}/download', [JobFileController::class, 'download']);
     Route::post('/files', [JobFileController::class, 'store']);

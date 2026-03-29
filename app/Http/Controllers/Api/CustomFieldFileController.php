@@ -32,7 +32,7 @@ class CustomFieldFileController extends Controller
             return response()->json(['message' => 'Dosya boyutu limitini aşıyor.'], 422);
         }
 
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'svg', 'webp', 'mp4', 'mp3', 'psd', 'ai', 'eps', 'csv'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'svg', 'webp', 'mp4', 'mp3', 'psd', 'ai', 'eps', 'csv', 'stl', 'obj', 'ply', 'dcm'];
         $extension = strtolower($file->getClientOriginalExtension());
         if (!in_array($extension, $allowedExtensions)) {
             return response()->json(['message' => 'Bu dosya uzantısı desteklenmiyor.'], 422);
@@ -52,12 +52,46 @@ class CustomFieldFileController extends Controller
 
             return response()->json([
                 'url'  => $url,
+                'path' => $path,
                 'name' => $fileName,
                 'size' => $fileSize,
             ]);
         } catch (\Exception $e) {
             Log::error('Custom field file upload failed: ' . $e->getMessage());
             return response()->json(['message' => 'Dosya yüklenirken hata oluştu.'], 500);
+        }
+    }
+
+    /**
+     * S3'teki dosya için signed URL döndürür veya dosyayı stream eder.
+     */
+    public function download(Request $request): JsonResponse
+    {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $user   = $request->user();
+        $tenant = $user->tenant;
+        $path   = $request->input('path');
+
+        // Güvenlik: Sadece kendi tenant'ının dosyalarına erişebilsin
+        if (!str_starts_with($path, "tenants/{$tenant->id}/")) {
+            return response()->json(['message' => 'Yetkisiz erişim.'], 403);
+        }
+
+        $disk = Storage::disk('s3_global');
+
+        if (!$disk->exists($path)) {
+            return response()->json(['message' => 'Dosya bulunamadı.'], 404);
+        }
+
+        try {
+            $signedUrl = $disk->temporaryUrl($path, now()->addHour());
+            return response()->json(['url' => $signedUrl]);
+        } catch (\Exception $e) {
+            Log::error('Custom field file signed URL failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Dosya URL oluşturulamadı.'], 500);
         }
     }
 }

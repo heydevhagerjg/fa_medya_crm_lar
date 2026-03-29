@@ -137,6 +137,8 @@ const PREDEFINED_FIELDS = [
             { label: 'Seans Sayısı', type: 'number' },
             { label: 'Doktor Adı', type: 'text' },
             { label: 'Hasta Notu', type: 'textarea' },
+            { label: '3D Diş Röntgeni', type: '3d_viewer' },
+            { label: '3D Model Dosyası', type: '3d_viewer' },
         ],
     },
     {
@@ -213,6 +215,7 @@ const TYPE_LABELS = {
     textarea: 'Çok Satırlı',
     select: 'Seçim',
     file: 'Dosya',
+    '3d_viewer': '3D Görüntü',
 }
 
 export default function FieldLabelCombobox({ value, onChange, onSelect, className }) {

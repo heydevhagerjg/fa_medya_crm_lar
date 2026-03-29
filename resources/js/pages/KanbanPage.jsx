@@ -451,7 +451,7 @@ export default function KanbanPage() {
 
                         {/* Add Another List (Redirect to Settings) */}
                         <Link
-                            to="/settings/statuses"
+                            to="/settings?tab=statuses"
                             className="flex-shrink-0 w-64 h-14 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-600 hover:border-indigo-500 hover:bg-indigo-50/10 dark:hover:bg-indigo-500/5 transition-all group"
                         >
                             <Plus size={18} className="group-hover:scale-110 transition-transform" />
@@ -463,7 +463,7 @@ export default function KanbanPage() {
                                 <AlertCircle size={48} className="mb-4 text-gray-300" />
                                 <h3 className="text-xl font-bold mb-2">Henüz Aşama Tanımlanmamış</h3>
                                 <p className="mb-6 max-w-sm mx-auto">Kanban özelliğini kullanmak için Ayarlar {">"} İş Durumları bölümünden aşama eklemelisiniz.</p>
-                                <Link to="/settings/statuses" className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white hover:bg-gray-100 transition-all shadow-sm">
+                                <Link to="/settings?tab=statuses" className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white hover:bg-gray-100 transition-all shadow-sm">
                                     Durum Ayarlarına Git
                                 </Link>
                             </div>
