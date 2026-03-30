@@ -306,7 +306,7 @@ export default function ChatPage() {
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
     const iceCandidateBufferRef = useRef(new Map())
     const processedSignalsRef = useRef(new Set())
-    const pcPromisesRef = useRef(new Map()) // Prevent duplicate PC creation
+    const pendingSignalsRef = useRef([])
     const handleIncomingSignalRef = useRef(null)
     const applyCallUpdateRef = useRef(null)
 
@@ -368,6 +368,10 @@ export default function ChatPage() {
         const AudioCtx = window.AudioContext || window.webkitAudioContext
         if (!AudioCtx) return
         const ctx = new AudioCtx()
+        // Chrome autoplay policy: WebSocket event'inden gelen çağrıda resume gerekir
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {})
+        }
         const s = callSoundRef.current
         s.stopped = false
         s.ctx = ctx
@@ -407,6 +411,7 @@ export default function ChatPage() {
         cleanupRemoteAudios()
         cleanupLocalStream()
         processedSignalsRef.current.clear()
+        pendingSignalsRef.current = []
     }, [stopCallSounds, cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
 
     const ensureLocalStream = useCallback(async () => {
@@ -586,6 +591,13 @@ export default function ChatPage() {
         if (String(signal.from_user_id) === String(currentUser?.id)) return
         if (signal.target_user_id && String(signal.target_user_id) !== String(currentUser?.id)) return
 
+        // Kullanıcı henüz aramaya katılmadıysa sinyalleri buffer'a al
+        if (!isInCall) {
+            console.log('[WebRTC] Buffering signal (not in call yet):', signal.signal_type)
+            pendingSignalsRef.current.push(signal)
+            return
+        }
+
         // Aynı sinyalin çift kanaldan (chat + user) gelmesini engelle
         const signalKey = `${signal.from_user_id}:${signal.signal_type}:${signal.sent_at || ''}`
         if (processedSignalsRef.current.has(signalKey)) return
@@ -661,10 +673,20 @@ export default function ChatPage() {
         } catch (error) {
             console.error('[WebRTC] Signal handling error:', signalType, error)
         }
-    }, [activeCall, currentUser?.id, getOrCreatePeerConnection, sendSignal])
+    }, [activeCall, currentUser?.id, isInCall, getOrCreatePeerConnection, sendSignal])
 
     useEffect(() => { handleIncomingSignalRef.current = handleIncomingSignal }, [handleIncomingSignal])
     useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
+
+    // isInCall true olduğunda bekleyen sinyalleri işle
+    useEffect(() => {
+        if (!isInCall || !activeCall?.id) return
+        const pending = pendingSignalsRef.current.splice(0)
+        if (pending.length > 0) {
+            console.log('[WebRTC] Flushing', pending.length, 'buffered signals')
+            pending.forEach(sig => handleIncomingSignalRef.current?.(sig))
+        }
+    }, [isInCall, activeCall?.id])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
