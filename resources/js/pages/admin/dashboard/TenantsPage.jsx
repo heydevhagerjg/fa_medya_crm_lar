@@ -52,9 +52,9 @@ export default function TenantsPage() {
         mutationFn: (id) => api.post(`/admin/tenants/${id}/cancel-import`),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Ä°ptal talebi gÃ¶nderildi.')
+            toast.success('İptal talebi gönderildi.')
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const { data: packages = [] } = useQuery({
@@ -74,37 +74,37 @@ export default function TenantsPage() {
             toast.success('Firma (Tenant) eklendi.')
             closeModal()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const limitMutation = useMutation({
         mutationFn: (data) => api.put(`/admin/tenants/${limitModal.tenant.id}/limits`, data),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Limitler gÃ¼ncellendi.')
+            toast.success('Limitler güncellendi.')
             setLimitModal({ open: false, tenant: null })
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const pkgMutation = useMutation({
         mutationFn: (package_id) => api.put(`/admin/tenants/${pkgModal.tenant.id}/change-package`, { package_id }),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Paket baÅŸarÄ±yla deÄŸiÅŸtirildi ve limitler senkronize edildi.')
+            toast.success('Paket başarıyla değiştirildi ve limitler senkronize edildi.')
             setPkgModal({ open: false, tenant: null })
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const giftMutation = useMutation({
         mutationFn: (package_id) => api.post(`/admin/tenants/${pkgModal.tenant.id}/gift-package`, { package_id }),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Paket sÄ±nÄ±rsÄ±z sÃ¼reyle tanÄ±mlandÄ±.')
+            toast.success('Paket sınırsız süreyle tanımlandı.')
             setPkgModal({ open: false, tenant: null })
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const addUserMutation = useMutation({
@@ -112,21 +112,21 @@ export default function TenantsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
             qc.invalidateQueries(['admin-tenant-details', addUserModal.tenant?.id])
-            toast.success('KullanÄ±cÄ± eklendi.')
+            toast.success('Kullanıcı eklendi.')
             setAddUserModal({ open: false, tenant: null })
             setUserForm(emptyUserForm)
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const statusMutation = useMutation({
         mutationFn: (data) => api.put(`/admin/tenants/${statusModal.tenant.id}/status`, data),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Firma durumu gÃ¼ncellendi.')
+            toast.success('Firma durumu güncellendi.')
             setStatusModal({ open: false, tenant: null })
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const deleteMutation = useMutation({
@@ -143,9 +143,9 @@ export default function TenantsPage() {
         mutationFn: ({ tenantId, s3_config_id }) => api.put(`/admin/tenants/${tenantId}/s3-config`, { s3_config_id }),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('S3 YapÄ±landÄ±rmasÄ± gÃ¼ncellendi.')
+            toast.success('S3 Yapılandırması güncellendi.')
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const bulkDeleteMutation = useMutation({
@@ -203,14 +203,14 @@ export default function TenantsPage() {
         },
         onSuccess: (res) => {
             qc.invalidateQueries(['admin-tenants'])
-            toast.success('Ä°ÅŸlem baÅŸlatÄ±ldÄ±! Yeni firma oluÅŸturuldu ve yedek aktarma sÃ¼reci arka planda devam ediyor.')
+            toast.success('İşlem başlatıldı! Yeni firma oluşturuldu ve yedek aktarma süreci arka planda devam ediyor.')
             setImportModal(false)
             setImportForm({ name: '', package_id: '', s3_config_id: '', file: null, admin_name: '', admin_email: '', admin_password: '' })
             setImportStatus(null)
             setImportProgress(0)
         },
         onError: (err) => {
-            toast.error(err.response?.data?.message || err.message || 'YÃ¼kleme baÅŸarÄ±sÄ±z.')
+            toast.error(err.response?.data?.message || err.message || 'Yükleme başarısız.')
             setImportStatus('error')
         },
     })
@@ -228,7 +228,7 @@ export default function TenantsPage() {
         return (
             <div className="flex flex-col gap-1.5 min-w-[140px]">
                 <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-blue-600 dark:text-blue-400 uppercase truncate max-w-[100px]">{progress.message || 'YÃ¼kleniyor...'}</span>
+                    <span className="text-blue-600 dark:text-blue-400 uppercase truncate max-w-[100px]">{progress.message || 'Yükleniyor...'}</span>
                     <span>%{progress.progress || 0}</span>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
@@ -239,13 +239,13 @@ export default function TenantsPage() {
                 </div>
                 <button 
                     onClick={() => {
-                        if(window.confirm('Bu yÃ¼kleme iÅŸlemini iptal etmek istediÄŸinize emin misiniz? VeritabanÄ± temizlenecektir.')) {
+                        if(window.confirm('Bu yükleme işlemini iptal etmek istediğinize emin misiniz? Veritabanı temizlenecektir.')) {
                             cancelImportMutation.mutate(tenant.id)
                         }
                     }}
                     className="text-[9px] font-black text-red-500 hover:text-red-700 underline uppercase text-left"
                 >
-                    YÃ¼klemeyi Ä°ptal Et
+                    Yüklemeyi İptal Et
                 </button>
             </div>
         )
@@ -257,18 +257,18 @@ export default function TenantsPage() {
             qc.invalidateQueries(['admin-tenants'])
             toast.success('Yedekleme talebi reddedildi.')
         },
-        onError: () => toast.error('Hata oluÅŸtu.')
+        onError: () => toast.error('Hata oluştu.')
     })
 
     const handleExport = async (tenant) => {
-        const loadingToast = toast.loading(`${tenant.name} iÃ§in yedekleme baÅŸlatÄ±lÄ±yor...`)
+        const loadingToast = toast.loading(`${tenant.name} için yedekleme başlatılıyor...`)
         try {
             await api.post(`/admin/tenants/${tenant.id}/backup`)
-            toast.success('Yedekleme iÅŸlemi arka planda baÅŸlatÄ±ldÄ±. "Yedekler" modalÄ± Ã¼zerinden takip edebilirsiniz.', { id: loadingToast })
+            toast.success('Yedekleme işlemi arka planda başlatıldı. "Yedekler" modalı üzerinden takip edebilirsiniz.', { id: loadingToast })
             qc.invalidateQueries(['admin-tenant-backups', tenant.id])
             qc.invalidateQueries(['admin-tenants'])
         } catch (err) {
-            toast.error('Yedekleme baÅŸlatÄ±lÄ±rken bir hata oluÅŸtu.', { id: loadingToast })
+            toast.error('Yedekleme başlatılırken bir hata oluştu.', { id: loadingToast })
         }
     }
 
@@ -317,14 +317,14 @@ export default function TenantsPage() {
                         <Database size={24} className="text-red-500" />
                         Firmalar (Tenants)
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{tenants.length} firma kayÄ±tlÄ±</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{tenants.length} firma kayıtlı</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setImportModal(true)}
                         className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700"
                     >
-                        <Upload size={18} /> Yedek YÃ¼kle (Import)
+                        <Upload size={18} /> Yedek Yükle (Import)
                     </button>
                     <button
                         onClick={() => openModal()}
@@ -348,18 +348,18 @@ export default function TenantsPage() {
                 </div>
                 {selectedIds.length > 0 && (
                     <div className="flex items-center gap-2 px-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-xl animate-in fade-in slide-in-from-top-1">
-                        <span className="text-xs font-bold text-red-600 dark:text-red-400 pl-1">{selectedIds.length} Firma SeÃ§ildi</span>
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400 pl-1">{selectedIds.length} Firma Seçildi</span>
                         <div className="h-4 w-px bg-red-200 dark:bg-red-500/30 mx-2"></div>
                         <button
                             onClick={() => setShowBulkDeleteConfirm(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-red-500/20"
                         >
-                            <Trash2 size={14} /> SeÃ§ilenleri Sil
+                            <Trash2 size={14} /> Seçilenleri Sil
                         </button>
                         <button
                             onClick={() => setSelectedIds([])}
                             className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
-                            title="SeÃ§imi KaldÄ±r"
+                            title="Seçimi Kaldır"
                         >
                             <XCircle size={14} />
                         </button>
@@ -370,11 +370,11 @@ export default function TenantsPage() {
             {/* Table */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (
-                    <div className="p-8 text-center text-gray-400">YÃ¼kleniyor...</div>
+                    <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Database size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                        <p className="text-gray-500 dark:text-gray-400">{search ? 'Aramayla eÅŸleÅŸen firma bulunamadÄ±.' : 'HenÃ¼z firma yok.'}</p>
+                        <p className="text-gray-500 dark:text-gray-400">{search ? 'Aramayla eşleşen firma bulunamadı.' : 'Henüz firma yok.'}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -395,10 +395,10 @@ export default function TenantsPage() {
                                             }}
                                         />
                                     </th>
-                                    <th className="px-5 py-4">Firma AdÄ±</th>
+                                    <th className="px-5 py-4">Firma Adı</th>
                                     <th className="px-5 py-4">Paket</th>
-                                    <th className="px-5 py-4 text-center">Ã–zellikler</th>
-                                    <th className="px-5 py-4 text-right">Ä°ÅŸlem</th>
+                                    <th className="px-5 py-4 text-center">Özellikler</th>
+                                    <th className="px-5 py-4 text-right">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -423,11 +423,11 @@ export default function TenantsPage() {
                                                 <div className="text-sm text-gray-900 dark:text-white font-bold">{tenant.name}</div>
                                                 {tenant.is_restoring ? (
                                                      <span className="px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-bold flex items-center gap-1 animate-pulse">
-                                                        <Loader2 size={10} className="animate-spin" /> YÃœKLENÄ°YOR
+                                                        <Loader2 size={10} className="animate-spin" /> YÜKLENİYOR
                                                      </span>
                                                 ) : tenant.is_active ? (
                                                     <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold flex items-center gap-1">
-                                                        AKTÄ°F
+                                                        AKTİF
                                                     </span>
                                                 ) : (
                                                     <span className="px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[9px] font-bold flex items-center gap-1">
@@ -439,14 +439,14 @@ export default function TenantsPage() {
                                         </td>
                                         <td className="px-5 py-4">
                                             {tenant.is_restoring ? (
-                                                <div className="text-xs text-gray-400 italic">Yedek aktarÄ±lÄ±yor...</div>
+                                                <div className="text-xs text-gray-400 italic">Yedek aktarılıyor...</div>
                                             ) : (
                                                 <div
                                                     onClick={() => setPkgModal({ open: true, tenant })}
                                                     className="cursor-pointer inline-flex flex-col"
                                                 >
-                                                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{tenant.package?.name || 'Paket TanÄ±mlanmamÄ±ÅŸ'}</span>
-                                                    <span className="text-[9px] text-gray-400">DeÄŸiÅŸtirmek iÃ§in tÄ±kla</span>
+                                                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{tenant.package?.name || 'Paket Tanımlanmamış'}</span>
+                                                    <span className="text-[9px] text-gray-400">Değiştirmek için tıkla</span>
                                                 </div>
                                             )}
                                         </td>
@@ -459,12 +459,12 @@ export default function TenantsPage() {
                                                         {tenant.backup_requested && (
                                                             <div className="flex flex-col items-center gap-1 group/req">
                                                                 <div className="animate-pulse flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm whitespace-nowrap">
-                                                                    <AlertCircle size={12} className="animate-bounce" /> YEDEK TALEBÄ°
+                                                                    <AlertCircle size={12} className="animate-bounce" /> YEDEK TALEBİ
                                                                 </div>
                                                                 <button 
                                                                     onClick={(e) => {
                                                                         e.stopPropagation()
-                                                                        if(window.confirm(`${tenant.name} firmasÄ±nÄ±n yedek talebini reddetmek istediÄŸinize emin misiniz?`)) {
+                                                                        if(window.confirm(`${tenant.name} firmasının yedek talebini reddetmek istediğinize emin misiniz?`)) {
                                                                             rejectBackupMutation.mutate(tenant.id)
                                                                         }
                                                                     }}
@@ -496,7 +496,7 @@ export default function TenantsPage() {
                                                             onClick={() => setS3Modal({ open: true, tenant })}
                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
                                                         >
-                                                            <FolderOpen size={14} /> S3 {tenant.s3_config?.name ? tenant.s3_config.name : "AtanmamÄ±ÅŸ"}
+                                                            <FolderOpen size={14} /> S3 {tenant.s3_config?.name ? tenant.s3_config.name : "Atanmamış"}
                                                         </button>
                                                     </>
                                                 )}
@@ -508,7 +508,7 @@ export default function TenantsPage() {
                                                     <button
                                                         onClick={() => setAddUserModal({ open: true, tenant })}
                                                         className="p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
-                                                        title="KullanÄ±cÄ± Ekle"
+                                                        title="Kullanıcı Ekle"
                                                     >
                                                         <UserPlus size={16} />
                                                     </button>
@@ -540,7 +540,7 @@ export default function TenantsPage() {
             <Modal open={modal.open} onClose={closeModal} title={'Yeni Firma (Tenant) Ekle'}>
                 <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Firma AdÄ± *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Firma Adı *</label>
                         <input
                             type="text"
                             value={form.name}
@@ -550,21 +550,21 @@ export default function TenantsPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">BaÅŸlangÄ±Ã§ Paketi *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Başlangıç Paketi *</label>
                         <select
                             value={form.package_id}
                             onChange={e => setForm({ ...form, package_id: e.target.value })}
                             required
                             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                         >
-                            <option value="">Paket SeÃ§iniz</option>
+                            <option value="">Paket Seçiniz</option>
                             {packages.map(p => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 YapÄ±landÄ±rmasÄ± (Opsiyonel)</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Yapılandırması (Opsiyonel)</label>
                         <select
                             value={form.s3_config_id}
                             onChange={e => setForm({ ...form, s3_config_id: e.target.value })}
@@ -578,23 +578,23 @@ export default function TenantsPage() {
                     </div>
 
                     <div className="h-px bg-gray-100 dark:bg-gray-800 my-2"></div>
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">YÃ¶netici Bilgileri</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Yönetici Bilgileri</div>
 
                     <div className="grid grid-cols-1 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">YÃ¶netici Ad Soyad *</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Ad Soyad *</label>
                             <input
                                 type="text"
                                 value={form.admin_name}
                                 onChange={e => setForm({ ...form, admin_name: e.target.value })}
                                 required
                                 className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                placeholder="Ã–rn: Ahmet YÄ±lmaz"
+                                placeholder="Örn: Ahmet Yılmaz"
                             />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">YÃ¶netici E-posta *</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici E-posta *</label>
                                 <input
                                     type="email"
                                     value={form.admin_email}
@@ -605,7 +605,7 @@ export default function TenantsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">YÃ¶netici Åifre *</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Åifre *</label>
                                 <input
                                     type="password"
                                     value={form.admin_password}
@@ -619,36 +619,36 @@ export default function TenantsPage() {
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Ä°ptal</button>
+                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
-                            {saveMutation.isPending ? 'Ekleniyor...' : 'Firma OluÅŸtur'}
+                            {saveMutation.isPending ? 'Ekleniyor...' : 'Firma Oluştur'}
                         </button>
                     </div>
                 </form>
             </Modal>
 
             {/* Limit Modal */}
-            <Modal open={limitModal.open} onClose={() => setLimitModal({ open: false, tenant: null })} title={`${limitModal.tenant?.name} - Ã–zel Limit DÃ¼zenleme`} size="xl">
+            <Modal open={limitModal.open} onClose={() => setLimitModal({ open: false, tenant: null })} title={`${limitModal.tenant?.name} - Özel Limit Düzenleme`} size="xl">
                 <form onSubmit={e => { e.preventDefault(); limitMutation.mutate(limitForm) }} className="space-y-6 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="sm:col-span-3 pb-2 border-b dark:border-gray-800">
                             <h3 className="text-sm font-bold flex items-center gap-2"><Briefcase size={16} /> Temel Kapasiteler</h3>
                         </div>
                         <LimitInput label="Personel Limiti" value={limitForm.plan_personnel_limit} onChange={v => setLimitForm({ ...limitForm, plan_personnel_limit: v })} />
-                        <LimitInput label="MÃ¼ÅŸteri Limiti" value={limitForm.plan_customer_limit} onChange={v => setLimitForm({ ...limitForm, plan_customer_limit: v })} />
-                        <LimitInput label="Ä°ÅŸ Limiti" value={limitForm.plan_job_limit} onChange={v => setLimitForm({ ...limitForm, plan_job_limit: v })} />
+                        <LimitInput label="Müşteri Limiti" value={limitForm.plan_customer_limit} onChange={v => setLimitForm({ ...limitForm, plan_customer_limit: v })} />
+                        <LimitInput label="İş Limiti" value={limitForm.plan_job_limit} onChange={v => setLimitForm({ ...limitForm, plan_job_limit: v })} />
                         <LimitInput label="Kasa Limiti" value={limitForm.plan_cash_register_limit} onChange={v => setLimitForm({ ...limitForm, plan_cash_register_limit: v })} />
-                        <LimitInput label="Disk KotasÄ± (MB)" value={limitForm.plan_disk_usage_limit} onChange={v => setLimitForm({ ...limitForm, plan_disk_usage_limit: v })} />
+                        <LimitInput label="Disk Kotası (MB)" value={limitForm.plan_disk_usage_limit} onChange={v => setLimitForm({ ...limitForm, plan_disk_usage_limit: v })} />
                         <LimitInput label="Tek Dosya Limiti (MB)" value={limitForm.plan_single_file_limit} onChange={v => setLimitForm({ ...limitForm, plan_single_file_limit: v })} />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                         <div className="sm:col-span-2 pb-2 border-b dark:border-gray-800">
-                            <h3 className="text-sm font-bold flex items-center gap-2"><Layers size={16} /> ModÃ¼l Ã–zellikleri</h3>
+                            <h3 className="text-sm font-bold flex items-center gap-2"><Layers size={16} /> Modül Özellikleri</h3>
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Randevu ModÃ¼lÃ¼" checked={limitForm.plan_appointment_feature} onChange={v => setLimitForm({ ...limitForm, plan_appointment_feature: v })} />
+                            <FeatureToggle label="Randevu Modülü" checked={limitForm.plan_appointment_feature} onChange={v => setLimitForm({ ...limitForm, plan_appointment_feature: v })} />
                             {limitForm.plan_appointment_feature && <LimitInput label="Randevu Limiti" value={limitForm.plan_appointment_limit} onChange={v => setLimitForm({ ...limitForm, plan_appointment_limit: v })} />}
                         </div>
 
@@ -663,27 +663,27 @@ export default function TenantsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Teklif ModÃ¼lÃ¼" checked={limitForm.plan_proposal_feature} onChange={v => setLimitForm({ ...limitForm, plan_proposal_feature: v })} />
+                            <FeatureToggle label="Teklif Modülü" checked={limitForm.plan_proposal_feature} onChange={v => setLimitForm({ ...limitForm, plan_proposal_feature: v })} />
                             {limitForm.plan_proposal_feature && <LimitInput label="Teklif Limiti" value={limitForm.plan_proposal_limit} onChange={v => setLimitForm({ ...limitForm, plan_proposal_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Yedekleme Ã–zelliÄŸi" checked={limitForm.plan_backup_feature} onChange={v => setLimitForm({ ...limitForm, plan_backup_feature: v })} />
+                            <FeatureToggle label="Yedekleme Özelliği" checked={limitForm.plan_backup_feature} onChange={v => setLimitForm({ ...limitForm, plan_backup_feature: v })} />
                             {limitForm.plan_backup_feature && <LimitInput label="Yedek Limiti" value={limitForm.plan_backup_limit} onChange={v => setLimitForm({ ...limitForm, plan_backup_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Hizmetler BÃ¶lÃ¼mÃ¼" checked={limitForm.plan_services_section_feature} onChange={v => setLimitForm({ ...limitForm, plan_services_section_feature: v })} />
+                            <FeatureToggle label="Hizmetler Bölümü" checked={limitForm.plan_services_section_feature} onChange={v => setLimitForm({ ...limitForm, plan_services_section_feature: v })} />
                             {limitForm.plan_services_section_feature && <LimitInput label="Hizmet Limiti" value={limitForm.plan_service_limit} onChange={v => setLimitForm({ ...limitForm, plan_service_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="AdÄ±m ÅablonlarÄ±" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({ ...limitForm, plan_step_templates_feature: v })} />
+                            <FeatureToggle label="Adım Åablonları" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({ ...limitForm, plan_step_templates_feature: v })} />
                             {limitForm.plan_step_templates_feature && <LimitInput label="Åablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({ ...limitForm, plan_step_template_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Sohbet ModÃ¼lÃ¼" checked={limitForm.plan_chat_feature} onChange={v => setLimitForm({ ...limitForm, plan_chat_feature: v })} />
+                            <FeatureToggle label="Sohbet Modülü" checked={limitForm.plan_chat_feature} onChange={v => setLimitForm({ ...limitForm, plan_chat_feature: v })} />
                             {limitForm.plan_chat_feature && (
                                 <>
                                     <LimitInput label="Sohbet Limiti" value={limitForm.plan_chat_limit} onChange={v => setLimitForm({ ...limitForm, plan_chat_limit: v })} />
@@ -692,11 +692,11 @@ export default function TenantsPage() {
                             )}
                         </div>
 
-                        <FeatureToggle label="API AnahtarÄ± Ã–zelliÄŸi" checked={limitForm.plan_api_key_feature} onChange={v => setLimitForm({ ...limitForm, plan_api_key_feature: v })} />
+                        <FeatureToggle label="API Anahtarı Özelliği" checked={limitForm.plan_api_key_feature} onChange={v => setLimitForm({ ...limitForm, plan_api_key_feature: v })} />
                     </div>
 
                     <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-4 flex gap-3 border-t dark:border-gray-800 pb-2">
-                        <button type="button" onClick={() => setLimitModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
+                        <button type="button" onClick={() => setLimitModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={limitMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20">
                             {limitMutation.isPending ? 'Kaydediliyor...' : 'Limitleri Kaydet'}
                         </button>
@@ -705,10 +705,10 @@ export default function TenantsPage() {
             </Modal>
 
             {/* Change Package Modal */}
-            <Modal open={pkgModal.open} onClose={() => setPkgModal({ open: false, tenant: null })} title={`${pkgModal.tenant?.name} - Paket DeÄŸiÅŸtir`}>
+            <Modal open={pkgModal.open} onClose={() => setPkgModal({ open: false, tenant: null })} title={`${pkgModal.tenant?.name} - Paket Değiştir`}>
                 <div className="space-y-4">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Yeni bir paket seÃ§tiÄŸinizde, firmanÄ±n tÃ¼m mevcut limitleri seÃ§ilen paketin varsayÄ±lan deÄŸerleri ile <span className="text-red-500 font-bold underline">gÃ¼ncellenecektir</span>.
+                        Yeni bir paket seçtiğinizde, firmanın tüm mevcut limitleri seçilen paketin varsayılan değerleri ile <span className="text-red-500 font-bold underline">güncellenecektir</span>.
                     </p>
                     <div className="space-y-3">
                         {packages.map(p => (
@@ -738,18 +738,18 @@ export default function TenantsPage() {
                                         disabled={pkgMutation.isPending || giftMutation.isPending}
                                         className="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-md shadow-purple-500/10"
                                     >
-                                        {giftMutation.isPending ? '...' : 'SÄ±nÄ±rsÄ±z Yap'}
+                                        {giftMutation.isPending ? '...' : 'Sınırsız Yap'}
                                     </button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                    <button onClick={() => setPkgModal({ open: false, tenant: null })} className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium">Ä°ptal</button>
+                    <button onClick={() => setPkgModal({ open: false, tenant: null })} className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium">İptal</button>
                 </div>
             </Modal>
 
             {/* Add User Modal */}
-            <Modal open={addUserModal.open} onClose={() => setAddUserModal({ open: false, tenant: null })} title={`${addUserModal.tenant?.name} - KullanÄ±cÄ± Ekle`}>
+            <Modal open={addUserModal.open} onClose={() => setAddUserModal({ open: false, tenant: null })} title={`${addUserModal.tenant?.name} - Kullanıcı Ekle`}>
                 <form onSubmit={(e) => { e.preventDefault(); addUserMutation.mutate({ tenantId: addUserModal.tenant.id, data: userForm }) }} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
@@ -761,7 +761,7 @@ export default function TenantsPage() {
                             value={userForm.name}
                             onChange={e => setUserForm({ ...userForm, name: e.target.value })}
                             className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white transition-all"
-                            placeholder="Ahmet YÄ±lmaz"
+                            placeholder="Ahmet Yılmaz"
                         />
                     </div>
                     <div>
@@ -798,33 +798,33 @@ export default function TenantsPage() {
                             onChange={e => setUserForm({ ...userForm, role: e.target.value })}
                             className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white transition-all"
                         >
-                            <option value="ADMIN">Firma YÃ¶neticisi</option>
+                            <option value="ADMIN">Firma Yöneticisi</option>
                             <option value="USER">Personel</option>
                         </select>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setAddUserModal({ open: false, tenant: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
+                        <button type="button" onClick={() => setAddUserModal({ open: false, tenant: null })} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={addUserMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-                            {addUserMutation.isPending ? 'Ekleniyor...' : 'KullanÄ±cÄ±yÄ± Kaydet'}
+                            {addUserMutation.isPending ? 'Ekleniyor...' : 'Kullanıcıyı Kaydet'}
                         </button>
                     </div>
                 </form>
             </Modal>
 
             {/* S3 Modal */}
-            <Modal open={s3Modal.open} onClose={() => setS3Modal({ open: false, tenant: null })} title={`${s3Modal.tenant?.name} - S3 YapÄ±landÄ±rmasÄ±`}>
+            <Modal open={s3Modal.open} onClose={() => setS3Modal({ open: false, tenant: null })} title={`${s3Modal.tenant?.name} - S3 Yapılandırması`}>
                 <div className="space-y-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl">
-                        <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Mevcut BaÄŸlantÄ±</div>
+                        <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Mevcut Bağlantı</div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                             <Database size={16} className="text-blue-500" />
-                            {s3Modal.tenant?.s3_config?.name || 'AtanmamÄ±ÅŸ'}
+                            {s3Modal.tenant?.s3_config?.name || 'Atanmamış'}
                         </div>
                     </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">BaÄŸlantÄ± AyarlarÄ±</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Bağlantı Ayarları</label>
                             {s3Modal.tenant?.s3_config_id && (
                                 <button
                                     onClick={() => s3UpdateMutation.mutate({ tenantId: s3Modal.tenant.id, s3_config_id: null })}
@@ -873,13 +873,13 @@ export default function TenantsPage() {
             />
 
             {/* Delete Confirm Modal */}
-            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="FirmayÄ± Sil">
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Firmayı Sil">
                 <div className="space-y-4">
                     <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-semibold text-gray-900 dark:text-white">{deleteConfirm?.name}</span> isimli firmayÄ± silmek istediÄŸinize emin misiniz? Bu firmaya ait tÃ¼m kullanÄ±cÄ±lar ve veriler de etkilenecektir (VeritabanÄ± yapÄ±sÄ±na baÄŸlÄ± olarak).
+                        <span className="font-semibold text-gray-900 dark:text-white">{deleteConfirm?.name}</span> isimli firmayı silmek istediğinize emin misiniz? Bu firmaya ait tüm kullanıcılar ve veriler de etkilenecektir (Veritabanı yapısına bağlı olarak).
                     </p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
                         </button>
@@ -888,7 +888,7 @@ export default function TenantsPage() {
             </Modal>
 
             {/* Status & Suspension Modal */}
-            <Modal open={statusModal.open} onClose={() => setStatusModal({ open: false, tenant: null })} title="Firma Durumu ve EriÅŸim YÃ¶netimi">
+            <Modal open={statusModal.open} onClose={() => setStatusModal({ open: false, tenant: null })} title="Firma Durumu ve Erişim Yönetimi">
                 <form onSubmit={(e) => { e.preventDefault(); statusMutation.mutate(statusForm) }} className="space-y-4">
                     <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -900,41 +900,41 @@ export default function TenantsPage() {
                             />
                             <div>
                                 <div className="text-sm font-bold text-gray-900 dark:text-white">Hesap Aktif</div>
-                                <div className="text-xs text-gray-500">HesabÄ± kapatÄ±rsanÄ±z tÃ¼m kullanÄ±cÄ±larÄ±n eriÅŸimi anÄ±nda kesilir.</div>
+                                <div className="text-xs text-gray-500">Hesabı kapatırsanız tüm kullanıcıların erişimi anında kesilir.</div>
                             </div>
                         </label>
                     </div>
 
                     {!statusForm.is_active && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">EriÅŸim Engeli MesajÄ± (MÃ¼ÅŸteriye GÃ¶sterilecek)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Erişim Engeli Mesajı (Müşteriye Gösterilecek)</label>
                             <textarea
                                 value={statusForm.suspension_message}
                                 onChange={e => setStatusForm(prev => ({ ...prev, suspension_message: e.target.value }))}
-                                placeholder="Ã–rn: Ã–deme gecikmesi nedeniyle hesabÄ±nÄ±z geÃ§ici olarak dondurulmuÅŸtur. LÃ¼tfen bizimle iletiÅŸime geÃ§in."
+                                placeholder="Örn: Ödeme gecikmesi nedeniyle hesabınız geçici olarak dondurulmuştur. Lütfen bizimle iletişime geçin."
                                 rows={4}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                             />
-                            <p className="mt-1 text-xs text-gray-500 italic">Mesaj girilmezse varsayÄ±lan sistem mesajÄ± gÃ¶sterilir.</p>
+                            <p className="mt-1 text-xs text-gray-500 italic">Mesaj girilmezse varsayılan sistem mesajı gösterilir.</p>
                         </div>
                     )}
 
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setStatusModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">Ä°ptal</button>
+                        <button type="button" onClick={() => setStatusModal({ open: false, tenant: null })} className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">İptal</button>
                         <button type="submit" disabled={statusMutation.isPending} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50">
-                            {statusMutation.isPending ? 'GÃ¼ncelleniyor...' : 'Durumu GÃ¼ncelle'}
+                            {statusMutation.isPending ? 'Güncelleniyor...' : 'Durumu Güncelle'}
                         </button>
                     </div>
                 </form>
             </Modal>
 
             {/* Import Backup Modal */}
-            <Modal open={importModal} onClose={() => (importStatus === 'processing' || !importMutation.isPending) && setImportModal(false)} title="Yedekten Firma OluÅŸtur (Full Import)" size="lg">
+            <Modal open={importModal} onClose={() => (importStatus === 'processing' || !importMutation.isPending) && setImportModal(false)} title="Yedekten Firma Oluştur (Full Import)" size="lg">
                 <form onSubmit={(e) => { e.preventDefault(); importMutation.mutate(importForm) }} className="space-y-4 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
                     <div className="p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl flex items-start gap-3">
                         <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                         <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
-                            Bu iÅŸlem CLI'daki <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">custom:import</code> komutunun web versiyonudur. Yedek dosyanÄ±z doÄŸrudan S3'e yÃ¼klenir ve ardÄ±ndan arka planda iÃ§e aktarma iÅŸlemi baÅŸlatÄ±lÄ±r.
+                            Bu işlem CLI'daki <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">custom:import</code> komutunun web versiyonudur. Yedek dosyanız doğrudan S3'e yüklenir ve ardından arka planda içe aktarma işlemi başlatılır.
                         </p>
                     </div>
 
@@ -943,7 +943,7 @@ export default function TenantsPage() {
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Firma Bilgileri</label>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma AdÄ± *</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Firma Adı *</label>
                                     <input
                                         type="text"
                                         value={importForm.name}
@@ -951,7 +951,7 @@ export default function TenantsPage() {
                                         required
                                         disabled={importMutation.isPending}
                                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        placeholder="Ã–rn: YedeÄŸi Geri YÃ¼klenen Firma"
+                                        placeholder="Örn: Yedeği Geri Yüklenen Firma"
                                     />
                                 </div>
                                 <div>
@@ -963,21 +963,21 @@ export default function TenantsPage() {
                                         disabled={importMutation.isPending}
                                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                     >
-                                        <option value="">Paket SeÃ§iniz</option>
+                                        <option value="">Paket Seçiniz</option>
                                         {packages.map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 YapÄ±landÄ±rmasÄ±</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">S3 Yapılandırması</label>
                                     <select
                                         value={importForm.s3_config_id}
                                         onChange={e => setImportForm({ ...importForm, s3_config_id: e.target.value })}
                                         disabled={importMutation.isPending}
                                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                     >
-                                        <option value="">Otomatik SeÃ§ilsin (Rastgele Aktif)</option>
+                                        <option value="">Otomatik Seçilsin (Rastgele Aktif)</option>
                                         {s3Configs.map(s => (
                                             <option key={s.id} value={s.id}>{s.name || s.aws_bucket_name}</option>
                                         ))}
@@ -987,7 +987,7 @@ export default function TenantsPage() {
                         </div>
 
                         <div className="md:col-span-2 pt-2">
-                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Admin KullanÄ±cÄ± Bilgileri</label>
+                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Admin Kullanıcı Bilgileri</label>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl bg-gray-50/30 dark:bg-gray-900/20">
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ad Soyad *</label>
@@ -998,7 +998,7 @@ export default function TenantsPage() {
                                         required
                                         disabled={importMutation.isPending}
                                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        placeholder="Tenant YÃ¶neticisi"
+                                        placeholder="Tenant Yöneticisi"
                                     />
                                 </div>
                                 <div>
@@ -1029,7 +1029,7 @@ export default function TenantsPage() {
                         </div>
 
                         <div className="md:col-span-2 pt-2">
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Yedek DosyasÄ±</label>
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Yedek Dosyası</label>
                             <div className="relative group/upload">
                                 <input
                                     type="file"
@@ -1044,9 +1044,9 @@ export default function TenantsPage() {
                                         <Upload size={24} />
                                     </div>
                                     <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">
-                                        {importForm.file ? importForm.file.name : 'Yedek DosyasÄ±nÄ± (.zip) SeÃ§in'}
+                                        {importForm.file ? importForm.file.name : 'Yedek Dosyasını (.zip) Seçin'}
                                     </div>
-                                    <p className="text-xs text-gray-500">DosyayÄ± buraya sÃ¼rÃ¼kleyin veya tÄ±klayÄ±n</p>
+                                    <p className="text-xs text-gray-500">Dosyayı buraya sürükleyin veya tıklayın</p>
                                 </div>
                             </div>
                         </div>
@@ -1058,7 +1058,7 @@ export default function TenantsPage() {
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center justify-center w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                                     <span className="text-sm font-bold text-gray-900 dark:text-white">
-                                        {importStatus === 'uploading' ? 'S3\'e DoÄŸrudan YÃ¼kleniyor...' : 'Arka Plan Ä°ÅŸlemi BaÅŸlatÄ±lÄ±yor...'}
+                                        {importStatus === 'uploading' ? 'S3\'e Doğrudan Yükleniyor...' : 'Arka Plan İşlemi Başlatılıyor...'}
                                     </span>
                                 </div>
                                 <span className="text-sm font-black text-red-500">{importProgress}%</span>
@@ -1071,7 +1071,7 @@ export default function TenantsPage() {
                             </div>
                             <div className="mt-2 text-[10px] text-gray-500 font-medium flex justify-between items-center px-1">
                                 <span>PHP/Nginx limitleri bypass ediliyor...</span>
-                                <span>BÃ¼yÃ¼k dosyalar iÃ§in uygundur</span>
+                                <span>Büyük dosyalar için uygundur</span>
                             </div>
                         </div>
                     )}
@@ -1083,7 +1083,7 @@ export default function TenantsPage() {
                             onClick={() => setImportModal(false)} 
                             className="flex-1 px-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-2xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
                         >
-                            {importStatus === 'processing' ? 'Kapat' : 'Ä°ptal'}
+                            {importStatus === 'processing' ? 'Kapat' : 'İptal'}
                         </button>
                         <button 
                             type="submit" 
@@ -1093,12 +1093,12 @@ export default function TenantsPage() {
                             {importMutation.isPending ? (
                                 <>
                                     <Loader2 size={18} className="animate-spin" />
-                                    LÃ¼tfen Bekleyin
+                                    Lütfen Bekleyin
                                 </>
                             ) : (
                                 <>
                                     <Upload size={18} />
-                                    YÃ¼klemeyi ve Ä°Ã§e AktarmayÄ± BaÅŸlat
+                                    Yüklemeyi ve İçe Aktarmayı Başlat
                                 </>
                             )}
                         </button>
@@ -1113,10 +1113,10 @@ export default function TenantsPage() {
                     </div>
                     <div className="text-center">
                         <p className="text-gray-900 dark:text-white font-bold mb-1">
-                            SeÃ§ilen firmalarÄ± silmek istediÄŸinize emin misiniz?
+                            Seçilen firmaları silmek istediğinize emin misiniz?
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 px-4 mt-2 leading-relaxed">
-                            <span className="font-bold text-red-600">{selectedIds.length} adet</span> firma KALICI olarak silinecek. Bu iÅŸlem firmaya ait tÃ¼m verileri, kullanÄ±cÄ±larÄ± ve ayarlarÄ± ortadan kaldÄ±rÄ±r.
+                            <span className="font-bold text-red-600">{selectedIds.length} adet</span> firma KALICI olarak silinecek. Bu işlem firmaya ait tüm verileri, kullanıcıları ve ayarları ortadan kaldırır.
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -1124,7 +1124,7 @@ export default function TenantsPage() {
                             onClick={() => setShowBulkDeleteConfirm(false)}
                             className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
-                            Ä°ptal
+                            İptal
                         </button>
                         <button
                             onClick={() => bulkDeleteMutation.mutate(selectedIds)}
@@ -1187,13 +1187,13 @@ function UserListModal({ open, tenant, onClose }) {
     })
 
     return (
-        <Modal open={open} onClose={onClose} title={`${tenant?.name} - KullanÄ±cÄ± Listesi`} size="lg">
+        <Modal open={open} onClose={onClose} title={`${tenant?.name} - Kullanıcı Listesi`} size="lg">
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {isLoading ? (
-                    <div className="py-8 text-center text-gray-400">YÃ¼kleniyor...</div>
+                    <div className="py-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : users.length === 0 ? (
                     <div className="py-12 text-center text-gray-500">
-                        Bu firmaya ait henÃ¼z kullanÄ±cÄ± bulunmuyor.
+                        Bu firmaya ait henüz kullanıcı bulunmuyor.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1247,40 +1247,40 @@ function TenantBackupsModal({ open, tenant, onClose }) {
             qc.invalidateQueries(['admin-tenant-backups', tenant?.id])
             toast.success('Yedekleme iptal edildi.')
         },
-        onError: () => toast.error('Ä°ptal iÅŸlemi baÅŸarÄ±sÄ±z.')
+        onError: () => toast.error('İptal işlemi başarısız.')
     })
 
     const { mutate: deleteBackup } = useMutation({
         mutationFn: (id) => api.delete(`/admin/tenants/backups/${id}`),
         onSuccess: () => {
             qc.invalidateQueries(['admin-tenant-backups', tenant?.id])
-            toast.success('Yedek kaydÄ± silindi.')
+            toast.success('Yedek kaydı silindi.')
         },
-        onError: () => toast.error('Silme iÅŸlemi baÅŸarÄ±sÄ±z.')
+        onError: () => toast.error('Silme işlemi başarısız.')
     })
 
     const handleDelete = (id) => {
-        if (window.confirm('Bu yedek kaydÄ±nÄ± (varsa dosyasÄ±nÄ± da) silmek istediÄŸinize emin misiniz?')) {
+        if (window.confirm('Bu yedek kaydını (varsa dosyasını da) silmek istediğinize emin misiniz?')) {
             deleteBackup(id)
         }
     }
 
     const handleCancel = (id) => {
-        if (window.confirm('Bu yedekleme iÅŸlemini iptal etmek istediÄŸinize emin misiniz?')) {
+        if (window.confirm('Bu yedekleme işlemini iptal etmek istediğinize emin misiniz?')) {
             cancelBackup(id)
         }
     }
 
     const handleDownload = async (backup) => {
-        const toastId = toast.loading('Ä°ndirme hazÄ±rlanÄ±yor...');
+        const toastId = toast.loading('İndirme hazırlanıyor...');
         try {
             const res = await api.get(`/admin/tenants/backups/${backup.id}/signed-url`);
             if (res.data.url) {
                 window.open(res.data.url, '_blank');
-                toast.success('Ä°ndirme baÅŸladÄ±.', { id: toastId });
+                toast.success('İndirme başladı.', { id: toastId });
             }
         } catch (err) {
-            toast.error('Ä°ndirme baÄŸlantÄ±sÄ± oluÅŸturulamadÄ±.', { id: toastId });
+            toast.error('İndirme bağlantısı oluşturulamadı.', { id: toastId });
         }
     }
 
@@ -1296,10 +1296,10 @@ function TenantBackupsModal({ open, tenant, onClose }) {
         <Modal open={open} onClose={onClose} title={`${tenant?.name} - Yedek Listesi`} size="lg">
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {isLoading ? (
-                    <div className="py-8 text-center text-gray-400">YÃ¼kleniyor...</div>
+                    <div className="py-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : backups.length === 0 ? (
                     <div className="py-12 text-center text-gray-500">
-                        Bu firmaya ait henÃ¼z yerel yedek bulunmuyor.
+                        Bu firmaya ait henüz yerel yedek bulunmuyor.
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -1314,14 +1314,14 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                                     </div>
                                     <div>
                                         <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                            {backup.filename || 'HazÄ±rlanÄ±yor...'}
+                                            {backup.filename || 'Hazırlanıyor...'}
                                             <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${backup.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600' :
                                                     backup.status === 'failed' ? 'bg-red-100 dark:bg-red-500/20 text-red-600' :
                                                         'bg-blue-100 dark:bg-blue-500/20 text-blue-600'
                                                 }`}>
                                                 {backup.status === 'completed' ? 'TAMAMLANDI' :
                                                     backup.status === 'failed' ? 'HATA' :
-                                                        backup.status === 'processing' ? `Ä°ÅLENÄ°YOR (${backup.progress}%)` : 'BEKLENÄ°YOR'}
+                                                        backup.status === 'processing' ? `İÅLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
                                             </span>
                                         </div>
                                         <div className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -1331,7 +1331,7 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                                             <div className="space-y-1.5 mt-2">
                                                 {backup.real_time_message && (
                                                     <div className="text-[10px] text-blue-500 font-mono italic truncate" title={backup.real_time_message}>
-                                                        AnlÄ±k: {backup.real_time_message}
+                                                        Anlık: {backup.real_time_message}
                                                     </div>
                                                 )}
                                                 <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -1351,12 +1351,12 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                                 </div>
                                 <div className="flex items-center gap-1">
                                     {(backup.status === 'processing' || backup.status === 'pending') && (
-                                        <button onClick={() => handleCancel(backup.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Ä°ptal">
+                                        <button onClick={() => handleCancel(backup.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="İptal">
                                             <X size={18} />
                                         </button>
                                     )}
                                     {backup.status === 'completed' && backup.has_file && (
-                                        <button onClick={() => handleDownload(backup)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all" title="Ä°ndir">
+                                        <button onClick={() => handleDownload(backup)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all" title="İndir">
                                             <Download size={18} />
                                         </button>
                                     )}

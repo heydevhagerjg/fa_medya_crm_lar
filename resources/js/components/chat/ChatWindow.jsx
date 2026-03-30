@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
 import GalleryLightbox from './GalleryLightbox'
-import { Info, Phone, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2, Download } from 'lucide-react'
+import { Info, Phone, PhoneOff, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2, Download } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
@@ -132,7 +132,11 @@ export default function ChatWindow({
   isLoading,
   onBack,
   currentUser,
-  onUpdateChat
+  onUpdateChat,
+  callState,
+  onStartCall,
+  onEndCall,
+  isCallActionPending
 }) {
   const scrollRef = useRef(null)
   const unreadRef = useRef(null)
@@ -263,6 +267,12 @@ export default function ChatWindow({
 
   const onlineCount = chat.participants?.filter(p => p.is_online)?.length || 0
   const totalCount = chat.participants?.length || 0
+  const inCall = !!callState?.isInCall
+  const callStatusText = callState?.call?.status === 'ringing'
+    ? 'Arama çalıyor...'
+    : callState?.call?.status === 'active'
+      ? `Görüşme sürüyor • ${callState?.durationLabel || '00:00'}`
+      : null
 
   return (
     <>
@@ -314,9 +324,25 @@ export default function ChatWindow({
                   >
                     <Search size={18} />
                   </button>
-                  <button className="w-9 h-9 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 transition-all">
-                    <Phone size={18} />
-                  </button>
+                  {inCall ? (
+                    <button
+                      onClick={onEndCall}
+                      disabled={isCallActionPending}
+                      title="Görüşmeyi Bitir"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
+                    >
+                      <PhoneOff size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onStartCall}
+                      disabled={isCallActionPending}
+                      title="Sesli Arama Başlat"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 transition-all disabled:opacity-50"
+                    >
+                      <Phone size={18} />
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowInfo(!showInfo)}
                     className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${showInfo
@@ -360,6 +386,15 @@ export default function ChatWindow({
               </div>
             )}
           </header>
+
+          {callStatusText && (
+            <div className={`px-4 md:px-6 py-2.5 border-b theme-divider text-xs font-semibold flex items-center justify-between ${inCall ? 'bg-emerald-50/70 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : 'bg-amber-50/70 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'}`}>
+              <span>{callStatusText}</span>
+              {callState?.participantSummary && (
+                <span className="text-[11px] opacity-90">{callState.participantSummary}</span>
+              )}
+            </div>
+          )}
 
           {/* Messages Area */}
           <div

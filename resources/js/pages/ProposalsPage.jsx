@@ -16,11 +16,11 @@ import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 
 const statuses = {
     'DRAFT': { label: 'Taslak', color: 'theme-muted-badge theme-divider' },
-    'SENT': { label: 'GÃ¶nderildi', color: 'bg-blue-100 text-blue-600 border-blue-200' },
+    'SENT': { label: 'Gönderildi', color: 'bg-blue-100 text-blue-600 border-blue-200' },
     'ACCEPTED': { label: 'Kabul Edildi', color: 'bg-green-100 text-green-600 border-green-200' },
     'REJECTED': { label: 'Reddedildi', color: 'bg-red-100 text-red-600 border-red-200' },
-    'REVISION_REQUESTED': { label: 'Revize Ä°stendi', color: 'bg-orange-100 text-orange-600 border-orange-200' },
-    'CANCELLED': { label: 'Ä°ptal Edildi', color: 'bg-red-50 text-red-500 border-red-100' },
+    'REVISION_REQUESTED': { label: 'Revize İstendi', color: 'bg-orange-100 text-orange-600 border-orange-200' },
+    'CANCELLED': { label: 'İptal Edildi', color: 'bg-red-50 text-red-500 border-red-100' },
     'RENEWAL_REQUESTED': { label: 'Yenileme Talebi', color: 'bg-indigo-100 text-indigo-600 border-indigo-200' },
 }
 
@@ -97,10 +97,10 @@ export default function ProposalsPage() {
             : api.post('/proposals', data),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success(modal.proposal ? 'Teklif gÃ¼ncellendi.' : 'Teklif oluÅŸturuldu.')
+            toast.success(modal.proposal ? 'Teklif güncellendi.' : 'Teklif oluşturuldu.')
             closeMainModal()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const deleteMutation = useMutation({
@@ -116,7 +116,7 @@ export default function ProposalsPage() {
         mutationFn: (id) => api.post(`/proposals/${id}/send`),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('Teklif gÃ¶nderildi olarak iÅŸaretlendi.')
+            toast.success('Teklif gönderildi olarak işaretlendi.')
         },
     })
 
@@ -124,7 +124,7 @@ export default function ProposalsPage() {
         mutationFn: (id) => api.post(`/proposals/${id}/recall`),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('Teklif geri Ã§ekildi.')
+            toast.success('Teklif geri çekildi.')
         },
     })
 
@@ -132,7 +132,7 @@ export default function ProposalsPage() {
         mutationFn: ({ id, status }) => api.put(`/proposals/${id}`, { status }),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('Durum gÃ¼ncellendi.')
+            toast.success('Durum güncellendi.')
         },
     })
 
@@ -140,7 +140,7 @@ export default function ProposalsPage() {
         mutationFn: (id) => api.patch(`/proposals/installments/${id}/toggle-paid`),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('Ã–deme durumu gÃ¼ncellendi.')
+            toast.success('Ödeme durumu güncellendi.')
         },
     })
 
@@ -148,7 +148,7 @@ export default function ProposalsPage() {
         mutationFn: (id) => api.post(`/proposals/${id}/mark-all-paid`),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('TÃ¼m Ã¶demeler tahsil edildi olarak iÅŸaretlendi.')
+            toast.success('Tüm ödemeler tahsil edildi olarak işaretlendi.')
         },
     })
 
@@ -156,7 +156,7 @@ export default function ProposalsPage() {
         mutationFn: ({ proposalId, revisionId, status }) => api.post(`/proposals/${proposalId}/revisions/${revisionId}/respond`, { status }),
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
-            toast.success('Talep yanÄ±tlandÄ±.')
+            toast.success('Talep yanıtlandı.')
         },
     })
 
@@ -165,9 +165,9 @@ export default function ProposalsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['proposals'])
             qc.invalidateQueries(['jobs'])
-            toast.success('Ä°ÅŸ baÅŸarÄ±yla oluÅŸturuldu.')
+            toast.success('İş başarıyla oluşturuldu.')
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Ä°ÅŸ oluÅŸturulamadÄ±.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'İş oluşturulamadı.'),
     })
 
     const openModal = (proposal = null) => {
@@ -319,9 +319,9 @@ export default function ProposalsPage() {
                 icon={FileText}
                 iconColor="text-indigo-500"
                 actions={[
-                    { label: 'Yeni Teklif OluÅŸtur', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                    { label: 'Yeni Teklif Oluştur', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Teklif veya mÃ¼ÅŸteri ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Teklif veya müşteri ara...' }}
                 breadcrumbs={['Teklifler']}
             >
                 <select
@@ -329,7 +329,7 @@ export default function ProposalsPage() {
                     onChange={e => setFilterStatus(e.target.value)}
                     className="px-3 py-2.5 border rounded-xl text-sm theme-input"
                 >
-                    <option value="">TÃ¼m Durumlar</option>
+                    <option value="">Tüm Durumlar</option>
                     {Object.entries(statuses).map(([key, val]) => (
                         <option key={key} value={key}>{val.label}</option>
                     ))}
@@ -338,7 +338,7 @@ export default function ProposalsPage() {
 
             <div className="theme-surface border rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
-                    <div className="p-8 text-center theme-text-secondary">YÃ¼kleniyor...</div>
+                    <div className="p-8 text-center theme-text-secondary">Yükleniyor...</div>
                 ) : isError ? (
                     <div className="p-12 text-center theme-text-secondary">
                         {error?.response?.status === 403 ? (
@@ -346,25 +346,25 @@ export default function ProposalsPage() {
                         ) : (
                             <>
                                 <XCircle size={40} className="mx-auto text-red-400 mb-3" />
-                                <p>Veriler yÃ¼klenemedi. Oturumunuz kapanmÄ±ÅŸ olabilir, lÃ¼tfen sayfayÄ± yenileyiniz.</p>
+                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
                             </>
                         )}
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <FileText size={48} className="mx-auto theme-text-secondary opacity-40 mb-4" />
-                        <p className="theme-text-secondary">Teklif bulunamadÄ±.</p>
+                        <p className="theme-text-secondary">Teklif bulunamadı.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full theme-table">
                             <thead>
                                 <tr className="border-b theme-divider theme-surface-alt">
-                                    <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Teklif DetayÄ±</th>
-                                    <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">GeÃ§erlilik</th>
+                                    <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Teklif Detayı</th>
+                                    <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Geçerlilik</th>
                                     <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Fiyat</th>
                                     <th className="text-left px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Durum</th>
-                                    <th className="text-right px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Ä°ÅŸlem</th>
+                                    <th className="text-right px-5 py-4 text-xs font-semibold theme-text-secondary uppercase tracking-wider">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y theme-divider">
@@ -402,9 +402,9 @@ export default function ProposalsPage() {
                                                     onClick={() => {
                                                         const url = getPublicUrl(proposal.uuid)
                                                         navigator.clipboard.writeText(url)
-                                                        toast.success('Teklif baÄŸlantÄ±sÄ± kopyalandÄ±.')
+                                                        toast.success('Teklif bağlantısı kopyalandı.')
                                                     }}
-                                                    title="BaÄŸlantÄ±yÄ± Kopyala"
+                                                    title="Bağlantıyı Kopyala"
                                                     className="p-2 rounded-lg theme-text-secondary hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
                                                 >
                                                     <LinkIcon size={16} />
@@ -413,7 +413,7 @@ export default function ProposalsPage() {
                                                     href={`/api/public/proposals/${proposal.uuid}/pdf`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    title="PDF Ä°ndir"
+                                                    title="PDF İndir"
                                                     className="p-2 rounded-lg theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                                 >
                                                     <Download size={16} />
@@ -421,7 +421,7 @@ export default function ProposalsPage() {
                                                 {['DRAFT', 'REVISION_REQUESTED'].includes(proposal.status) && (
                                                     <button
                                                         onClick={() => sendMutation.mutate(proposal.id)}
-                                                        title="GÃ¶nder / GÃ¼ncel Halini Ä°let"
+                                                        title="Gönder / Güncel Halini İlet"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
                                                     >
                                                         <Send size={16} />
@@ -430,7 +430,7 @@ export default function ProposalsPage() {
                                                 {proposal.status === 'SENT' && (
                                                     <button
                                                         onClick={() => recallMutation.mutate(proposal.id)}
-                                                        title="Geri Ã‡ek (TaslaÄŸa Al)"
+                                                        title="Geri Çek (Taslağa Al)"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"
                                                     >
                                                         <RotateCcw size={16} />
@@ -440,7 +440,7 @@ export default function ProposalsPage() {
                                                     <button
                                                         onClick={() => createJobMutation.mutate(proposal.id)}
                                                         disabled={createJobMutation.isPending}
-                                                        title="Ä°ÅŸ OluÅŸtur"
+                                                        title="İş Oluştur"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
                                                     >
                                                         <Briefcase size={16} />
@@ -449,7 +449,7 @@ export default function ProposalsPage() {
                                                 {proposal.job && (
                                                     <Link
                                                         to={`/jobs/${proposal.job.id}`}
-                                                        title="Ä°ÅŸ DetayÄ±na Git"
+                                                        title="İş Detayına Git"
                                                         className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
                                                     >
                                                         <Briefcase size={16} />
@@ -458,7 +458,7 @@ export default function ProposalsPage() {
                                                 <button
                                                     onClick={() => openModal(proposal)}
                                                     className="p-2 rounded-lg theme-text-secondary hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
-                                                    title="DÃ¼zenle"
+                                                    title="Düzenle"
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
@@ -483,7 +483,7 @@ export default function ProposalsPage() {
                                                 {proposal.status !== 'CANCELLED' && (
                                                     <button
                                                         onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'CANCELLED' })}
-                                                        title="Ä°ptal Et"
+                                                        title="İptal Et"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                                     >
                                                         <X size={16} />
@@ -492,7 +492,7 @@ export default function ProposalsPage() {
                                                 {proposal.status === 'CANCELLED' && (
                                                     <button
                                                         onClick={() => updateStatusMutation.mutate({ id: proposal.id, status: 'DRAFT' })}
-                                                        title="Tekrar Aktif Et (TaslaÄŸa Al)"
+                                                        title="Tekrar Aktif Et (Taslağa Al)"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors"
                                                     >
                                                         <RotateCcw size={16} />
@@ -501,12 +501,12 @@ export default function ProposalsPage() {
                                                 {proposal.status === 'ACCEPTED' && proposal.installments?.some(i => !i.is_paid) && (
                                                     <button
                                                         onClick={() => {
-                                                            if (window.confirm('TÃ¼m Ã¶demeler tahsil edildi olarak iÅŸaretlensin mi?')) {
+                                                            if (window.confirm('Tüm ödemeler tahsil edildi olarak işaretlensin mi?')) {
                                                                 markAllPaidMutation.mutate(proposal.id)
                                                             }
                                                         }}
                                                         disabled={markAllPaidMutation.isPending}
-                                                        title="TÃ¼mÃ¼nÃ¼ Tahsil Edildi Olarak Ä°ÅŸaretle"
+                                                        title="Tümünü Tahsil Edildi Olarak İşaretle"
                                                         className="p-2 rounded-lg theme-text-secondary hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
                                                     >
                                                         <CreditCard size={16} />
@@ -537,13 +537,13 @@ export default function ProposalsPage() {
             <Modal
                 open={modal.open}
                 onClose={closeMainModal}
-                title={modal.proposal ? 'Teklifi DÃ¼zenle' : 'Yeni Teklif OluÅŸtur'}
+                title={modal.proposal ? 'Teklifi Düzenle' : 'Yeni Teklif Oluştur'}
                 size="lg"
             >
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form); }} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>BaÅŸlÄ±k *</label>
+                            <label className={formLabelClass}>Başlık *</label>
                             <input
                                 required
                                 type="text"
@@ -553,33 +553,33 @@ export default function ProposalsPage() {
                             />
                         </div>
                         <div>
-                            <label className={formLabelClass}>MÃ¼ÅŸteri *</label>
+                            <label className={formLabelClass}>Müşteri *</label>
                             <select
                                 required
                                 value={form.customer_id}
                                 onChange={e => setForm(f => ({ ...f, customer_id: e.target.value }))}
                                 className={formInputClass}
                             >
-                                <option value="">MÃ¼ÅŸteri SeÃ§in</option>
+                                <option value="">Müşteri Seçin</option>
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
 
                         <div>
-                            <label className={formLabelClass}>Ä°liÅŸkili Hizmet *</label>
+                            <label className={formLabelClass}>İlişkili Hizmet *</label>
                             <select
                                 required
                                 value={form.service_id}
                                 onChange={e => setForm(f => ({ ...f, service_id: e.target.value }))}
                                 className={formInputClass}
                             >
-                                <option value="">Hizmet SeÃ§in</option>
+                                <option value="">Hizmet Seçin</option>
                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
 
                         <div>
-                            <label className={formLabelClass}>GeÃ§erlilik Tarihi</label>
+                            <label className={formLabelClass}>Geçerlilik Tarihi</label>
                             <input
                                 type="date"
                                 value={form.valid_until}
@@ -588,7 +588,7 @@ export default function ProposalsPage() {
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>AÃ§Ä±klama</label>
+                            <label className={formLabelClass}>Açıklama</label>
                             <textarea
                                 value={form.description}
                                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -599,7 +599,7 @@ export default function ProposalsPage() {
                         {modal.proposal?.customer_notes && (
                             <div className="sm:col-span-2 p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
                                 <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-2">
-                                    <Clock size={14} /> MÃ¼ÅŸteri Revize/Red Notu
+                                    <Clock size={14} /> Müşteri Revize/Red Notu
                                 </div>
                                 <p className="text-sm text-orange-800 dark:text-orange-300 italic">"{modal.proposal.customer_notes}"</p>
                             </div>
@@ -622,10 +622,10 @@ export default function ProposalsPage() {
                             {form.items.map((item, idx) => (
                                 <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-3 items-end group p-3 theme-surface-alt rounded-xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20 transition-all relative">
                                     <div className="flex-[2] min-w-[200px]">
-                                        <label className={miniLabelClass}>Hizmet/ÃœrÃ¼n AÃ§Ä±klamasÄ±</label>
+                                        <label className={miniLabelClass}>Hizmet/Ürün Açıklaması</label>
                                         <input
                                             required
-                                            placeholder="Ã–rn: Logo TasarÄ±mÄ±"
+                                            placeholder="Örn: Logo Tasarımı"
                                             value={item.description}
                                             onChange={e => updateItem(idx, 'description', e.target.value)}
                                             className={formInputClass}
@@ -714,20 +714,20 @@ export default function ProposalsPage() {
                         </div>
 
                         <div className="mt-4 pt-3 flex items-center justify-between border-t theme-divider">
-                            <span className="text-sm font-medium theme-text-secondary">Teklif ToplamÄ±:</span>
+                            <span className="text-sm font-medium theme-text-secondary">Teklif Toplamı:</span>
                             <span className="text-lg font-black text-indigo-600">{formatCurrency(totalPrice)}</span>
                         </div>
                     </div>
 
                     <div className="pt-4 border-t theme-divider">
                         <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-bold theme-text-primary">Ã–deme Takvimi</h3>
+                            <h3 className="text-sm font-bold theme-text-primary">Ödeme Takvimi</h3>
                             <button
                                 type="button"
                                 onClick={addInstallment}
                                 className="text-xs font-semibold text-emerald-600 hover:text-emerald-500 flex items-center gap-1"
                             >
-                                <PlusCircle size={14} /> Ã–deme Ekle
+                                <PlusCircle size={14} /> Ödeme Ekle
                             </button>
                         </div>
 
@@ -735,16 +735,16 @@ export default function ProposalsPage() {
                             {form.installments.map((ins, idx) => (
                                 <div key={idx} className="flex gap-3 items-end group p-3 theme-surface-alt rounded-xl">
                                     <div className="flex-1">
-                                        <label className={miniLabelClass}>Ã–deme AÃ§Ä±klamasÄ±</label>
+                                        <label className={miniLabelClass}>Ödeme Açıklaması</label>
                                         <input
-                                            placeholder="Ã–rn: %30 PeÅŸinat"
+                                            placeholder="Örn: %30 Peşinat"
                                             value={ins.description}
                                             onChange={e => updateInstallment(idx, 'description', e.target.value)}
                                             className={formInputClass}
                                         />
                                     </div>
                                     <div className="w-24">
-                                        <label className={miniLabelClass}>YÃ¼zde (%)</label>
+                                        <label className={miniLabelClass}>Yüzde (%)</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -772,12 +772,12 @@ export default function ProposalsPage() {
                                         />
                                     </div>
                                     <div className="flex flex-col items-center mb-1.5">
-                                        <label className={miniLabelClass}>Ã–deme</label>
+                                        <label className={miniLabelClass}>Ödeme</label>
                                         <button
                                             type="button"
                                             onClick={() => updateInstallment(idx, 'is_paid', !ins.is_paid)}
                                             className={`p-2 rounded-lg border transition-all ${ins.is_paid ? 'bg-green-500 border-green-600 text-white' : 'theme-surface theme-divider theme-text-secondary'}`}
-                                            title={ins.is_paid ? 'Ã–dendi Olarak Ä°ÅŸaretli' : 'Ã–denmedi Olarak Ä°ÅŸaretli'}
+                                            title={ins.is_paid ? 'Ödendi Olarak İşaretli' : 'Ödenmedi Olarak İşaretli'}
                                         >
                                             <Check size={16} />
                                         </button>
@@ -792,33 +792,33 @@ export default function ProposalsPage() {
                                 </div>
                             ))}
                             {form.installments.length === 0 && (
-                                <p className="text-center py-4 text-xs theme-text-secondary italic">HenÃ¼z Ã¶deme planÄ± eklenmedi. Teklif kabul edildiÄŸinde Ã¶deme takibi yapabilmek iÃ§in eklemeniz Ã¶nerilir.</p>
+                                <p className="text-center py-4 text-xs theme-text-secondary italic">Henüz ödeme planı eklenmedi. Teklif kabul edildiğinde ödeme takibi yapabilmek için eklemeniz önerilir.</p>
                             )}
                         </div>
 
                         <div className={`mt-4 pt-3 flex items-center justify-between border-t ${Math.abs(totalScheduled - totalPrice) > 0.1 ? 'border-red-200 bg-red-50 dark:bg-red-500/5' : 'border-emerald-100 bg-emerald-50 dark:bg-emerald-500/5'} p-3 rounded-xl transition-all`}>
                             <div className="flex gap-6">
                                 <div className="flex flex-col">
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${Math.abs(totalScheduled - totalPrice) > 0.1 ? 'text-red-500' : 'text-emerald-500'}`}>Toplam Ã–deme</span>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${Math.abs(totalScheduled - totalPrice) > 0.1 ? 'text-red-500' : 'text-emerald-500'}`}>Toplam Ödeme</span>
                                     <span className={`text-sm font-black ${Math.abs(totalScheduled - totalPrice) > 0.1 ? 'text-red-600' : 'text-emerald-600'}`}>
                                         {formatCurrency(totalScheduled)} / {formatCurrency(totalPrice)}
                                     </span>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-600">AlÄ±nan Ã–deme</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-600">Alınan Ödeme</span>
                                     <span className="text-sm font-black text-green-700">
                                         {formatCurrency(totalPaidInForm)}
                                     </span>
                                 </div>
                             </div>
                             {Math.abs(totalScheduled - totalPrice) > 0.1 && (
-                                <span className="text-[10px] font-bold text-red-500 animate-pulse text-right">TOPLAM TUTAR EÅLEÅMÄ°YOR!</span>
+                                <span className="text-[10px] font-bold text-red-500 animate-pulse text-right">TOPLAM TUTAR EÅLEÅMİYOR!</span>
                             )}
                         </div>
                     </div>
 
                     <div className="pt-6 flex gap-3">
-                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">Ä°ptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">İptal</button>
                         <button
                             type="submit"
                             disabled={saveMutation.isPending}
@@ -893,10 +893,10 @@ export default function ProposalsPage() {
             <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Teklifi Sil">
                 <div className="space-y-4">
                     <p className="theme-text-secondary">
-                        <span className="font-semibold theme-text-primary">{deleteConfirm?.title}</span> baÅŸlÄ±klÄ± teklifi silmek istediÄŸinize emin misiniz?
+                        <span className="font-semibold theme-text-primary">{deleteConfirm?.title}</span> başlıklı teklifi silmek istediğinize emin misiniz?
                     </p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">Ä°ptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">İptal</button>
                         <button
                             onClick={() => deleteMutation.mutate(deleteConfirm.id)}
                             disabled={deleteMutation.isPending}

@@ -60,7 +60,7 @@ export default function FilesPage() {
     }
 
     const handlePreviewFile = async (file) => {
-        const toastId = toast.loading('YÃ¼kleniyor...')
+        const toastId = toast.loading('Yükleniyor...')
         try {
             const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
             const contentType = response.headers['content-type']
@@ -74,7 +74,7 @@ export default function FilesPage() {
             toast.dismiss(toastId)
         } catch (error) {
             console.error('File preview error:', error)
-            toast.error('Dosya yÃ¼klenemedi.', { id: toastId })
+            toast.error('Dosya yüklenemedi.', { id: toastId })
         }
     }
 
@@ -105,10 +105,10 @@ export default function FilesPage() {
         onSuccess: () => {
             qc.invalidateQueries(['files'])
             qc.invalidateQueries(['trash-files'])
-            toast.success('Dosya Ã§Ã¶p kutusuna taÅŸÄ±ndÄ±.')
+            toast.success('Dosya çöp kutusuna taşındı.')
             setDeleteConfirm(null)
         },
-        onError: () => toast.error('Hata oluÅŸtu.')
+        onError: () => toast.error('Hata oluştu.')
     })
 
     const restoreMutation = useMutation({
@@ -116,19 +116,19 @@ export default function FilesPage() {
         onSuccess: () => {
             qc.invalidateQueries(['files'])
             qc.invalidateQueries(['trash-files'])
-            toast.success('Dosya geri yÃ¼klendi.')
+            toast.success('Dosya geri yüklendi.')
         },
-        onError: () => toast.error('Geri yÃ¼klenemedi.')
+        onError: () => toast.error('Geri yüklenemedi.')
     })
 
     const forceDeleteMutation = useMutation({
         mutationFn: (fileId) => api.delete(`/files/${fileId}/force`),
         onSuccess: () => {
             qc.invalidateQueries(['trash-files'])
-            toast.success('Dosya kalÄ±cÄ± olarak silindi.')
+            toast.success('Dosya kalıcı olarak silindi.')
             setDeleteConfirm(null)
         },
-        onError: () => toast.error('KalÄ±cÄ± silme hatasÄ±.')
+        onError: () => toast.error('Kalıcı silme hatası.')
     })
 
     const { data: trashedFiles = [], isLoading: isTrashLoading } = useQuery({
@@ -142,9 +142,9 @@ export default function FilesPage() {
         onSuccess: () => {
             qc.invalidateQueries(['trash-files'])
             qc.invalidateQueries(['files'])
-            toast.success('Ã‡Ã¶p kutusu temizlendi.')
+            toast.success('Çöp kutusu temizlendi.')
         },
-        onError: () => toast.error('Temizleme sÄ±rasÄ±nda hata oluÅŸtu.')
+        onError: () => toast.error('Temizleme sırasında hata oluştu.')
     })
 
     const bulkDeleteMutation = useMutation({
@@ -159,7 +159,7 @@ export default function FilesPage() {
     })
 
     const handleDownloadSingle = async (file) => {
-        const toastId = toast.loading('Ä°ndiriliyor...')
+        const toastId = toast.loading('İndiriliyor...')
         try {
             const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
             const url = window.URL.createObjectURL(new Blob([response.data]))
@@ -178,7 +178,7 @@ export default function FilesPage() {
             a.click()
             a.remove()
             window.URL.revokeObjectURL(url)
-            toast.success('Ä°ndirme baÅŸarÄ±lÄ±.', { id: toastId })
+            toast.success('İndirme başarılı.', { id: toastId })
         } catch (error) {
             console.error('Download error:', error)
             toast.error('Dosya indirilemedi.', { id: toastId })
@@ -187,12 +187,12 @@ export default function FilesPage() {
 
     const handleDownloadAll = async (job, filesToDownload) => {
         if (!filesToDownload || filesToDownload.length === 0) {
-            toast.error('Ä°ndirilecek dosya bulunamadÄ±.')
+            toast.error('İndirilecek dosya bulunamadı.')
             return
         }
 
         setDownloadingZip(true)
-        const toastId = toast.loading('Dosyalar hazÄ±rlanÄ±yor, lÃ¼tfen bekleyin...')
+        const toastId = toast.loading('Dosyalar hazırlanıyor, lütfen bekleyin...')
 
         try {
             const zip = new JSZip()
@@ -200,7 +200,7 @@ export default function FilesPage() {
             const promises = filesToDownload.map(async (file) => {
                 try {
                     const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' })
-                    if (!response.data) throw new Error('AÄŸ hatasÄ±')
+                    if (!response.data) throw new Error('Ağ hatası')
                     zip.file(file.file_name || file.fileName, response.data)
                 } catch (err) {
                     console.error('Dosya indirilemedi:', file.file_name || file.fileName, err)
@@ -212,10 +212,10 @@ export default function FilesPage() {
             const content = await zip.generateAsync({ type: 'blob' })
             saveAs(content, `${job.title}_dosyalar.zip`)
 
-            toast.success('Ä°ndirme baÅŸarÄ±lÄ±.', { id: toastId })
+            toast.success('İndirme başarılı.', { id: toastId })
         } catch (error) {
             console.error(error)
-            toast.error('Toplu indirme sÄ±rasÄ±nda bir hata oluÅŸtu.', { id: toastId })
+            toast.error('Toplu indirme sırasında bir hata oluştu.', { id: toastId })
         } finally {
             setDownloadingZip(false)
         }
@@ -226,7 +226,7 @@ export default function FilesPage() {
         // First filter out jobs that have no files
         let jobsWithActualFiles = jobsWithFiles.filter(job => job.jobfile && job.jobfile.length > 0)
 
-        // SÄ±nÄ±flarÄ± alfabetik olarak isme gÃ¶re A'dan Z'ye sÄ±rala
+        // Sınıfları alfabetik olarak isme göre A'dan Z'ye sırala
         jobsWithActualFiles = jobsWithActualFiles.sort((a, b) => (a.title || '').toString().localeCompare((b.title || '').toString(), 'tr'))
 
         if (!search) return jobsWithActualFiles
@@ -272,7 +272,7 @@ export default function FilesPage() {
         return (
             <div className="flex flex-col items-center justify-center py-20 animate-pulse">
                 <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                <p className="theme-text-secondary font-medium">DosyalarÄ±nÄ±z yÃ¼kleniyor...</p>
+                <p className="theme-text-secondary font-medium">Dosyalarınız yükleniyor...</p>
             </div>
         )
     }
@@ -281,10 +281,10 @@ export default function FilesPage() {
         <div className="space-y-6">
             <PageHeader
                 title="Dosyalar"
-                subtitle="AWS S3 Ã¼zerinde barÄ±ndÄ±rÄ±lan tÃ¼m iÅŸ dosyalarÄ±nÄ±z"
+                subtitle="AWS S3 üzerinde barındırılan tüm iş dosyalarınız"
                 icon={FolderOpen}
                 iconColor="text-indigo-500"
-                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Dosya veya iÅŸ ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Dosya veya iş ara...' }}
                 breadcrumbs={['Dosyalar']}
             >
                 <div className="flex items-center gap-3">
@@ -309,7 +309,7 @@ export default function FilesPage() {
                             onClick={() => { setShowTrash(true); setActiveFolderId(null); }}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showTrash ? 'theme-surface text-red-500 shadow-sm' : 'theme-text-secondary hover:text-indigo-500'}`}
                         >
-                            <Trash size={14} /> Ã‡Ã¶p Kutusu
+                            <Trash size={14} /> Çöp Kutusu
                         </button>
                     </div>
 
@@ -338,8 +338,8 @@ export default function FilesPage() {
                         <FolderOpen size={24} />
                     </div>
                     <div>
-                        <div className="text-xs theme-text-secondary uppercase tracking-wider font-semibold">Ä°ÅŸ SayÄ±sÄ±</div>
-                        <div className="text-lg font-bold theme-text-primary">{jobsWithFiles.length} KlasÃ¶r</div>
+                        <div className="text-xs theme-text-secondary uppercase tracking-wider font-semibold">İş Sayısı</div>
+                        <div className="text-lg font-bold theme-text-primary">{jobsWithFiles.length} Klasör</div>
                     </div>
                 </div>
             </div>
@@ -352,7 +352,7 @@ export default function FilesPage() {
                             <div className="flex items-center gap-3">
                                 <Trash className="text-red-500" size={20} />
                                 <p className="text-xs text-red-800 dark:text-red-300 font-medium">
-                                    Ã‡Ã¶p kutusundaki dosyalar 30 gÃ¼n sonra otomatik olarak tamamen silinecektir. Ä°stediÄŸiniz zaman geri yÃ¼kleyebilir veya kalÄ±cÄ± olarak silebilirsiniz.
+                                    Çöp kutusundaki dosyalar 30 gün sonra otomatik olarak tamamen silinecektir. İstediğiniz zaman geri yükleyebilir veya kalıcı olarak silebilirsiniz.
                                 </p>
                             </div>
                             {trashedFiles.length > 0 && (
@@ -361,7 +361,7 @@ export default function FilesPage() {
                                     disabled={clearTrashMutation.isLoading}
                                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
                                 >
-                                    <Trash2 size={14} /> Ã‡Ã¶p Kutusunu BoÅŸalt
+                                    <Trash2 size={14} /> Çöp Kutusunu Boşalt
                                 </button>
                             )}
                         </div>
@@ -369,16 +369,16 @@ export default function FilesPage() {
                         {trashedFiles.length === 0 ? (
                             <div className="text-center py-20 theme-surface rounded-3xl border theme-divider">
                                 <Trash className="w-12 h-12 theme-text-secondary opacity-40 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium theme-text-secondary">Ã‡Ã¶p Kutusu BoÅŸ</h3>
+                                <h3 className="text-lg font-medium theme-text-secondary">Çöp Kutusu Boş</h3>
                             </div>
                         ) : (
                             <div className="theme-surface border rounded-2xl overflow-hidden">
                                 <table className="w-full text-sm theme-table">
                                     <thead>
                                         <tr className="theme-surface-alt theme-text-secondary border-b theme-divider">
-                                            <th className="px-4 py-3 text-left font-semibold">Dosya AdÄ± / Ait OlduÄŸu Ä°ÅŸ</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Dosya Adı / Ait Olduğu İş</th>
                                             <th className="px-4 py-3 text-left font-semibold">Silinme Tarihi</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Ä°ÅŸlemler</th>
+                                            <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y theme-divider">
@@ -389,7 +389,7 @@ export default function FilesPage() {
                                                         {getFileIcon(file.file_type)}
                                                         <div>
                                                             <div className="font-medium theme-text-primary">{file.file_name}</div>
-                                                            <div className="text-[10px] theme-text-secondary">Ä°ÅŸ: {file.job?.title}</div>
+                                                            <div className="text-[10px] theme-text-secondary">İş: {file.job?.title}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -401,7 +401,7 @@ export default function FilesPage() {
                                                         <button
                                                             onClick={() => restoreMutation.mutate(file.id)}
                                                             className="p-1.5 theme-text-secondary hover:text-green-500 transition-colors"
-                                                            title="Geri YÃ¼kle"
+                                                            title="Geri Yükle"
                                                             disabled={restoreMutation.isLoading}
                                                         >
                                                             <RotateCcw size={16} />
@@ -409,7 +409,7 @@ export default function FilesPage() {
                                                         <button
                                                             onClick={() => setDeleteConfirm({ fileId: file.id, fileName: file.file_name, isPermanent: true })}
                                                             className="p-1.5 theme-text-secondary hover:text-red-500 transition-colors"
-                                                            title="KalÄ±cÄ± Olarak Sil"
+                                                            title="Kalıcı Olarak Sil"
                                                         >
                                                             <Trash size={16} />
                                                         </button>
@@ -425,8 +425,8 @@ export default function FilesPage() {
                 ) : filteredJobs.length === 0 ? (
                     <div className="text-center py-20 theme-surface rounded-3xl border border-dashed theme-divider">
                         <UploadCloud className="w-12 h-12 theme-text-secondary mx-auto mb-4" />
-                        <h3 className="text-lg font-medium theme-text-primary mb-1">Dosya BulunamadÄ±</h3>
-                        <p className="theme-text-secondary max-w-xs mx-auto">HenÃ¼z S3 Ã¼zerine yÃ¼klenmiÅŸ bir dosya bulunmuyor veya aramanÄ±zla eÅŸleÅŸen sonuÃ§ yok.</p>
+                        <h3 className="text-lg font-medium theme-text-primary mb-1">Dosya Bulunamadı</h3>
+                        <p className="theme-text-secondary max-w-xs mx-auto">Henüz S3 üzerine yüklenmiş bir dosya bulunmuyor veya aramanızla eşleşen sonuç yok.</p>
                     </div>
                 ) : !activeFolderId ? (
                     <div className="space-y-4">
@@ -446,7 +446,7 @@ export default function FilesPage() {
                                                 {job.title}
                                             </h3>
                                             <p className="text-xs theme-text-secondary truncate" title={job.customer?.name}>
-                                                {job.customer?.name || 'MÃ¼ÅŸterisiz'}
+                                                {job.customer?.name || 'Müşterisiz'}
                                             </p>
                                         </div>
                                     </div>
@@ -464,7 +464,7 @@ export default function FilesPage() {
                         {Math.ceil(filteredJobs.length / 10) > 1 && (
                             <div className="flex items-center justify-between px-5 py-3 border theme-divider rounded-2xl theme-surface">
                                 <span className="text-sm theme-text-secondary">
-                                    Toplam <strong>{filteredJobs.length}</strong> klasÃ¶rden <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, filteredJobs.length)}</strong> arasÄ± gÃ¶steriliyor
+                                    Toplam <strong>{filteredJobs.length}</strong> klasörden <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, filteredJobs.length)}</strong> arası gösteriliyor
                                 </span>
                                 <div className="flex gap-1">
                                     <button
@@ -488,7 +488,7 @@ export default function FilesPage() {
                 ) : (
                     (() => {
                         const activeJob = filteredJobs.find(j => j.id === activeFolderId || String(j.id) === String(activeFolderId))
-                        if (!activeJob) return <div className="text-center py-10">KlasÃ¶r bulunamadÄ± veya arama kriterlerine uymuyor.</div>
+                        if (!activeJob) return <div className="text-center py-10">Klasör bulunamadı veya arama kriterlerine uymuyor.</div>
 
                         let files = [...(activeJob.matchedFiles || activeJob.jobfile)]
 
@@ -532,9 +532,9 @@ export default function FilesPage() {
                                                 <h2 className="font-bold theme-text-primary uppercase tracking-wider">{activeJob.title}</h2>
                                             </div>
                                             <p className="text-xs theme-text-secondary flex items-center gap-2 mt-1">
-                                                <span>MÃ¼ÅŸteri: {activeJob.customer?.name || '-'}</span>
+                                                <span>Müşteri: {activeJob.customer?.name || '-'}</span>
                                                 <span>â€¢</span>
-                                                <Link to={`/jobs/${activeJob.id}`} className="text-indigo-500 hover:underline">Ä°ÅŸ DetayÄ±na Git</Link>
+                                                <Link to={`/jobs/${activeJob.id}`} className="text-indigo-500 hover:underline">İş Detayına Git</Link>
                                             </p>
                                         </div>
                                     </div>
@@ -547,7 +547,7 @@ export default function FilesPage() {
                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                                             >
                                                 <Trash2 size={16} />
-                                                <span className="hidden sm:inline">SeÃ§ilenleri Sil ({selectedFileIds.length})</span>
+                                                <span className="hidden sm:inline">Seçilenleri Sil ({selectedFileIds.length})</span>
                                             </button>
                                         )}
 
@@ -557,7 +557,7 @@ export default function FilesPage() {
                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                                         >
                                             {downloadingZip ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                                            <span className="hidden sm:inline">{downloadingZip ? 'HazÄ±rlanÄ±yor...' : 'Toplu Ä°ndir'}</span>
+                                            <span className="hidden sm:inline">{downloadingZip ? 'Hazırlanıyor...' : 'Toplu İndir'}</span>
                                         </button>
 
                                         {viewMode === 'grid' && files.length > 0 && (
@@ -574,14 +574,14 @@ export default function FilesPage() {
                                                         }
                                                     }}
                                                 />
-                                                <span className="text-[10px] font-bold theme-text-secondary uppercase">TÃ¼mÃ¼nÃ¼ SeÃ§</span>
+                                                <span className="text-[10px] font-bold theme-text-secondary uppercase">Tümünü Seç</span>
                                             </div>
                                         )}
 
                                         <div className="h-6 w-px theme-divider hidden sm:block"></div>
 
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs theme-text-secondary font-medium hidden sm:block">SÄ±rala:</span>
+                                            <span className="text-xs theme-text-secondary font-medium hidden sm:block">Sırala:</span>
                                             <select
                                                 value={fileSortMode}
                                                 onChange={e => setFileSortMode(e.target.value)}
@@ -589,7 +589,7 @@ export default function FilesPage() {
                                             >
                                                 <option value="name">Ad (A-Z)</option>
                                                 <option value="date">Tarih (En Yeni)</option>
-                                                <option value="size">Boyut (BÃ¼yÃ¼kten KÃ¼Ã§Ã¼ÄŸe)</option>
+                                                <option value="size">Boyut (Büyükten Küçüğe)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -634,7 +634,7 @@ export default function FilesPage() {
                                                             <button
                                                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }}
                                                                 className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-lg backdrop-blur-md transition-colors"
-                                                                title="Ã–nizle"
+                                                                title="Önizle"
                                                             >
                                                                 <Eye size={16} />
                                                             </button>
@@ -642,7 +642,7 @@ export default function FilesPage() {
                                                         <button
                                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSingle(file); }}
                                                             className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-lg backdrop-blur-md transition-colors"
-                                                            title="Ä°ndir"
+                                                            title="İndir"
                                                         >
                                                             <Download size={16} />
                                                         </button>
@@ -683,11 +683,11 @@ export default function FilesPage() {
                                                             }}
                                                         />
                                                     </th>
-                                                    <th className="px-4 py-3 text-left font-semibold">Dosya AdÄ±</th>
-                                                    <th className="px-4 py-3 text-left font-semibold">TÃ¼r</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Dosya Adı</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Tür</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Boyut</th>
                                                     <th className="px-4 py-3 text-left font-semibold">Tarih</th>
-                                                    <th className="px-4 py-3 text-right font-semibold">Ä°ÅŸlemler</th>
+                                                    <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y theme-divider">
@@ -719,11 +719,11 @@ export default function FilesPage() {
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 {(file.file_type || file.fileType || '').includes('image') || (file.file_type || file.fileType || '').includes('pdf') ? (
-                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="Ã–nizle">
+                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="Önizle">
                                                                         <Eye size={16} />
                                                                     </button>
                                                                 ) : null}
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="Ä°ndir">
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="İndir">
                                                                     <Download size={16} />
                                                                 </button>
                                                                 <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 theme-text-secondary hover:text-red-500 transition-colors" title="Sil">
@@ -742,7 +742,7 @@ export default function FilesPage() {
                                 {totalPages > 1 && (
                                     <div className="flex items-center justify-between px-5 py-3 border theme-divider rounded-2xl theme-surface mt-4">
                                         <span className="text-sm theme-text-secondary">
-                                            Toplam <strong>{files.length}</strong> dosyadan <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, files.length)}</strong> arasÄ± gÃ¶steriliyor
+                                            Toplam <strong>{files.length}</strong> dosyadan <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, files.length)}</strong> arası gösteriliyor
                                         </span>
                                         <div className="flex gap-1">
                                             <button
@@ -769,17 +769,17 @@ export default function FilesPage() {
             </div>
 
             {/* Delete Confirmation Modal */}
-            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="DosyayÄ± Sil" size="sm">
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Dosyayı Sil" size="sm">
                 <div className="space-y-4">
                     <div className="flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full mx-auto text-red-600 dark:text-red-400">
                         <Trash2 size={24} />
                     </div>
                     <div className="text-center">
                         <p className="theme-text-primary font-medium mb-1">
-                            {deleteConfirm?.isPermanent ? 'KalÄ±cÄ± olarak silmek istediÄŸinize emin misiniz?' : 'DosyayÄ± Ã§Ã¶p kutusuna taÅŸÄ±yorsunuz'}
+                            {deleteConfirm?.isPermanent ? 'Kalıcı olarak silmek istediğinize emin misiniz?' : 'Dosyayı çöp kutusuna taşıyorsunuz'}
                         </p>
                         <p className="text-sm theme-text-secondary px-4">
-                            <span className="font-semibold theme-text-primary">"{deleteConfirm?.fileName}"</span> isimli dosya {deleteConfirm?.isPermanent ? 'KALICI olarak silinecek ve kota iade edilecek.' : 'Ã§Ã¶p kutusuna aktarÄ±lacak.'}
+                            <span className="font-semibold theme-text-primary">"{deleteConfirm?.fileName}"</span> isimli dosya {deleteConfirm?.isPermanent ? 'KALICI olarak silinecek ve kota iade edilecek.' : 'çöp kutusuna aktarılacak.'}
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -787,7 +787,7 @@ export default function FilesPage() {
                             onClick={() => setDeleteConfirm(null)}
                             className="flex-1 px-4 py-2 text-sm font-medium theme-text-primary theme-surface-alt hover:bg-[var(--theme-bg-surface)] rounded-xl transition-colors"
                         >
-                            Ä°ptal
+                            İptal
                         </button>
                         <button
                             onClick={() => deleteConfirm?.isPermanent ? forceDeleteMutation.mutate(deleteConfirm.fileId) : deleteMutation.mutate(deleteConfirm)}
@@ -801,17 +801,17 @@ export default function FilesPage() {
             </Modal>
 
             {/* Clear Trash Confirmation Modal */}
-            <Modal open={showClearTrashConfirm} onClose={() => setShowClearTrashConfirm(false)} title="Ã‡Ã¶p Kutusunu BoÅŸalt" size="sm">
+            <Modal open={showClearTrashConfirm} onClose={() => setShowClearTrashConfirm(false)} title="Çöp Kutusunu Boşalt" size="sm">
                 <div className="space-y-4">
                     <div className="flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full mx-auto text-red-600 dark:text-red-400">
                         <Trash2 size={24} />
                     </div>
                     <div className="text-center">
                         <p className="theme-text-primary font-medium mb-1">
-                            KalÄ±cÄ± olarak silmek istediÄŸinize emin misiniz?
+                            Kalıcı olarak silmek istediğinize emin misiniz?
                         </p>
                         <p className="text-sm theme-text-secondary px-4">
-                            Ã‡Ã¶p kutusundaki <span className="font-bold text-red-500">{trashedFiles.length} adet</span> dosya <span className="font-semibold theme-text-primary">KALICI</span> olarak silinecek ve kota iade edilecek. Bu iÅŸlem geri alÄ±namaz.
+                            Çöp kutusundaki <span className="font-bold text-red-500">{trashedFiles.length} adet</span> dosya <span className="font-semibold theme-text-primary">KALICI</span> olarak silinecek ve kota iade edilecek. Bu işlem geri alınamaz.
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -819,7 +819,7 @@ export default function FilesPage() {
                             onClick={() => setShowClearTrashConfirm(false)}
                             className="flex-1 px-4 py-2 text-sm font-medium theme-text-primary theme-surface-alt hover:bg-[var(--theme-bg-surface)] rounded-xl transition-colors"
                         >
-                            Ä°ptal
+                            İptal
                         </button>
                         <button
                             onClick={() => {
@@ -829,14 +829,14 @@ export default function FilesPage() {
                             disabled={clearTrashMutation.isLoading}
                             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg transition-all disabled:opacity-50"
                         >
-                            {clearTrashMutation.isLoading ? 'Temizleniyor...' : 'Ã‡Ã¶pÃ¼ BoÅŸalt'}
+                            {clearTrashMutation.isLoading ? 'Temizleniyor...' : 'Çöpü Boşalt'}
                         </button>
                     </div>
                 </div>
             </Modal>
 
             {/* File Preview Modal */}
-            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dosya Ã–nizleme" size="xl">
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dosya Önizleme" size="xl">
                 <div className="flex flex-col h-[70vh]">
                     <div className="flex-1 theme-surface-alt rounded-xl overflow-hidden flex items-center justify-center relative border theme-divider">
                         {preview.type?.includes('pdf') ? (
@@ -846,7 +846,7 @@ export default function FilesPage() {
                         ) : (
                             <div className="text-center p-12 theme-text-secondary">
                                 <FileText size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>Bu dosya Ã¶nizlenemiyor.</p>
+                                <p>Bu dosya önizlenemiyor.</p>
                             </div>
                         )}
                     </div>
@@ -868,7 +868,7 @@ export default function FilesPage() {
                             }}
                             className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                         >
-                            <Download size={18} /> Ä°ndir
+                            <Download size={18} /> İndir
                         </button>
                     </div>
                 </div>

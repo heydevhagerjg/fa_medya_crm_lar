@@ -26,14 +26,14 @@ export default function ApiKeysTab() {
     const [isFormOpen, setIsFormOpen] = useState(false)
 
     const modules = [
-        { id: 'jobs', label: 'Ä°ÅŸler (Jobs)' },
-        { id: 'customers', label: 'MÃ¼ÅŸteriler (Customers)' },
+        { id: 'jobs', label: 'İşler (Jobs)' },
+        { id: 'customers', label: 'Müşteriler (Customers)' },
         { id: 'appointments', label: 'Randevular (Appointments)' },
         { id: 'finance', label: 'Finans (Kasalar)' },
         { id: 'expenses', label: 'Giderler (Expenses)' },
         { id: 'files', label: 'Dosyalar (Files)' },
-        { id: 'dashboard', label: 'Dashboard / Ä°statistik' },
-        { id: 'auth', label: 'KullanÄ±cÄ± Ä°ÅŸlemleri (Auth)' },
+        { id: 'dashboard', label: 'Dashboard / İstatistik' },
+        { id: 'auth', label: 'Kullanıcı İşlemleri (Auth)' },
         { id: 'settings', label: 'Ayarlar' },
         { id: 'logs', label: 'Loglar' },
     ]
@@ -41,7 +41,7 @@ export default function ApiKeysTab() {
     const actions = [
         { id: 'read', label: 'Oku', color: 'blue' },
         { id: 'write', label: 'Yaz (Ekle)', color: 'green' },
-        { id: 'update', label: 'GÃ¼ncelle', color: 'amber' },
+        { id: 'update', label: 'Güncelle', color: 'amber' },
         { id: 'delete', label: 'Sil', color: 'red' },
     ]
 
@@ -53,10 +53,10 @@ export default function ApiKeysTab() {
             : api.post('/settings/api-keys', data),
         onSuccess: () => {
             qc.invalidateQueries(['api-keys'])
-            toast.success(editingKey ? 'API anahtarÄ± gÃ¼ncellendi.' : 'API anahtarÄ± oluÅŸturuldu.')
+            toast.success(editingKey ? 'API anahtarı güncellendi.' : 'API anahtarı oluşturuldu.')
             resetForm()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const resetForm = () => {
@@ -74,7 +74,7 @@ export default function ApiKeysTab() {
 
     const copyKey = (key) => {
         navigator.clipboard.writeText(key)
-        toast.success('KopyalandÄ±!')
+        toast.success('Kopyalandı!')
     }
 
     const handleEdit = (k) => {
@@ -116,10 +116,10 @@ export default function ApiKeysTab() {
                     <div className="flex-1">
                         <h3 className="text-sm font-semibold theme-text-primary flex items-center gap-2">
                             {editingKey ? <Edit2 size={16} className="text-amber-500" /> : <Plus size={16} className="text-[#905EFC]" />}
-                            {editingKey ? 'API AnahtarÄ±nÄ± DÃ¼zenle' : 'Yeni GranÃ¼ler API AnahtarÄ± OluÅŸtur'}
+                            {editingKey ? 'API Anahtarını Düzenle' : 'Yeni Granüler API Anahtarı Oluştur'}
                         </h3>
                         {!isFormOpen && (
-                            <p className="text-[10px] theme-text-secondary mt-1">GranÃ¼ler yetkilere sahip yeni bir anahtar tanÄ±mlamak iÃ§in tÄ±klayÄ±n.</p>
+                            <p className="text-[10px] theme-text-secondary mt-1">Granüler yetkilere sahip yeni bir anahtar tanımlamak için tıklayın.</p>
                         )}
                     </div>
                     <div className="flex items-center gap-4">
@@ -129,7 +129,7 @@ export default function ApiKeysTab() {
                                 onClick={(e) => e.stopPropagation()}
                                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#F4F5F7] dark:bg-white/5 theme-text-secondary hover:bg-[#E5E9F0] dark:hover:bg-white/10 rounded-lg text-[10px] font-bold transition-all"
                             >
-                                <FileCode size={12} /> DÃ¶kÃ¼mantasyon
+                                <FileCode size={12} /> Dökümantasyon
                             </Link>
                         )}
                         <div className="p-1 rounded-lg bg-[#F4F5F7] dark:bg-white/5 group-hover:bg-[#E5E9F0] dark:group-hover:bg-white/10 transition-colors">
@@ -142,11 +142,11 @@ export default function ApiKeysTab() {
                     <div className="space-y-5 pt-4 border-t theme-divider animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-medium theme-text-secondary mb-1.5">Anahtar AdÄ±</label>
-                                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ã–rn: Mobil Entegrasyon" className="w-full px-3 py-2 border rounded-lg text-sm theme-input" />
+                                <label className="block text-xs font-medium theme-text-secondary mb-1.5">Anahtar Adı</label>
+                                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Örn: Mobil Entegrasyon" className="w-full px-3 py-2 border rounded-lg text-sm theme-input" />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium theme-text-secondary mb-1.5">Son GeÃ§erlilik Tarihi (Opsiyonel)</label>
+                                <label className="block text-xs font-medium theme-text-secondary mb-1.5">Son Geçerlilik Tarihi (Opsiyonel)</label>
                                 <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm theme-input" />
                             </div>
                         </div>
@@ -155,9 +155,9 @@ export default function ApiKeysTab() {
                             <table className="w-full text-left text-sm theme-table">
                                 <thead className="bg-[#F4F5F7] dark:bg-white/5 theme-text-secondary text-[10px] uppercase font-bold">
                                     <tr>
-                                        <th className="px-4 py-2">ModÃ¼l</th>
+                                        <th className="px-4 py-2">Modül</th>
                                         {actions.map(a => <th key={a.id} className="px-4 py-2 text-center">{a.label}</th>)}
-                                        <th className="px-4 py-2 text-right">TÃ¼mÃ¼</th>
+                                        <th className="px-4 py-2 text-right">Tümü</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E9F0] dark:divide-white/5">
@@ -180,7 +180,7 @@ export default function ApiKeysTab() {
                                                     onClick={() => toggleAllModule(m.id)}
                                                     className="text-[10px] text-[#905EFC] hover:text-[#905EFC] font-bold"
                                                 >
-                                                    {actions.every(a => selectedPermissions.includes(`${m.id}:${a.id}`)) ? 'Temizle' : 'TÃ¼mÃ¼'}
+                                                    {actions.every(a => selectedPermissions.includes(`${m.id}:${a.id}`)) ? 'Temizle' : 'Tümü'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -195,7 +195,7 @@ export default function ApiKeysTab() {
                                     onClick={resetForm}
                                     className="px-6 py-2.5 border theme-divider theme-text-secondary rounded-xl text-sm font-semibold hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-all"
                                 >
-                                    Ä°ptal
+                                    İptal
                                 </button>
                             )}
                             <button
@@ -204,7 +204,7 @@ export default function ApiKeysTab() {
                                 className="px-6 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-[#905EFC]/20 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                {editingKey ? 'DeÄŸiÅŸiklikleri Kaydet' : 'AnahtarÄ± OluÅŸtur'}
+                                {editingKey ? 'Değişiklikleri Kaydet' : 'Anahtarı Oluştur'}
                             </button>
                         </div>
                     </div>
@@ -217,19 +217,19 @@ export default function ApiKeysTab() {
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold theme-text-primary">{k.name || 'AdsÄ±z Anahtar'}</span>
+                                    <span className="text-sm font-bold theme-text-primary">{k.name || 'Adsız Anahtar'}</span>
                                     {k.expires_at && (
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${new Date(k.expires_at) < new Date()
                                             ? 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400'
                                             : 'bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400'
                                             }`}>
-                                            {new Date(k.expires_at) < new Date() ? 'SÃ¼resi Doldu' : `SKT: ${new Date(k.expires_at).toLocaleDateString('tr-TR')}`}
+                                            {new Date(k.expires_at) < new Date() ? 'Süresi Doldu' : `SKT: ${new Date(k.expires_at).toLocaleDateString('tr-TR')}`}
                                         </span>
                                     )}
                                 </div>
 
                                 <div className="flex items-stretch gap-2">
-                                    <button onClick={() => copyKey(k.key)} className="flex-1 group/key flex items-center gap-2 font-mono text-[13px] text-[#1A1A2E] hover:text-[#905EFC] transition-colors bg-[#F4F5F7] dark:bg-white/5 p-2 rounded-lg" title="Kopyalamak iÃ§in tÄ±klayÄ±n">
+                                    <button onClick={() => copyKey(k.key)} className="flex-1 group/key flex items-center gap-2 font-mono text-[13px] text-[#1A1A2E] hover:text-[#905EFC] transition-colors bg-[#F4F5F7] dark:bg-white/5 p-2 rounded-lg" title="Kopyalamak için tıklayın">
                                         <span className="truncate flex-1">{k.key}</span>
                                         <Activity size={12} className="opacity-0 group-hover/key:opacity-100 transition-opacity" />
                                     </button>
@@ -237,7 +237,7 @@ export default function ApiKeysTab() {
 
                                 <div className="space-y-2">
                                     {!k.permissions || k.permissions.length === 0 ? (
-                                        <span className="text-[10px] px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg font-semibold border border-amber-100 dark:border-amber-500/20">Full Admin Access (TÃ¼m Yetkiler)</span>
+                                        <span className="text-[10px] px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg font-semibold border border-amber-100 dark:border-amber-500/20">Full Admin Access (Tüm Yetkiler)</span>
                                     ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                                             {modules.filter(m => k.permissions.some(p => p.startsWith(m.id + ':'))).map(m => (
@@ -255,7 +255,7 @@ export default function ApiKeysTab() {
                                 </div>
 
                                 <div className="text-[10px] theme-text-secondary flex items-center gap-3">
-                                    <span>Son KullanÄ±m: {k.last_used ? new Date(k.last_used).toLocaleString('tr-TR') : 'HenÃ¼z kullanÄ±lmadÄ±'}</span>
+                                    <span>Son Kullanım: {k.last_used ? new Date(k.last_used).toLocaleString('tr-TR') : 'Henüz kullanılmadı'}</span>
                                     <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                     <span>ID: {k.id.split('-')[0]}...</span>
                                 </div>
@@ -265,7 +265,7 @@ export default function ApiKeysTab() {
                                 <button
                                     onClick={() => handleEdit(k)}
                                     className="p-2.5 rounded-xl theme-text-secondary hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all border border-transparent hover:border-amber-100 dark:hover:border-amber-500/20"
-                                    title="DÃ¼zenle"
+                                    title="Düzenle"
                                 >
                                     <Edit2 size={18} />
                                 </button>
@@ -282,14 +282,14 @@ export default function ApiKeysTab() {
                 ))}
             </div>
 
-            <Modal open={!!showConfirm} onClose={() => setShowConfirm(null)} title="API AnahtarÄ±nÄ± Sil">
+            <Modal open={!!showConfirm} onClose={() => setShowConfirm(null)} title="API Anahtarını Sil">
                 <div className="space-y-4">
                     <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-3 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-500/20">
                         <AlertCircle size={20} className="shrink-0" />
-                        <p>Bu API anahtarÄ±nÄ± sildiÄŸinizde, bu anahtarÄ± kullanan tÃ¼m dÄ±ÅŸ servislerin eriÅŸimi anÄ±nda kesilecektir. Bu iÅŸlem geri alÄ±namaz.</p>
+                        <p>Bu API anahtarını sildiğinizde, bu anahtarı kullanan tüm dış servislerin erişimi anında kesilecektir. Bu işlem geri alınamaz.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => setShowConfirm(null)} className="flex-1 px-4 py-3 border theme-divider rounded-xl text-sm font-semibold hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">VazgeÃ§</button>
+                        <button onClick={() => setShowConfirm(null)} className="flex-1 px-4 py-3 border theme-divider rounded-xl text-sm font-semibold hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">Vazgeç</button>
                         <button onClick={() => deleteMutation.mutate(showConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-500/20">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Evet, Sil'}
                         </button>

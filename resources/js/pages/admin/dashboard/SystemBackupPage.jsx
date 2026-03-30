@@ -19,7 +19,7 @@ export default function SystemBackupPage() {
             const response = await api.get('/admin/backups')
             setBackups(response.data)
         } catch (error) {
-            toast.error('Yedekler listelenirken bir hata oluÅŸtu.')
+            toast.error('Yedekler listelenirken bir hata oluştu.')
         } finally {
             setLoading(false)
         }
@@ -36,21 +36,21 @@ export default function SystemBackupPage() {
             toast.success(response.data.message)
             // It runs in the background, so we won't see it immediately
         } catch (error) {
-            toast.error('Yedekleme baÅŸlatÄ±lamadÄ±.')
+            toast.error('Yedekleme başlatılamadı.')
         } finally {
             setIsBackingUp(false)
         }
     }
 
     const handleDelete = async (disk, path) => {
-        if (!confirm('Bu yedeÄŸi silmek istediÄŸinize emin misiniz?')) return
+        if (!confirm('Bu yedeği silmek istediğinize emin misiniz?')) return
 
         try {
             await api.post('/admin/backups/destroy', { disk, path })
-            toast.success('Yedek baÅŸarÄ±yla silindi.')
+            toast.success('Yedek başarıyla silindi.')
             fetchBackups()
         } catch (error) {
-            toast.error('Yedek silinirken bir hata oluÅŸtu.')
+            toast.error('Yedek silinirken bir hata oluştu.')
         }
     }
 
@@ -79,7 +79,7 @@ export default function SystemBackupPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sistem Yedekleri</h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                        Sistemin tÃ¼m veritabanÄ± ve temel dosya yedeÄŸini yÃ¶netin.
+                        Sistemin tüm veritabanı ve temel dosya yedeğini yönetin.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -108,9 +108,9 @@ export default function SystemBackupPage() {
             <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-4 flex gap-3 text-blue-700 dark:text-blue-400">
                 <Info className="shrink-0" size={20} />
                 <div className="text-sm leading-relaxed">
-                    <strong>Bilgi:</strong> "Åimdi Yedek Al" butonu iÅŸlemi arka planda baÅŸlatÄ±r. 
-                    VeritabanÄ± boyutuna gÃ¶re iÅŸlemin tamamlanmasÄ± birkaÃ§ dakika sÃ¼rebilir. 
-                    Yedekler hem yerel sunucuya hem de bulut (S3) Ã¼zerine kaydedilir.
+                    <strong>Bilgi:</strong> "Åimdi Yedek Al" butonu işlemi arka planda başlatır. 
+                    Veritabanı boyutuna göre işlemin tamamlanması birkaç dakika sürebilir. 
+                    Yedekler hem yerel sunucuya hem de bulut (S3) üzerine kaydedilir.
                 </div>
             </div>
 
@@ -145,10 +145,10 @@ export default function SystemBackupPage() {
                     <table className="w-full text-left theme-table">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-200 dark:border-gray-800">
-                                <th className="px-6 py-4">Dosya AdÄ±</th>
+                                <th className="px-6 py-4">Dosya Adı</th>
                                 <th className="px-6 py-4">Boyut</th>
                                 <th className="px-6 py-4 text-right">Tarih</th>
-                                <th className="px-6 py-4 text-right">Ä°ÅŸlemler</th>
+                                <th className="px-6 py-4 text-right">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -156,13 +156,13 @@ export default function SystemBackupPage() {
                                 <tr>
                                     <td colSpan="4" className="px-6 py-12 text-center">
                                         <Loader2 className="mx-auto animate-spin text-red-600 mb-4" size={32} />
-                                        <div className="text-gray-500 font-medium">Yedekler taranÄ±yor...</div>
+                                        <div className="text-gray-500 font-medium">Yedekler taranıyor...</div>
                                     </td>
                                 </tr>
                             ) : currentBackups.length === 0 ? (
                                 <tr>
                                     <td colSpan="4" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400 font-medium italic">
-                                        Bu disk Ã¼zerinde henÃ¼z yedek bulunmuyor.
+                                        Bu disk üzerinde henüz yedek bulunmuyor.
                                     </td>
                                 </tr>
                             ) : (
@@ -191,7 +191,7 @@ export default function SystemBackupPage() {
                                                 <button
                                                     onClick={() => handleDownload(activeDisk, bk.path, bk.name)}
                                                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-600/10 rounded-lg transition-colors"
-                                                    title="Ä°ndir"
+                                                    title="İndir"
                                                 >
                                                     <Download size={18} />
                                                 </button>

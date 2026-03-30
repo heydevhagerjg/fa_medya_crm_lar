@@ -95,4 +95,12 @@ class Chat extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    /**
+     * Voice call sessions of this chat.
+     */
+    public function callSessions(): HasMany
+    {
+        return $this->hasMany(ChatCallSession::class);
+    }
 }

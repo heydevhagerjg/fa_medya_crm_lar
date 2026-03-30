@@ -6,17 +6,17 @@ import PublicSiteShell from '../components/public/PublicSiteShell.jsx'
 
 const features = [
     { key: 'personnel_limit', label: 'Personel Limiti', type: 'numeric' },
-    { key: 'customer_limit', label: 'MÃ¼ÅŸteri Limiti', type: 'numeric' },
-    { key: 'job_limit', label: 'Aktif Ä°ÅŸ Limiti', type: 'numeric' },
-    { key: 'appointment_feature', label: 'Randevu YÃ¶netimi', type: 'boolean' },
+    { key: 'customer_limit', label: 'Müşteri Limiti', type: 'numeric' },
+    { key: 'job_limit', label: 'Aktif İş Limiti', type: 'numeric' },
+    { key: 'appointment_feature', label: 'Randevu Yönetimi', type: 'boolean' },
     { key: 'service_tracking_feature', label: 'Hizmet Takibi', type: 'boolean' },
-    { key: 'proposal_feature', label: 'Teklif YÃ¶netimi', type: 'boolean' },
+    { key: 'proposal_feature', label: 'Teklif Yönetimi', type: 'boolean' },
     { key: 'backup_feature', label: 'Bulut Yedekleme', type: 'boolean' },
-    { key: 'api_key_feature', label: 'API EriÅŸimi', type: 'boolean' },
-    { key: 'chat_feature', label: 'Sohbet ModÃ¼lÃ¼', type: 'boolean' },
+    { key: 'api_key_feature', label: 'API Erişimi', type: 'boolean' },
+    { key: 'chat_feature', label: 'Sohbet Modülü', type: 'boolean' },
     { key: 'chat_limit', label: 'Sohbet Limiti', type: 'numeric' },
     { key: 'group_chat_limit', label: 'Grup Sohbeti Limiti', type: 'numeric' },
-    { key: 'disk_usage_limit', label: 'Depolama AlanÄ±', type: 'numeric', suffix: ' MB' },
+    { key: 'disk_usage_limit', label: 'Depolama Alanı', type: 'numeric', suffix: ' MB' },
 ]
 
 export default function PricingPage() {
@@ -37,14 +37,14 @@ export default function PricingPage() {
             <div>
                 <div className="mb-16 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full border border-[#bbf7d0] bg-[#dcfce7] px-4 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#166534]">
-                        <Zap size={14} /> Åeffaf KarÅŸÄ±laÅŸtÄ±rma
+                        <Zap size={14} /> Åeffaf Karşılaştırma
                     </div>
                     <h1 className="mt-4 text-4xl font-black tracking-tight text-[#0f172a] sm:text-6xl">
-                        Paketinizi seÃ§in,
-                        <span className="block text-[#0f766e]">ekibinizi aynÄ± gÃ¼n canlÄ±ya alÄ±n.</span>
+                        Paketinizi seçin,
+                        <span className="block text-[#0f766e]">ekibinizi aynı gün canlıya alın.</span>
                     </h1>
                     <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-[#475569]">
-                        Ä°htiyaÃ§larÄ±nÄ±za en uygun paketi seÃ§in. TÃ¼m paketlerde 14 gÃ¼n Ã¼cretsiz deneme imkanÄ±.
+                        İhtiyaçlarınıza en uygun paketi seçin. Tüm paketlerde 14 gün ücretsiz deneme imkanı.
                     </p>
                 </div>
 
@@ -59,14 +59,14 @@ export default function PricingPage() {
                                 <thead>
                                     <tr>
                                         <th className="sticky left-0 z-30 w-70 min-w-55 border-b border-r border-[#e6dfd2] bg-[#faf7f1] p-8 text-left shadow-[4px_0_12px_rgba(15,23,42,0.08)]">
-                                            <div className="text-sm font-black uppercase tracking-widest text-[#64748b]">Ã–zellikler</div>
+                                            <div className="text-sm font-black uppercase tracking-widest text-[#64748b]">Özellikler</div>
                                         </th>
 
                                         {packages.map((pkg) => (
                                             <th key={pkg.id} className={`relative w-70 min-w-55 border-b border-[#e6dfd2] p-8 text-center ${pkg.is_popular ? 'bg-[#0f766e]/5' : 'bg-[#fffdf8]'}`}>
                                                 {pkg.is_popular && (
                                                     <div className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b-xl bg-linear-to-r from-[#facc15] to-[#f59e0b] px-4 py-1 text-[10px] font-black uppercase text-black shadow-lg">
-                                                        PopÃ¼ler
+                                                        Popüler
                                                     </div>
                                                 )}
                                                 <div className="mb-2 truncate px-2 text-2xl font-black text-[#0f172a]">{pkg.name}</div>
@@ -84,7 +84,7 @@ export default function PricingPage() {
                                                     to={`/register?package=${pkg.id}`}
                                                     className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black transition-all active:scale-95 ${pkg.is_popular ? 'bg-[#0f766e] text-white hover:bg-[#115e59] shadow-lg shadow-[#0f766e]/20' : 'bg-[#ece6da] text-[#334155] hover:bg-[#dfd7c7]'}`}
                                                 >
-                                                    Hemen BaÅŸlat <ChevronRight size={14} />
+                                                    Hemen Başlat <ChevronRight size={14} />
                                                 </Link>
                                             </th>
                                         ))}
@@ -93,11 +93,11 @@ export default function PricingPage() {
                                 <tbody>
                                     <tr className="group transition-colors hover:bg-[#f8f4ea]">
                                         <td className="sticky left-0 z-20 border-r border-[#e6dfd2] bg-[#faf7f1] p-5 px-8 text-sm font-bold text-[#334155] shadow-[4px_0_12px_rgba(15,23,42,0.06)]">
-                                            Deneme SÃ¼resi
+                                            Deneme Süresi
                                         </td>
                                         {packages.map((pkg, idx) => (
                                             <td key={`${pkg.id}-trial`} className={`border-b border-[#ede6d9] p-5 text-center text-sm font-bold text-[#64748b] ${idx % 2 === 1 ? 'bg-[#fffaf0]' : 'bg-[#fffdf8]'}`}>
-                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} GÃ¼n Ãœcretsiz` : 'SÃ¼rekli'}
+                                                {Number(pkg.price) > 0 ? `${pkg.trial_days} Gün Ücretsiz` : 'Sürekli'}
                                             </td>
                                         ))}
                                     </tr>
@@ -130,7 +130,7 @@ export default function PricingPage() {
                                                             </div>
                                                         ) : (
                                                             <span className={`text-base font-black ${value === 0 ? 'text-[#0f766e]' : 'text-[#0f172a]'}`}>
-                                                                {value === 0 ? 'SÄ±nÄ±rsÄ±z' : `${value}${feature.suffix || ''}`}
+                                                                {value === 0 ? 'Sınırsız' : `${value}${feature.suffix || ''}`}
                                                             </span>
                                                         )}
                                                     </td>
@@ -146,9 +146,9 @@ export default function PricingPage() {
 
                 <div className="mt-20 grid grid-cols-1 gap-8 rounded-[30px] border border-[#d8d2c7] bg-[#faf7f1] p-8 text-center md:grid-cols-3">
                     {[
-                        { icon: ShieldCheck, title: 'GÃ¼venli Ã–deme', text: 'Paddle gÃ¼vencesiyle tÃ¼m Ã¶demeleriniz 256-bit SSL ile korunur.', color: 'text-[#2563eb]', bg: 'bg-[#2563eb]/10' },
-                        { icon: Globe, title: 'Gizli Ãœcret Yok', text: 'Ä°stediÄŸiniz zaman tek tÄ±kla aboneliÄŸinizi dondurabilir veya iptal edebilirsiniz.', color: 'text-[#16a34a]', bg: 'bg-[#16a34a]/10' },
-                        { icon: Activity, title: '7/24 Teknik Destek', text: 'TÃ¼m planlarda Ã¶ncelikli e-posta ve canlÄ± yardÄ±m desteÄŸi alÄ±rsÄ±nÄ±z.', color: 'text-[#7c3aed]', bg: 'bg-[#7c3aed]/10' },
+                        { icon: ShieldCheck, title: 'Güvenli Ödeme', text: 'Paddle güvencesiyle tüm ödemeleriniz 256-bit SSL ile korunur.', color: 'text-[#2563eb]', bg: 'bg-[#2563eb]/10' },
+                        { icon: Globe, title: 'Gizli Ücret Yok', text: 'İstediğiniz zaman tek tıkla aboneliğinizi dondurabilir veya iptal edebilirsiniz.', color: 'text-[#16a34a]', bg: 'bg-[#16a34a]/10' },
+                        { icon: Activity, title: '7/24 Teknik Destek', text: 'Tüm planlarda öncelikli e-posta ve canlı yardım desteği alırsınız.', color: 'text-[#7c3aed]', bg: 'bg-[#7c3aed]/10' },
                     ].map((item) => (
                         <div key={item.title} className="space-y-4">
                             <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-3xl ${item.bg} ${item.color}`}>

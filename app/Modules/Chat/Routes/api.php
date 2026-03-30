@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Chat\Controllers\ChatController;
+use App\Modules\Chat\Controllers\ChatCallController;
 use App\Modules\Chat\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,4 +33,12 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
     Route::post('/chats/{chat}/read', [MessageController::class, 'markAsRead']);
     Route::post('/chats/{chat}/attachments', [MessageController::class, 'uploadAttachment']);
     Route::delete('/chats/{chat}/messages/{message}', [MessageController::class, 'destroy']);
+
+    // ─── CALLS ───────────────────────────────────────────────────────────
+    Route::get('/chats/{chat}/calls/active', [ChatCallController::class, 'active']);
+    Route::post('/chats/{chat}/calls', [ChatCallController::class, 'start']);
+    Route::post('/chats/{chat}/calls/{call}/accept', [ChatCallController::class, 'accept']);
+    Route::post('/chats/{chat}/calls/{call}/reject', [ChatCallController::class, 'reject']);
+    Route::post('/chats/{chat}/calls/{call}/end', [ChatCallController::class, 'end']);
+    Route::post('/chats/{chat}/calls/{call}/signal', [ChatCallController::class, 'signal']);
 });

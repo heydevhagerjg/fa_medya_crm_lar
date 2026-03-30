@@ -59,10 +59,10 @@ export default function PackagesPage() {
             : api.put(`/admin/packages/${modal.package.id}`, data),
         onSuccess: () => {
             qc.invalidateQueries(['admin-packages'])
-            toast.success(modal.mode === 'create' ? 'Paket oluÅŸturuldu.' : 'Paket gÃ¼ncellendi.')
+            toast.success(modal.mode === 'create' ? 'Paket oluşturuldu.' : 'Paket güncellendi.')
             closeModal()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     })
 
     const deleteMutation = useMutation({
@@ -79,7 +79,7 @@ export default function PackagesPage() {
         onSuccess: (res) => {
             toast.success(res.data.message || 'Limitler senkronize edildi.')
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Senkronizasyon hatasÄ±.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Senkronizasyon hatası.'),
     })
 
     const openCreateModal = () => {
@@ -112,7 +112,7 @@ export default function PackagesPage() {
                         <Box size={24} className="text-blue-500" />
                         Sistem Paketleri
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">TenantlarÄ±n seÃ§ebileceÄŸi Ã¼yelik paketleri</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tenantların seçebileceği üyelik paketleri</p>
                 </div>
                 <button
                     onClick={openCreateModal}
@@ -134,23 +134,23 @@ export default function PackagesPage() {
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
-                    <div className="p-8 text-center text-gray-400">YÃ¼kleniyor...</div>
+                    <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center text-gray-500">
                         <Box size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                        <p>{search ? 'Aramayla eÅŸleÅŸen paket bulunamadÄ±.' : 'HenÃ¼z paket tanÄ±mlanmamÄ±ÅŸ.'}</p>
+                        <p>{search ? 'Aramayla eşleşen paket bulunamadı.' : 'Henüz paket tanımlanmamış.'}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse theme-table">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <th className="px-5 py-4">Paket AdÄ±</th>
+                                    <th className="px-5 py-4">Paket Adı</th>
                                     <th className="px-5 py-4">Fiyat</th>
-                                    <th className="px-5 py-4">Personel/MÃ¼ÅŸteri/Ä°ÅŸ</th>
+                                    <th className="px-5 py-4">Personel/Müşteri/İş</th>
                                     <th className="px-5 py-4">Kota / Dosya Limiti</th>
                                     <th className="px-5 py-4">Durum</th>
-                                    <th className="px-5 py-4 text-right">Ä°ÅŸlem</th>
+                                    <th className="px-5 py-4 text-right">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -165,7 +165,7 @@ export default function PackagesPage() {
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">â‚º{pkg.price}</div>
-                                            <div className="text-[10px] text-gray-400 mt-0.5">/ aylÄ±k</div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5">/ aylık</div>
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex gap-2">
@@ -194,7 +194,7 @@ export default function PackagesPage() {
                                         <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
-                                                    onClick={() => { if (confirm('Bu paketi kullanan TÃœM firmalarÄ±n limitlerini ÅŸu anki paket Ã¶zellikleriyle gÃ¼ncellemek istediÄŸinize emin misiniz?')) syncMutation.mutate(pkg.id) }}
+                                                    onClick={() => { if (confirm('Bu paketi kullanan TÜM firmaların limitlerini şu anki paket özellikleriyle güncellemek istediğinize emin misiniz?')) syncMutation.mutate(pkg.id) }}
                                                     disabled={syncMutation.isPending}
                                                     className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors"
                                                     title="Limitleri Firmalara Senkronize Et"
@@ -204,7 +204,7 @@ export default function PackagesPage() {
                                                 <button onClick={() => openEditModal(pkg)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button onClick={() => { if (confirm('Silmek istediÄŸinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                                <button onClick={() => { if (confirm('Silmek istediğinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -217,24 +217,24 @@ export default function PackagesPage() {
                 )}
             </div>
 
-            <Modal open={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'Yeni Paket OluÅŸtur' : 'Paketi DÃ¼zenle'} size="xl">
+            <Modal open={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'Yeni Paket Oluştur' : 'Paketi Düzenle'} size="xl">
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="max-h-[80vh] overflow-y-auto px-1 custom-scrollbar pb-4">
                     <div className="space-y-6">
-                        {/* 1. Temel Bilgiler & FiyatlandÄ±rma */}
+                        {/* 1. Temel Bilgiler & Fiyatlandırma */}
                         <div className="bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Box size={16} /> 1. Temel Bilgiler & FiyatlandÄ±rma
+                                <Box size={16} /> 1. Temel Bilgiler & Fiyatlandırma
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paket AdÄ± *</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paket Adı *</label>
                                     <input
                                         type="text"
                                         value={form.name}
                                         onChange={e => setForm({ ...form, name: e.target.value })}
                                         required
                                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ã–rn: Gold Paket"
+                                        placeholder="Örn: Gold Paket"
                                     />
                                 </div>
                                 <div className="md:col-span-1">
@@ -251,7 +251,7 @@ export default function PackagesPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Deneme (GÃ¼n)</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Deneme (Gün)</label>
                                     <input
                                         type="number"
                                         value={form.trial_days}
@@ -261,13 +261,13 @@ export default function PackagesPage() {
                                 </div>
                                 <div className="md:col-span-2 space-y-3">
                                     <div className="flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-white dark:border-gray-700">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satÄ±ÅŸa Ã§Ä±kar (Aktif)</span>
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satışa çıkar (Aktif)</span>
                                         <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
                                     </div>
                                     <div className="flex items-center justify-between bg-amber-50/50 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-100/50 dark:border-amber-500/20">
                                         <div className="flex items-center gap-2">
                                             <Star size={16} className="text-amber-500" />
-                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">PopÃ¼ler Åerit GÃ¶ster</span>
+                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Popüler Åerit Göster</span>
                                         </div>
                                         <Switch checked={form.is_popular} onChange={v => setForm({ ...form, is_popular: v })} />
                                     </div>
@@ -278,7 +278,7 @@ export default function PackagesPage() {
                         {/* 2. Paddle Entegrasyonu */}
                         <div className="bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <CreditCard size={16} /> 2. Paddle Ã–deme Entegrasyonu
+                                <CreditCard size={16} /> 2. Paddle Ödeme Entegrasyonu
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -307,7 +307,7 @@ export default function PackagesPage() {
                         {/* 3. Genel Limitler */}
                         <div className="bg-emerald-50/30 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Shield size={16} /> 3. Genel Firma Limitleri (0 = SÄ±nÄ±rsÄ±z)
+                                <Shield size={16} /> 3. Genel Firma Limitleri (0 = Sınırsız)
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
@@ -315,11 +315,11 @@ export default function PackagesPage() {
                                     <input type="number" value={form.personnel_limit} onChange={e => setForm({ ...form, personnel_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> MÃ¼ÅŸteri</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> Müşteri</label>
                                     <input type="number" value={form.customer_limit} onChange={e => setForm({ ...form, customer_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Briefcase size={12} /> Ä°ÅŸ KaydÄ±</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Briefcase size={12} /> İş Kaydı</label>
                                     <input type="number" value={form.job_limit} onChange={e => setForm({ ...form, job_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
@@ -333,20 +333,20 @@ export default function PackagesPage() {
                             </div>
                         </div>
 
-                        {/* 4. ModÃ¼ller ve Alt Limitler */}
+                        {/* 4. Modüller ve Alt Limitler */}
                         <div className="bg-purple-50/30 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Layers size={16} /> 4. ModÃ¼l EriÅŸimi & Ã–zel Limitler
+                                <Layers size={16} /> 4. Modül Erişimi & Özel Limitler
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
-                                    { key: 'appointment', label: 'Randevu ModÃ¼lÃ¼', icon: Calendar, color: 'blue' },
+                                    { key: 'appointment', label: 'Randevu Modülü', icon: Calendar, color: 'blue' },
                                     { key: 'service_tracking', label: 'Hizmet Takibi', icon: Activity, color: 'green', extra: { key: 'service_tracking_category_limit', label: 'Kategori Limiti' } },
-                                    { key: 'proposal', label: 'Teklif ModÃ¼lÃ¼', icon: FileText, color: 'orange' },
+                                    { key: 'proposal', label: 'Teklif Modülü', icon: FileText, color: 'orange' },
                                     { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
                                     { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
-                                    { key: 'step_templates', label: 'AdÄ±m ÅablonlarÄ±', icon: Layers, color: 'pink' },
-                                    { key: 'chat', label: 'Sohbet ModÃ¼lÃ¼', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
+                                    { key: 'step_templates', label: 'Adım Åablonları', icon: Layers, color: 'pink' },
+                                    { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
                                     const limitKey = mod.key === 'services_section' ? 'service_limit' : 
@@ -365,7 +365,7 @@ export default function PackagesPage() {
                                             {active && (
                                                 <div className="flex gap-4">
                                                     <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Limit (0=SÄ±nÄ±rsÄ±z)</label>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Limit (0=Sınırsız)</label>
                                                         <input type="number" value={form[limitKey]} onChange={e => setForm({ ...form, [limitKey]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
                                                     </div>
                                                     {mod.extra && (
@@ -379,12 +379,12 @@ export default function PackagesPage() {
                                         </div>
                                     )
                                 })}
-                                {/* DiÄŸer basit Ã¶zellikler */}
+                                {/* Diğer basit özellikler */}
                                 <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Shield size={18} className="text-cyan-500" />
-                                            <span className="text-sm font-bold">API EriÅŸimi</span>
+                                            <span className="text-sm font-bold">API Erişimi</span>
                                         </div>
                                         <Switch checked={form.api_key_feature} onChange={v => setForm({ ...form, api_key_feature: v })} />
                                     </div>
@@ -400,9 +400,9 @@ export default function PackagesPage() {
                     </div>
 
                     <div className="mt-8 flex gap-3 sticky bottom-0 bg-white dark:bg-gray-900 pt-4 border-t border-gray-100 dark:border-gray-800 z-10">
-                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
+                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-[2] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
-                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet ve YayÄ±nla</>}
+                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet ve Yayınla</>}
                         </button>
                     </div>
                 </form>

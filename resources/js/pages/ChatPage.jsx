@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api.js'
@@ -6,7 +6,7 @@ import ChatSidebar from '../components/chat/ChatSidebar'
 import ChatWindow from '../components/chat/ChatWindow'
 import { useAuthStore } from '../stores/index.js'
 import { Toaster, toast } from 'react-hot-toast'
-import { Search as SearchIcon, Users, User, Check, X } from 'lucide-react'
+import { Search as SearchIcon, Users, User, Check, X, Phone, PhoneOff } from 'lucide-react'
 
 // ─── New Chat Modal ────────────────────────────────────────────────────────────
 function NewChatModal({ open, onClose, currentUser, onCreated }) {
@@ -225,15 +225,84 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
     )
 }
 
+function parseIceServers() {
+    try {
+        const parsed = JSON.parse(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '[]')
+        return Array.isArray(parsed) ? parsed : []
+    } catch {
+        return []
+    }
+}
+
+function formatDuration(seconds) {
+    const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
+    const mm = String(Math.floor(safe / 60)).padStart(2, '0')
+    const ss = String(safe % 60).padStart(2, '0')
+    return `${mm}:${ss}`
+}
+
+function IncomingCallModal({ call, pending, onAccept, onReject }) {
+    if (!call) return null
+
+    const participantCount = Array.isArray(call.participants) ? call.participants.length : 0
+    const callerName = call.caller_name || 'Bir kişi'
+
+    return (
+        <div className="fixed inset-0 z-120 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
+            <div className="relative w-full max-w-sm rounded-3xl theme-surface border theme-divider shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-6 pt-7 pb-4 text-center">
+                    <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                        <Phone size={30} />
+                    </div>
+                    <h3 className="text-lg font-black theme-text-primary">{callerName} sizi arıyor</h3>
+                    <p className="text-xs theme-text-secondary mt-1">
+                        {participantCount > 2
+                            ? `Grup sesli araması • ${participantCount} kişi`
+                            : 'Birebir sesli arama'}
+                    </p>
+                </div>
+
+                <div className="px-6 pb-6 grid grid-cols-2 gap-3">
+                    <button
+                        onClick={onReject}
+                        disabled={pending}
+                        className="h-11 rounded-2xl bg-red-500/90 text-white font-semibold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <PhoneOff size={16} /> Reddet
+                    </button>
+                    <button
+                        onClick={onAccept}
+                        disabled={pending}
+                        className="h-11 rounded-2xl bg-emerald-500/90 text-white font-semibold text-sm hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <Phone size={16} /> Kabul Et
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ─── ChatPage ─────────────────────────────────────────────────────────────────
 export default function ChatPage() {
     const { user: currentUser } = useAuthStore()
     const queryClient = useQueryClient()
+    const peerConnectionsRef = useRef(new Map())
+    const remoteAudioRef = useRef(new Map())
+    const localStreamRef = useRef(null)
+    const iceServersRef = useRef(parseIceServers())
+
     const [selectedChat, setSelectedChat] = useState(null)
     const [messages, setMessages] = useState([])
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false)
+    const [incomingCall, setIncomingCall] = useState(null)
+    const [activeCall, setActiveCall] = useState(null)
+    const [isInCall, setIsInCall] = useState(false)
+    const [isCallActionPending, setIsCallActionPending] = useState(false)
+    const [callDuration, setCallDuration] = useState(0)
     const [searchParams, setSearchParams] = useSearchParams()
     const openChatId = searchParams.get('open')
 
@@ -244,6 +313,188 @@ export default function ChatPage() {
             return Array.isArray(raw) ? raw : Object.values(raw)
         }),
     })
+
+    const cleanupRemoteAudios = useCallback(() => {
+        for (const [, element] of remoteAudioRef.current.entries()) {
+            element.pause()
+            element.srcObject = null
+            element.remove()
+        }
+        remoteAudioRef.current.clear()
+    }, [])
+
+    const cleanupPeerConnections = useCallback(() => {
+        for (const [, peerConnection] of peerConnectionsRef.current.entries()) {
+            peerConnection.close()
+        }
+        peerConnectionsRef.current.clear()
+    }, [])
+
+    const cleanupLocalStream = useCallback(() => {
+        if (!localStreamRef.current) return
+        localStreamRef.current.getTracks().forEach(track => track.stop())
+        localStreamRef.current = null
+    }, [])
+
+    const teardownCallMedia = useCallback(() => {
+        cleanupPeerConnections()
+        cleanupRemoteAudios()
+        cleanupLocalStream()
+    }, [cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
+
+    const ensureLocalStream = useCallback(async () => {
+        if (localStreamRef.current) return localStreamRef.current
+        if (!navigator?.mediaDevices?.getUserMedia) {
+            throw new Error('Tarayıcınız sesli görüşmeyi desteklemiyor.')
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            },
+            video: false,
+        })
+        localStreamRef.current = stream
+        return stream
+    }, [])
+
+    const attachRemoteStream = useCallback((remoteUserId, stream) => {
+        let audioElement = remoteAudioRef.current.get(remoteUserId)
+        if (!audioElement) {
+            audioElement = document.createElement('audio')
+            audioElement.autoplay = true
+            audioElement.playsInline = true
+            audioElement.setAttribute('data-remote-user', String(remoteUserId))
+            audioElement.style.display = 'none'
+            document.body.appendChild(audioElement)
+            remoteAudioRef.current.set(remoteUserId, audioElement)
+        }
+
+        audioElement.srcObject = stream
+        audioElement.play().catch(() => {
+            // Browser may block autoplay until user interaction.
+        })
+    }, [])
+
+    const sendSignal = useCallback(async (chatId, callId, signalType, payload, targetUserId = null) => {
+        await api.post(`/chats/${chatId}/calls/${callId}/signal`, {
+            signal_type: signalType,
+            target_user_id: targetUserId,
+            payload,
+        })
+    }, [])
+
+    const getOrCreatePeerConnection = useCallback(async (chatId, callId, remoteUserId) => {
+        if (peerConnectionsRef.current.has(remoteUserId)) {
+            return peerConnectionsRef.current.get(remoteUserId)
+        }
+
+        const localStream = await ensureLocalStream()
+        const peerConnection = new RTCPeerConnection({
+            iceServers: iceServersRef.current,
+        })
+
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream)
+        })
+
+        peerConnection.ontrack = (event) => {
+            const [stream] = event.streams || []
+            if (stream) {
+                attachRemoteStream(remoteUserId, stream)
+            }
+        }
+
+        peerConnection.onicecandidate = (event) => {
+            if (!event.candidate) return
+            sendSignal(chatId, callId, 'ice-candidate', { candidate: event.candidate }, remoteUserId)
+                .catch(() => {})
+        }
+
+        peerConnection.onconnectionstatechange = () => {
+            const terminalStates = ['failed', 'closed', 'disconnected']
+            if (terminalStates.includes(peerConnection.connectionState)) {
+                peerConnection.close()
+                peerConnectionsRef.current.delete(remoteUserId)
+            }
+        }
+
+        peerConnectionsRef.current.set(remoteUserId, peerConnection)
+        return peerConnection
+    }, [attachRemoteStream, ensureLocalStream, sendSignal])
+
+    const createOfferForPeer = useCallback(async (callPayload, remoteUserId) => {
+        const peerConnection = await getOrCreatePeerConnection(callPayload.chat_id, callPayload.id, remoteUserId)
+        const offer = await peerConnection.createOffer()
+        await peerConnection.setLocalDescription(offer)
+        await sendSignal(callPayload.chat_id, callPayload.id, 'offer', { offer: peerConnection.localDescription }, remoteUserId)
+    }, [getOrCreatePeerConnection, sendSignal])
+
+    const applyCallUpdate = useCallback((payload) => {
+        if (!payload?.id) return
+
+        setActiveCall(previous => {
+            if (!previous) return payload
+            if (String(previous.id) !== String(payload.id)) return previous
+            return payload
+        })
+
+        if (incomingCall && String(incomingCall.id) === String(payload.id)) {
+            if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
+                setIncomingCall(null)
+            }
+        }
+
+        const myParticipant = payload.participants?.find(p => String(p.user_id) === String(currentUser?.id))
+        const joined = myParticipant?.status === 'joined'
+        setIsInCall(joined)
+
+        if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
+            teardownCallMedia()
+            setIsInCall(false)
+            setCallDuration(0)
+            setIncomingCall(null)
+            setActiveCall(prev => String(prev?.id) === String(payload.id) ? null : prev)
+        }
+    }, [currentUser?.id, incomingCall, teardownCallMedia])
+
+    const handleIncomingSignal = useCallback(async (signal) => {
+        if (!activeCall || String(signal.call_id) !== String(activeCall.id)) return
+        if (String(signal.from_user_id) === String(currentUser?.id)) return
+        if (signal.target_user_id && String(signal.target_user_id) !== String(currentUser?.id)) return
+
+        const remoteUserId = signal.from_user_id
+        const signalType = signal.signal_type
+        const payload = signal.payload || {}
+
+        try {
+            if (signalType === 'offer') {
+                const peerConnection = await getOrCreatePeerConnection(activeCall.chat_id, activeCall.id, remoteUserId)
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer))
+                const answer = await peerConnection.createAnswer()
+                await peerConnection.setLocalDescription(answer)
+                await sendSignal(activeCall.chat_id, activeCall.id, 'answer', { answer: peerConnection.localDescription }, remoteUserId)
+                return
+            }
+
+            if (signalType === 'answer') {
+                const peerConnection = peerConnectionsRef.current.get(remoteUserId)
+                if (!peerConnection) return
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer))
+                return
+            }
+
+            if (signalType === 'ice-candidate') {
+                const peerConnection = peerConnectionsRef.current.get(remoteUserId)
+                if (!peerConnection || !payload.candidate) return
+                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate))
+            }
+        } catch (error) {
+            console.error('Signal handling error:', error)
+        }
+    }, [activeCall, currentUser?.id, getOrCreatePeerConnection, sendSignal])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
@@ -268,6 +519,93 @@ export default function ChatPage() {
             }
         }
     }, [chats, selectedChat])
+
+    useEffect(() => {
+        if (!selectedChat?.id) return
+
+        let cancelled = false
+        api.get(`/chats/${selectedChat.id}/calls/active`)
+            .then((res) => {
+                if (cancelled) return
+                const call = res.data?.data || null
+                setActiveCall(call)
+
+                const myStatus = call?.participants?.find(p => String(p.user_id) === String(currentUser?.id))?.status
+                setIsInCall(myStatus === 'joined')
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setActiveCall(null)
+                    setIsInCall(false)
+                }
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [selectedChat?.id, currentUser?.id])
+
+    useEffect(() => {
+        if (!window.Echo || !currentUser?.id) return
+
+        window.Echo.private(`user.chats.${currentUser.id}`)
+            .listen('.chat.call.incoming', (event) => {
+                setIncomingCall(event)
+                setActiveCall(event)
+                toast((event.caller_name || 'Bir kişi') + ' sizi arıyor')
+            })
+            .listen('.chat.call.updated', (event) => {
+                applyCallUpdate(event)
+            })
+
+        return () => {
+            window.Echo.leave(`user.chats.${currentUser.id}`)
+        }
+    }, [currentUser?.id, applyCallUpdate])
+
+    useEffect(() => {
+        if (!activeCall?.id || !isInCall || activeCall.status !== 'active') {
+            setCallDuration(0)
+            return
+        }
+
+        const baseTime = activeCall.answered_at || activeCall.started_at
+        if (!baseTime) return
+
+        const startedAtMs = new Date(baseTime).getTime()
+        const tick = () => {
+            const elapsed = Math.floor((Date.now() - startedAtMs) / 1000)
+            setCallDuration(Math.max(elapsed, 0))
+        }
+
+        tick()
+        const timer = setInterval(tick, 1000)
+        return () => clearInterval(timer)
+    }, [activeCall?.id, activeCall?.answered_at, activeCall?.started_at, activeCall?.status, isInCall])
+
+    useEffect(() => {
+        if (!activeCall?.id || !isInCall || activeCall.status !== 'active' || !currentUser?.id) return
+
+        const joinedParticipants = (activeCall.participants || [])
+            .filter(p => p.status === 'joined' && String(p.user_id) !== String(currentUser.id))
+
+        joinedParticipants.forEach((participant) => {
+            const remoteUserId = String(participant.user_id)
+            const shouldInitiate = String(currentUser.id) < remoteUserId
+            if (!shouldInitiate) return
+            if (peerConnectionsRef.current.has(remoteUserId)) return
+
+            createOfferForPeer(activeCall, remoteUserId).catch((error) => {
+                console.error('Offer create error:', error)
+            })
+        })
+    }, [activeCall, isInCall, currentUser?.id, createOfferForPeer])
+
+    useEffect(() => {
+        return () => {
+            teardownCallMedia()
+        }
+    }, [teardownCallMedia])
 
     const deleteChatMutation = useMutation({
         mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
@@ -354,8 +692,14 @@ export default function ChatPage() {
                 }
                 queryClient.invalidateQueries(['chats'])
             })
+            .listen('.chat.call.updated', (e) => {
+                applyCallUpdate(e)
+            })
+            .listen('.chat.call.signal', (e) => {
+                handleIncomingSignal(e)
+            })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
-    }, [selectedChat, currentUser, queryClient, markAsRead])
+    }, [selectedChat, currentUser, queryClient, markAsRead, applyCallUpdate, handleIncomingSignal])
 
     const handleSendMessage = async (content) => {
         if (!selectedChat?.id) return
@@ -411,6 +755,107 @@ export default function ChatPage() {
         setIsNewChatModalOpen(false)
     }
 
+    const handleStartCall = async () => {
+        if (!selectedChat?.id) return
+
+        setIsCallActionPending(true)
+        try {
+            const response = await api.post(`/chats/${selectedChat.id}/calls`, { type: 'audio' })
+            const call = response.data?.data
+            if (!call) return
+
+            setActiveCall(call)
+            setIncomingCall(null)
+            await ensureLocalStream()
+            setIsInCall(true)
+            toast.success('Arama başlatıldı.')
+        } catch (error) {
+            const status = error?.response?.status
+            if (status === 409 && error?.response?.data?.data) {
+                const existing = error.response.data.data
+                setActiveCall(existing)
+                toast('Bu sohbette zaten aktif bir görüşme var.')
+            } else {
+                toast.error(error?.response?.data?.message || 'Arama başlatılamadı.')
+            }
+        } finally {
+            setIsCallActionPending(false)
+        }
+    }
+
+    const handleAcceptIncomingCall = async () => {
+        if (!incomingCall?.id || !incomingCall?.chat_id) return
+
+        setIsCallActionPending(true)
+        try {
+            const relatedChat = chats.find(c => String(c.id) === String(incomingCall.chat_id))
+            if (relatedChat) {
+                setSelectedChat(relatedChat)
+            } else {
+                setSearchParams({ open: String(incomingCall.chat_id) }, { replace: true })
+            }
+
+            const response = await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/accept`)
+            const call = response.data?.data
+            if (!call) return
+
+            setActiveCall(call)
+            setIncomingCall(null)
+            await ensureLocalStream()
+            setIsInCall(true)
+            toast.success('Arama kabul edildi.')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Arama kabul edilemedi.')
+        } finally {
+            setIsCallActionPending(false)
+        }
+    }
+
+    const handleRejectIncomingCall = async () => {
+        if (!incomingCall?.id || !incomingCall?.chat_id) return
+
+        setIsCallActionPending(true)
+        try {
+            await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/reject`)
+            toast('Arama reddedildi.')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Arama reddedilemedi.')
+        } finally {
+            setIncomingCall(null)
+            setIsCallActionPending(false)
+        }
+    }
+
+    const handleEndCall = async () => {
+        if (!activeCall?.id || !activeCall?.chat_id) return
+
+        setIsCallActionPending(true)
+        try {
+            await api.post(`/chats/${activeCall.chat_id}/calls/${activeCall.id}/end`)
+            toast('Görüşme sonlandırıldı.')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Görüşme sonlandırılamadı.')
+        } finally {
+            teardownCallMedia()
+            setActiveCall(null)
+            setIsInCall(false)
+            setCallDuration(0)
+            setIsCallActionPending(false)
+        }
+    }
+
+    const callState = useMemo(() => {
+        const joinedCount = activeCall?.participants?.filter(p => p.status === 'joined')?.length || 0
+        const totalCount = activeCall?.participants?.length || 0
+
+        return {
+            call: activeCall,
+            isInCall,
+            durationLabel: formatDuration(callDuration),
+            participantSummary: activeCall ? `${joinedCount}/${totalCount} kişi` : null,
+        }
+    }, [activeCall, isInCall, callDuration])
+
     return (
         <div className="-m-5 lg:-m-8 h-[calc(100dvh-70px)] flex overflow-hidden theme-app-shell animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
@@ -440,6 +885,10 @@ export default function ChatPage() {
                     currentUser={currentUser}
                     onUpdateChat={setSelectedChat}
                     onBack={() => setSelectedChat(null)}
+                    callState={callState}
+                    onStartCall={handleStartCall}
+                    onEndCall={handleEndCall}
+                    isCallActionPending={isCallActionPending}
                 />
             </div>
 
@@ -448,6 +897,13 @@ export default function ChatPage() {
                 onClose={() => setIsNewChatModalOpen(false)}
                 currentUser={currentUser}
                 onCreated={handleChatCreated}
+            />
+
+            <IncomingCallModal
+                call={incomingCall}
+                pending={isCallActionPending}
+                onAccept={handleAcceptIncomingCall}
+                onReject={handleRejectIncomingCall}
             />
         </div>
     )

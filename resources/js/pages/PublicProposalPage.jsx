@@ -33,7 +33,7 @@ export default function PublicProposalPage() {
             setNotes('')
             refetch()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Bir hata oluÅŸtu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Bir hata oluştu.'),
     })
 
     if (isLoading) return (
@@ -49,8 +49,8 @@ export default function PublicProposalPage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white rounded-2xl p-8 text-center shadow-lg border border-gray-100">
                 <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-                <h1 className="text-xl font-bold text-gray-900 mb-2">Teklif BulunamadÄ±</h1>
-                <p className="text-gray-500">AradÄ±ÄŸÄ±nÄ±z teklif formu silinmiÅŸ veya baÄŸlantÄ± hatalÄ± olabilir.</p>
+                <h1 className="text-xl font-bold text-gray-900 mb-2">Teklif Bulunamadı</h1>
+                <p className="text-gray-500">Aradığınız teklif formu silinmiş veya bağlantı hatalı olabilir.</p>
             </div>
         </div>
     )
@@ -71,7 +71,7 @@ export default function PublicProposalPage() {
                             </div>
                             <h1 className="text-2xl font-black text-gray-900 tracking-tight">Hizmet Teklif Formu</h1>
                         </div>
-                        <p className="text-gray-500 max-w-md">SayÄ±n <strong>{proposal.customer?.name}</strong>, sizin iÃ§in hazÄ±rladÄ±ÄŸÄ±mÄ±z Ã¶zel hizmet teklifini aÅŸaÄŸÄ±da inceleyebilirsiniz.</p>
+                        <p className="text-gray-500 max-w-md">Sayın <strong>{proposal.customer?.name}</strong>, sizin için hazırladığımız özel hizmet teklifini aşağıda inceleyebilirsiniz.</p>
                     </div>
 
                     <div className="flex flex-col gap-2 items-start md:items-end relative z-10">
@@ -83,18 +83,18 @@ export default function PublicProposalPage() {
                                             proposal.status === 'REVISION_REQUESTED' ? 'bg-orange-50 text-orange-700 border-orange-200' :
                                                 'bg-blue-50 text-blue-700 border-blue-200'
                             }`}>
-                            {(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0) && proposal.status === 'SENT') ? 'SÃ¼resi DolmuÅŸ' :
+                            {(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0) && proposal.status === 'SENT') ? 'Süresi Dolmuş' :
                                 proposal.status === 'DRAFT' ? 'Taslak' :
                                     proposal.status === 'SENT' ? 'Bekliyor' :
-                                        proposal.status === 'ACCEPTED' ? 'OnaylandÄ±' :
+                                        proposal.status === 'ACCEPTED' ? 'Onaylandı' :
                                             proposal.status === 'REJECTED' ? 'Reddedildi' :
-                                                proposal.status === 'CANCELLED' ? 'Teklif Geri Ã‡ekildi' :
-                                                    proposal.status === 'RENEWAL_REQUESTED' ? 'Yenileme Talebi' : 'Revize Ä°stendi'}
+                                                proposal.status === 'CANCELLED' ? 'Teklif Geri Çekildi' :
+                                                    proposal.status === 'RENEWAL_REQUESTED' ? 'Yenileme Talebi' : 'Revize İstendi'}
                         </span>
                         <div className={`flex items-center gap-2 text-sm font-medium ${(proposal.valid_until && new Date(proposal.valid_until) < new Date().setHours(0, 0, 0, 0)) ? 'text-red-500' : 'text-gray-500'
                             }`}>
                             <Calendar size={16} />
-                            GeÃ§erlilik: {formatDate(proposal.valid_until)}
+                            Geçerlilik: {formatDate(proposal.valid_until)}
                         </div>
                         <a
                             href={`/api/public/proposals/${uuid}/pdf`}
@@ -102,7 +102,7 @@ export default function PublicProposalPage() {
                             rel="noopener noreferrer"
                             className="mt-2 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-slate-200"
                         >
-                            <Download size={14} /> PDF Olarak Ä°ndir
+                            <Download size={14} /> PDF Olarak İndir
                         </a>
                     </div>
                 </div>
@@ -111,7 +111,7 @@ export default function PublicProposalPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-4 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
-                            <Building2 size={14} /> Hizmet SaÄŸlayÄ±cÄ±
+                            <Building2 size={14} /> Hizmet Sağlayıcı
                         </div>
                         {proposal.tenant?.logo && (
                             <img 
@@ -125,7 +125,7 @@ export default function PublicProposalPage() {
                             />
                         )}
                         <div className="font-bold text-lg text-gray-900 mb-1">{proposal.tenant?.name}</div>
-                        <div className="text-sm text-gray-500 mb-2">{proposal.tenant?.address || 'Adres belirtilmemiÅŸ'}</div>
+                        <div className="text-sm text-gray-500 mb-2">{proposal.tenant?.address || 'Adres belirtilmemiş'}</div>
                         {proposal.tenant?.email && <div className="text-sm text-gray-500">{proposal.tenant.email}</div>}
                         {proposal.tenant?.phone && <div className="text-sm text-gray-500">{formatPhoneNumber(proposal.tenant.phone)}</div>}
                         {proposal.tenant?.website && (
@@ -138,7 +138,7 @@ export default function PublicProposalPage() {
                     </div>
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-4 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
-                            <User size={14} /> MÃ¼ÅŸteri Bilgileri
+                            <User size={14} /> Müşteri Bilgileri
                         </div>
                         <div className="font-bold text-lg text-gray-900 mb-1">{proposal.customer?.name}</div>
                         <div className="text-sm text-gray-500">{proposal.customer?.email}</div>
@@ -158,7 +158,7 @@ export default function PublicProposalPage() {
                         <table className="w-full text-left theme-table">
                             <thead>
                                 <tr className="bg-white">
-                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Hizmet / ÃœrÃ¼n</th>
+                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Hizmet / Ürün</th>
                                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Adet</th>
                                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Birim Fiyat</th>
                                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Toplam</th>
@@ -182,7 +182,7 @@ export default function PublicProposalPage() {
                         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-8">
                             <div className="text-center sm:text-left space-y-4 flex-1">
                                 <div>
-                                    <div className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Ã–deme Ã–zeti</div>
+                                    <div className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Ödeme Özeti</div>
                                     <div className="text-2xl font-bold mb-1">Genel Toplam</div>
                                 </div>
 
@@ -204,13 +204,13 @@ export default function PublicProposalPage() {
                     {proposal.installments?.length > 0 && (
                         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
                             <div className="flex items-center gap-2 mb-6 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
-                                <Clock size={14} /> Ã–deme Takvimi
+                                <Clock size={14} /> Ödeme Takvimi
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                 {proposal.installments.map((ins, idx) => (
                                     <div key={idx} className="p-5 rounded-2xl bg-gray-50/50 border border-gray-100 flex flex-col gap-2 relative overflow-hidden group hover:bg-white hover:border-indigo-100 transition-all">
                                         <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-full -mr-8 -mt-8"></div>
-                                        <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{ins.description || `${idx + 1}. Ã–deme`}</div>
+                                        <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{ins.description || `${idx + 1}. Ödeme`}</div>
                                         <div className="text-xl font-bold text-gray-900">{formatCurrency(ins.amount)}</div>
                                         <div className="text-xs text-gray-500 font-medium flex items-center gap-1.5 mt-1">
                                             <Calendar size={12} className="text-gray-400" /> {formatDate(ins.payment_date)}
@@ -235,7 +235,7 @@ export default function PublicProposalPage() {
                                 <Clock className="text-orange-500 mt-1 flex-shrink-0" />
                                 <div className="flex-1">
                                     <h4 className="font-bold text-orange-900 mb-1">Bilgilendirme</h4>
-                                    <p className="text-orange-800 text-sm leading-relaxed">{statusMessage || 'Bu teklif ÅŸu anki durumuyla yanÄ±tlanamaz.'}</p>
+                                    <p className="text-orange-800 text-sm leading-relaxed">{statusMessage || 'Bu teklif şu anki durumuyla yanıtlanamaz.'}</p>
                                 </div>
                             </div>
 
@@ -249,8 +249,8 @@ export default function PublicProposalPage() {
                                         <RotateCcw size={24} />
                                     </div>
                                     <div className="text-center">
-                                        <span className="block font-bold text-gray-900">Teklifi Yenilemesini Ä°ste</span>
-                                        <span className="text-xs text-slate-500">Teklifin sÃ¼resi dolduÄŸu iÃ§in yeni bir teklif talep edebilirsiniz.</span>
+                                        <span className="block font-bold text-gray-900">Teklifi Yenilemesini İste</span>
+                                        <span className="text-xs text-slate-500">Teklifin süresi dolduğu için yeni bir teklif talep edebilirsiniz.</span>
                                     </div>
                                 </button>
                             )}
@@ -261,7 +261,7 @@ export default function PublicProposalPage() {
                                 <button
                                     disabled={respondMutation.isPending}
                                     onClick={() => {
-                                        if (confirm('Teklifi onaylamak istediÄŸinize emin misiniz?')) {
+                                        if (confirm('Teklifi onaylamak istediğinize emin misiniz?')) {
                                             respondMutation.mutate({ action: 'ACCEPT' })
                                         }
                                     }}
@@ -270,7 +270,7 @@ export default function PublicProposalPage() {
                                     <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-3 group-hover:scale-110 transition-transform">
                                         <CheckCircle2 size={24} />
                                     </div>
-                                    <span className="font-bold text-gray-900">{respondMutation.isPending && action === 'ACCEPT' ? 'OnaylanÄ±yor...' : 'Teklifi Onayla'}</span>
+                                    <span className="font-bold text-gray-900">{respondMutation.isPending && action === 'ACCEPT' ? 'Onaylanıyor...' : 'Teklifi Onayla'}</span>
                                 </button>
 
                                 <button
@@ -280,13 +280,13 @@ export default function PublicProposalPage() {
                                     <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 mb-3 group-hover:scale-110 transition-transform">
                                         <Clock size={24} />
                                     </div>
-                                    <span className="font-bold text-gray-900">Teklif Revizesi Ä°ste</span>
+                                    <span className="font-bold text-gray-900">Teklif Revizesi İste</span>
                                 </button>
 
                                 <button
                                     disabled={respondMutation.isPending}
                                     onClick={() => {
-                                        if (confirm('Teklifi reddetmek istediÄŸinize emin misiniz?')) {
+                                        if (confirm('Teklifi reddetmek istediğinize emin misiniz?')) {
                                             respondMutation.mutate({ action: 'REJECT' })
                                         }
                                     }}
@@ -302,31 +302,31 @@ export default function PublicProposalPage() {
                             {action === 'REVISE' && (
                                 <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
                                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                        Teklif Revizesi Ä°ste
+                                        Teklif Revizesi İste
                                     </h3>
-                                    <label className="block text-sm text-gray-500 mb-2">NotlarÄ±nÄ±z (Eklemeniz gereken detaylar, revize istediÄŸiniz kÄ±sÄ±mlar vb.)</label>
+                                    <label className="block text-sm text-gray-500 mb-2">Notlarınız (Eklemeniz gereken detaylar, revize istediğiniz kısımlar vb.)</label>
                                     <textarea
                                         rows={4}
                                         value={notes}
                                         onChange={e => setNotes(e.target.value)}
                                         className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none mb-6"
-                                        placeholder="MesajÄ±nÄ±zÄ± buraya yazÄ±nÄ±z..."
+                                        placeholder="Mesajınızı buraya yazınız..."
                                     />
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setAction(null)}
                                             className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
                                         >
-                                            Ä°ptal
+                                            İptal
                                         </button>
                                         <button
                                             disabled={respondMutation.isPending}
                                             onClick={() => respondMutation.mutate({ action: 'REVISE', customer_notes: notes })}
                                             className="flex-1 px-6 py-3 bg-orange-500 shadow-orange-200 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2"
                                         >
-                                            {respondMutation.isPending ? 'Ä°ÅŸleniyor...' : (
+                                            {respondMutation.isPending ? 'İşleniyor...' : (
                                                 <>
-                                                    Onayla ve Ä°let <ChevronRight size={18} />
+                                                    Onayla ve İlet <ChevronRight size={18} />
                                                 </>
                                             )}
                                         </button>
@@ -341,7 +341,7 @@ export default function PublicProposalPage() {
                 {data.history && data.history.length > 0 && (
                     <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-8 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
-                            <Clock size={14} /> Teklif GeÃ§miÅŸi
+                            <Clock size={14} /> Teklif Geçmişi
                         </div>
                         <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                             {data.history.map((log, idx) => (
@@ -359,11 +359,11 @@ export default function PublicProposalPage() {
                                     <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-5 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all">
                                         <div className="flex items-center justify-between space-x-2 mb-2">
                                             <div className={`font-bold text-sm ${log.is_customer ? 'text-emerald-700' : 'text-indigo-900'}`}>
-                                                {log.action === 'CREATE' ? 'Teklif HazÄ±rlandÄ±' :
-                                                    log.details.includes('gÃ¶nderildi') ? 'Teklif Sunuldu' :
-                                                        log.details.includes('kabul') ? 'Teklif OnaylandÄ±' :
+                                                {log.action === 'CREATE' ? 'Teklif Hazırlandı' :
+                                                    log.details.includes('gönderildi') ? 'Teklif Sunuldu' :
+                                                        log.details.includes('kabul') ? 'Teklif Onaylandı' :
                                                             log.details.includes('red') ? 'Teklif Reddedildi' :
-                                                                log.details.includes('revize') ? 'Revize Talep Edildi' : 'Ä°ÅŸlem YapÄ±ldÄ±'}
+                                                                log.details.includes('revize') ? 'Revize Talep Edildi' : 'İşlem Yapıldı'}
                                             </div>
                                             <time className="font-medium text-gray-400 text-[10px] whitespace-nowrap">{formatDateTime(log.created_at)}</time>
                                         </div>
@@ -371,7 +371,7 @@ export default function PublicProposalPage() {
                                             {log.details || 'Detay belirtilmedi.'}
                                         </div>
                                         <div className={`mt-2 inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter ${log.is_customer ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}`}>
-                                            {log.is_customer ? 'MÃœÅTERÄ°' : 'HÄ°ZMET SAÄLAYICI'}
+                                            {log.is_customer ? 'MÜÅTERİ' : 'HİZMET SAÄLAYICI'}
                                         </div>
                                     </div>
                                 </div>

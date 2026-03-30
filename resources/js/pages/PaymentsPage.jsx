@@ -76,7 +76,7 @@ export default function PaymentsPage() {
     }
 
     const handlePreview = async (payment) => {
-        const toastId = toast.loading('Dekont yÃ¼kleniyor...')
+        const toastId = toast.loading('Dekont yükleniyor...')
         try {
             const response = await api.get(`/payments/${payment.id}/receipt`, { responseType: 'blob' })
             const contentType = response.headers['content-type']
@@ -96,7 +96,7 @@ export default function PaymentsPage() {
             toast.dismiss(toastId)
         } catch (error) {
             console.error('Preview error:', error)
-            toast.error('Dekont yÃ¼klenemedi.', { id: toastId })
+            toast.error('Dekont yüklenemedi.', { id: toastId })
         }
     }
 
@@ -130,10 +130,10 @@ export default function PaymentsPage() {
             a.click()
             a.remove()
             window.URL.revokeObjectURL(url)
-            toast.success('Ä°ndirme baÅŸarÄ±lÄ±.', { id: toastId })
+            toast.success('İndirme başarılı.', { id: toastId })
         } catch (error) {
             console.error('Download error:', error)
-            toast.error('Dekont indirilemedi. LÃ¼tfen oturumunuzu kontrol edin.', { id: toastId })
+            toast.error('Dekont indirilemedi. Lütfen oturumunuzu kontrol edin.', { id: toastId })
         }
     }
 
@@ -161,7 +161,7 @@ export default function PaymentsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['payments'])
             qc.invalidateQueries(['dashboard-stats'])
-            toast.success(modal.payment ? 'Ã–deme gÃ¼ncellendi.' : 'Ã–deme eklendi.')
+            toast.success(modal.payment ? 'Ödeme güncellendi.' : 'Ödeme eklendi.')
             closeMainModal()
             setForm(emptyForm)
         },
@@ -173,11 +173,11 @@ export default function PaymentsPage() {
         onSuccess: () => {
             qc.invalidateQueries(['payments'])
             qc.invalidateQueries(['dashboard-stats'])
-            toast.success('Ã–deme silindi.')
+            toast.success('Ödeme silindi.')
             setDeleteConfirm(null)
         },
         onError: (err) => {
-            toast.error(err.response?.data?.message || 'Ã–deme silinemedi.')
+            toast.error(err.response?.data?.message || 'Ödeme silinemedi.')
             setDeleteConfirm(null)
         }
     })
@@ -217,29 +217,29 @@ export default function PaymentsPage() {
                 actions={[
                     { label: 'Tahsilat Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Ä°ÅŸ veya aÃ§Ä±klama ara...' }}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İş veya açıklama ara...' }}
                 breadcrumbs={['Tahsilatlar']}
             />
 
             <div className="theme-surface border rounded-2xl overflow-hidden">
                 {isLoading ? (
-                    <div className="p-8 text-center theme-text-secondary">YÃ¼kleniyor...</div>
+                    <div className="p-8 text-center theme-text-secondary">Yükleniyor...</div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <CreditCard size={40} className="mx-auto theme-text-secondary opacity-50 mb-3" />
-                        <p className="theme-text-secondary">Tahsilat bulunamadÄ±.</p>
+                        <p className="theme-text-secondary">Tahsilat bulunamadı.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full theme-table">
                             <thead>
                                 <tr className="border-b theme-divider theme-surface-alt">
-                                    <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Ä°ÅŸ</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">İş</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Tutar</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider hidden md:table-cell">Tarih</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider hidden lg:table-cell">Tip</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider hidden lg:table-cell">Kasa</th>
-                                    <th className="text-right px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Ä°ÅŸlem</th>
+                                    <th className="text-right px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y theme-divider">
@@ -267,10 +267,10 @@ export default function PaymentsPage() {
                                             <div className="flex items-center justify-end gap-2">
                                                 {p.receiptUrl && (
                                                     <>
-                                                        <button onClick={() => handlePreview(p)} className="p-2 rounded-lg theme-text-secondary hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors" title="Dekontu Ã–nizle">
+                                                        <button onClick={() => handlePreview(p)} className="p-2 rounded-lg theme-text-secondary hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors" title="Dekontu Önizle">
                                                             <Eye size={16} />
                                                         </button>
-                                                        <button onClick={() => handleDownload(p)} className="p-2 rounded-lg theme-text-secondary hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Dekontu Ä°ndir">
+                                                        <button onClick={() => handleDownload(p)} className="p-2 rounded-lg theme-text-secondary hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Dekontu İndir">
                                                             <Download size={16} />
                                                         </button>
                                                     </>
@@ -294,10 +294,10 @@ export default function PaymentsPage() {
             </div>
 
             {/* Modal */}
-            <Modal open={modal.open} onClose={closeMainModal} title={modal.payment ? 'Tahsilat DÃ¼zenle' : 'Tahsilat Ekle'}>
+            <Modal open={modal.open} onClose={closeMainModal} title={modal.payment ? 'Tahsilat Düzenle' : 'Tahsilat Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
-                        <label className={formLabelClass}>Ä°ÅŸ (Ä°steÄŸe BaÄŸlÄ±)</label>
+                        <label className={formLabelClass}>İş (İsteğe Bağlı)</label>
                         <select value={form.jobId} onChange={e => setForm(p => ({ ...p, jobId: e.target.value }))} className={formInputClass}>
                             <option value="">Genel Tahsilat</option>
                             {jobs.map(j => <option key={j.id} value={j.id}>{j.title} ({j.customer?.name})</option>)}
@@ -315,7 +315,7 @@ export default function PaymentsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className={formLabelClass}>Ã–deme Tipi</label>
+                            <label className={formLabelClass}>Ödeme Tipi</label>
                             <select value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value }))} className={formInputClass}>
                                 <option value="ADVANCE">Avans</option>
                                 <option value="PARTIAL">Taksit</option>
@@ -325,13 +325,13 @@ export default function PaymentsPage() {
                         <div>
                             <label className={formLabelClass}>Kasa</label>
                             <select value={form.cashRegisterId} onChange={e => setForm(p => ({ ...p, cashRegisterId: e.target.value }))} className={formInputClass}>
-                                <option value="">SeÃ§in...</option>
+                                <option value="">Seçin...</option>
                                 {cashRegisters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label className={formLabelClass}>AÃ§Ä±klama</label>
+                        <label className={formLabelClass}>Açıklama</label>
                         <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={formInputClass} />
                     </div>
                     <div>
@@ -339,7 +339,7 @@ export default function PaymentsPage() {
                         <input type="file" accept="image/*,application/pdf" onChange={e => setForm(p => ({ ...p, receipt: e.target.files[0] }))} className={formInputClass} />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">Ä°ptal</button>
+                        <button type="button" onClick={closeMainModal} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">İptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
@@ -348,11 +348,11 @@ export default function PaymentsPage() {
             </Modal>
 
             {/* Delete Modal */}
-            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="TahsilatÄ± Sil">
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Tahsilatı Sil">
                 <div className="space-y-4">
-                    <p className="theme-text-secondary">{formatCurrency(deleteConfirm?.amount)} tutarÄ±ndaki tahsilatÄ± silmek istediÄŸinize emin misiniz?</p>
+                    <p className="theme-text-secondary">{formatCurrency(deleteConfirm?.amount)} tutarındaki tahsilatı silmek istediğinize emin misiniz?</p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">Ä°ptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors theme-button-secondary">İptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
                         </button>
@@ -361,7 +361,7 @@ export default function PaymentsPage() {
             </Modal>
 
             {/* Preview Modal */}
-            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dekont Ã–nizleme" size="xl">
+            <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dekont Önizleme" size="xl">
                 <div className="flex flex-col h-[70vh]">
                     <div className="flex-1 theme-surface-alt rounded-xl overflow-hidden flex items-center justify-center relative border theme-divider">
                         {preview.type?.includes('pdf') ? (
@@ -371,7 +371,7 @@ export default function PaymentsPage() {
                         ) : (
                             <div className="text-center p-12">
                                 <FileText size={48} className="mx-auto theme-text-secondary mb-4" />
-                                <p className="theme-text-secondary">Bu dosya Ã¶nizlenemiyor.</p>
+                                <p className="theme-text-secondary">Bu dosya önizlenemiyor.</p>
                             </div>
                         )}
                     </div>
@@ -386,7 +386,7 @@ export default function PaymentsPage() {
                             onClick={() => handleDownload()} 
                             className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                         >
-                            <Download size={18} /> Ä°ndir
+                            <Download size={18} /> İndir
                         </button>
                     </div>
                 </div>
