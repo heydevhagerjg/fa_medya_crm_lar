@@ -307,6 +307,7 @@ export default function ChatPage() {
     const iceCandidateBufferRef = useRef(new Map())
     const processedSignalsRef = useRef(new Set())
     const pendingSignalsRef = useRef([])
+    const pcPromisesRef = useRef(new Map())
     const handleIncomingSignalRef = useRef(null)
     const applyCallUpdateRef = useRef(null)
 
