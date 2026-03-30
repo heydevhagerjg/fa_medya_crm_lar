@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '../lib/api.js'
@@ -20,7 +20,7 @@ export default function CustomersPage() {
     const isFeatureDisabled = user?.tenant?.plan_customer_feature === false || user?.tenant?.plan_customer_feature === 0
 
     if (isFeatureDisabled) {
-        return <PlanRestrictionView featureName="Müşteri" />
+        return <PlanRestrictionView featureName="MÃ¼ÅŸteri" />
     }
     const [search, setSearch] = useState('')
     const [modal, setModal] = useState({ open: false, customer: null })
@@ -46,17 +46,17 @@ export default function CustomersPage() {
             : api.post('/customers', data),
         onSuccess: () => {
             qc.invalidateQueries(['customers'])
-            toast.success(modal.customer ? 'Müşteri güncellendi.' : 'Müşteri eklendi.')
+            toast.success(modal.customer ? 'MÃ¼ÅŸteri gÃ¼ncellendi.' : 'MÃ¼ÅŸteri eklendi.')
             closeModal()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
     })
 
     const deleteMutation = useMutation({
         mutationFn: (id) => api.delete(`/customers/${id}`),
         onSuccess: () => {
             qc.invalidateQueries(['customers'])
-            toast.success('Müşteri silindi.')
+            toast.success('MÃ¼ÅŸteri silindi.')
             setDeleteConfirm(null)
         },
         onError: () => toast.error('Silinemedi.'),
@@ -89,46 +89,46 @@ export default function CustomersPage() {
     return (
         <div className="space-y-5">
             <PageHeader
-                title="Müşteriler"
-                subtitle={`${customers.length} müşteri`}
+                title="MÃ¼ÅŸteriler"
+                subtitle={`${customers.length} mÃ¼ÅŸteri`}
                 icon={Users}
                 iconColor="text-indigo-500"
                 actions={[
-                    { label: 'Müşteri Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                    { label: 'MÃ¼ÅŸteri Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İsim, telefon veya e-posta ara...' }}
-                breadcrumbs={[`Müşteriler (${customers.length} Kayıtlı Veri)`]}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Ä°sim, telefon veya e-posta ara...' }}
+                breadcrumbs={[`MÃ¼ÅŸteriler (${customers.length} KayÄ±tlÄ± Veri)`]}
             />
 
             {/* Table */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
                 {isLoading ? (
-                    <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                    <div className="p-8 text-center text-gray-400">YÃ¼kleniyor...</div>
                 ) : isError ? (
                     <div className="p-12 text-center text-gray-500">
                         {error?.response?.status === 403 ? (
-                            <PlanRestrictionView featureName="Müşteri" />
+                            <PlanRestrictionView featureName="MÃ¼ÅŸteri" />
                         ) : (
                             <>
                                 <XCircle size={40} className="mx-auto text-red-400 mb-3" />
-                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                                <p>Veriler yÃ¼klenemedi. Oturumunuz kapanmÄ±ÅŸ olabilir, lÃ¼tfen sayfayÄ± yenileyiniz.</p>
                             </>
                         )}
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Users size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                        <p className="text-gray-500 dark:text-gray-400">{search ? 'Aramayla eşleşen müşteri bulunamadı.' : 'Henüz müşteri yok.'}</p>
+                        <p className="text-gray-500 dark:text-gray-400">{search ? 'Aramayla eÅŸleÅŸen mÃ¼ÅŸteri bulunamadÄ±.' : 'HenÃ¼z mÃ¼ÅŸteri yok.'}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full theme-table">
                             <thead>
                                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Müşteri</th>
-                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">İletişim</th>
-                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">İş Sayısı</th>
-                                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">İşlem</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MÃ¼ÅŸteri</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Ä°letiÅŸim</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Ä°ÅŸ SayÄ±sÄ±</th>
+                                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ä°ÅŸlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -156,7 +156,7 @@ export default function CustomersPage() {
                                         </td>
                                         <td className="px-5 py-4 hidden lg:table-cell">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-medium">
-                                                {customer._count?.job || 0} iş
+                                                {customer._count?.job || 0} iÅŸ
                                             </span>
                                         </td>
                                         <td className="px-5 py-4">
@@ -164,7 +164,7 @@ export default function CustomersPage() {
                                                 <Link to={`/customers/${customer.id}`} className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors" title="Detay">
                                                     <ChevronRight size={16} />
                                                 </Link>
-                                                <button onClick={() => openModal(customer)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Düzenle">
+                                                <button onClick={() => openModal(customer)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="DÃ¼zenle">
                                                     <Edit2 size={16} />
                                                 </button>
                                                 <button onClick={() => setDeleteConfirm(customer)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Sil">
@@ -187,7 +187,7 @@ export default function CustomersPage() {
             </div>
 
             {/* Add/Edit Modal */}
-            <Modal open={modal.open} onClose={closeModal} title={modal.customer ? 'Müşteri Düzenle' : 'Yeni Müşteri'}>
+            <Modal open={modal.open} onClose={closeModal} title={modal.customer ? 'MÃ¼ÅŸteri DÃ¼zenle' : 'Yeni MÃ¼ÅŸteri'}>
                 <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-4">
                     {[
                         { key: 'name', label: 'Ad Soyad *', required: true, type: 'text' },
@@ -220,7 +220,7 @@ export default function CustomersPage() {
                         <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 resize-none" />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
@@ -229,13 +229,13 @@ export default function CustomersPage() {
             </Modal>
 
             {/* Delete Confirm Modal */}
-            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Müşteriyi Sil">
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="MÃ¼ÅŸteriyi Sil">
                 <div className="space-y-4">
                     <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-semibold text-gray-900 dark:text-white">{deleteConfirm?.name}</span> isimli müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                        <span className="font-semibold text-gray-900 dark:text-white">{deleteConfirm?.name}</span> isimli mÃ¼ÅŸteriyi silmek istediÄŸinize emin misiniz? Bu iÅŸlem geri alÄ±namaz.
                     </p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
                         </button>
@@ -245,3 +245,4 @@ export default function CustomersPage() {
         </div>
     )
 }
+

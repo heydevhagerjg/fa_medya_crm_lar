@@ -416,6 +416,48 @@
     color: var(--theme-text-secondary);
   }
 
+  .theme-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .theme-table thead tr {
+    background-color: var(--theme-bg-surface-alt);
+  }
+
+  .theme-table thead th {
+    padding: 0.78rem 1.25rem;
+    color: var(--theme-text-secondary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid color-mix(in srgb, var(--theme-border-subtle) 85%, transparent);
+  }
+
+  .theme-table tbody tr {
+    transition: background-color 180ms ease;
+  }
+
+  .theme-table tbody tr:hover {
+    background-color: color-mix(in srgb, var(--theme-bg-surface-alt) 70%, transparent);
+  }
+
+  .theme-table tbody td {
+    padding: 0.88rem 1.25rem;
+    border-top: 1px solid color-mix(in srgb, var(--theme-border-subtle) 65%, transparent);
+    vertical-align: middle;
+  }
+
+  .theme-table tbody tr:first-child td {
+    border-top-color: color-mix(in srgb, var(--theme-border-subtle) 55%, transparent);
+  }
+
+  .theme-table tbody.divide-y > :not([hidden]) ~ :not([hidden]) {
+    border-color: transparent !important;
+  }
+
   .card {
     background-color: var(--theme-bg-surface);
     border-radius: 1.25rem;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+﻿import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
     Plus, Trash2, Edit2, Play, CheckCircle, Activity, Mail, Loader2, 
@@ -56,10 +56,10 @@ export default function WorkflowsTab() {
             : api.post('/settings/workflows', data),
         onSuccess: () => {
             qc.invalidateQueries(['workflows'])
-            toast.success('Otomasyon başarıyla kaydedildi.')
+            toast.success('Otomasyon baÅŸarÄ±yla kaydedildi.')
             setModal({ open: false, workflow: null })
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.')
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.')
     })
 
     const deleteMutation = useMutation({
@@ -97,36 +97,36 @@ export default function WorkflowsTab() {
 
     // Full List of Models & Triggers based on request
     const models = [
-        { id: 'App\\Models\\Customer', label: 'Müşteri Yönetimi', icon: UserPlus },
-        { id: 'App\\Models\\JobCrm', label: 'İş / Proje Yönetimi', icon: Briefcase },
-        { id: 'App\\Models\\Proposal', label: 'Teklif Yönetimi', icon: FileText },
-        { id: 'App\\Models\\Payment', label: 'Finans / Ödemeler', icon: Database },
+        { id: 'App\\Models\\Customer', label: 'MÃ¼ÅŸteri YÃ¶netimi', icon: UserPlus },
+        { id: 'App\\Models\\JobCrm', label: 'Ä°ÅŸ / Proje YÃ¶netimi', icon: Briefcase },
+        { id: 'App\\Models\\Proposal', label: 'Teklif YÃ¶netimi', icon: FileText },
+        { id: 'App\\Models\\Payment', label: 'Finans / Ã–demeler', icon: Database },
         { id: 'App\\Models\\Appointment', label: 'Randevu Sistemi', icon: Clock },
         { id: 'App\\Models\\Expense', label: 'Giderler / Harcamalar', icon: Hash },
-        { id: 'App\\Models\\JobFile', label: 'Dosya Yönetimi', icon: Globe },
-        { id: 'App\\Models\\User', label: 'Kullanıcı İşlemleri', icon: UserPlus },
+        { id: 'App\\Models\\JobFile', label: 'Dosya YÃ¶netimi', icon: Globe },
+        { id: 'App\\Models\\User', label: 'KullanÄ±cÄ± Ä°ÅŸlemleri', icon: UserPlus },
     ]
 
     const events = useMemo(() => {
         const common = [
-            { id: 'created', label: 'Yeni Kayıt Oluşturulduğunda' },
-            { id: 'updated', label: 'Herhangi Bir Güncellemede' },
-            { id: 'deleted', label: 'Kayıt Silindiğinde' }
+            { id: 'created', label: 'Yeni KayÄ±t OluÅŸturulduÄŸunda' },
+            { id: 'updated', label: 'Herhangi Bir GÃ¼ncellemede' },
+            { id: 'deleted', label: 'KayÄ±t SilindiÄŸinde' }
         ];
 
         const specific = {
             'App\\Models\\Proposal': [
-                { id: 'status_accepted', label: 'Teklif Kabul Edildiğinde' },
-                { id: 'status_rejected', label: 'Teklif Reddedildiğinde' },
-                { id: 'status_sent', label: 'Teklif Gönderildiğinde' }
+                { id: 'status_accepted', label: 'Teklif Kabul EdildiÄŸinde' },
+                { id: 'status_rejected', label: 'Teklif ReddedildiÄŸinde' },
+                { id: 'status_sent', label: 'Teklif GÃ¶nderildiÄŸinde' }
             ],
             'App\\Models\\JobCrm': [
-                { id: 'status_completed', label: 'İş Tamamlandığında' },
-                { id: 'status_cancelled', label: 'İş İptal Edildiğinde' },
-                { id: 'status_pending', label: 'İş Beklemeye Alındığında' }
+                { id: 'status_completed', label: 'Ä°ÅŸ TamamlandÄ±ÄŸÄ±nda' },
+                { id: 'status_cancelled', label: 'Ä°ÅŸ Ä°ptal EdildiÄŸinde' },
+                { id: 'status_pending', label: 'Ä°ÅŸ Beklemeye AlÄ±ndÄ±ÄŸÄ±nda' }
             ],
             'App\\Models\\Payment': [
-                { id: 'status_paid', label: 'Ödeme Tahsil Edildiğinde' }
+                { id: 'status_paid', label: 'Ã–deme Tahsil EdildiÄŸinde' }
             ]
         }
 
@@ -134,26 +134,26 @@ export default function WorkflowsTab() {
     }, [form.trigger_model])
 
     const operators = [
-        { id: '=', label: 'Eşittir' },
-        { id: '!=', label: 'Eşit Değildir' },
-        { id: '>', label: 'Büyüktür' },
-        { id: '<', label: 'Küçüktür' },
-        { id: 'contains', label: 'İçeriyorsa' },
-        { id: 'not_contains', label: 'İçermiyorsa' },
-        { id: 'empty', label: 'Boş ise' },
+        { id: '=', label: 'EÅŸittir' },
+        { id: '!=', label: 'EÅŸit DeÄŸildir' },
+        { id: '>', label: 'BÃ¼yÃ¼ktÃ¼r' },
+        { id: '<', label: 'KÃ¼Ã§Ã¼ktÃ¼r' },
+        { id: 'contains', label: 'Ä°Ã§eriyorsa' },
+        { id: 'not_contains', label: 'Ä°Ã§ermiyorsa' },
+        { id: 'empty', label: 'BoÅŸ ise' },
         { id: 'not_empty', label: 'Dolu ise' }
     ]
 
     const actionTypes = [
-        { id: 'send_email', label: 'E-posta Gönder', icon: Mail, desc: 'Müşteriye veya personele mail iletir.' },
-        { id: 'change_status', label: 'Durumu Güncelle', icon: RefreshCw, desc: 'Kaydın aşamasını otomatik değiştirir.' },
-        { id: 'assign_to_user', label: 'Kullanıcı Ata', icon: UserPlus, desc: 'Sorumlu kişiyi belirler.' },
-        { id: 'create_job', label: 'İş/Proje Oluştur', icon: Briefcase, desc: 'Teklifi işe dönüştürür.' },
-        { id: 'create_task', label: 'Görev Oluştur', icon: CheckCircle, desc: 'İlgili işe yeni bir görev ekler.' },
-        { id: 'create_appointment', label: 'Randevu Oluştur', icon: Clock, desc: 'İleri tarihli görüşme ayarlar.' },
-        { id: 'add_note', label: 'Not Ekle', icon: MessageSquare, desc: 'Kayıt günlüğüne açıklama ekler.' },
-        { id: 'send_webhook', label: 'Webhook Gönder', icon: Globe, desc: 'Harici bir URL tetikler.' },
-        { id: 'log_activity', label: 'Log Kaydı Yaz', icon: History, desc: 'Sistem günlüğüne detay yazar.' },
+        { id: 'send_email', label: 'E-posta GÃ¶nder', icon: Mail, desc: 'MÃ¼ÅŸteriye veya personele mail iletir.' },
+        { id: 'change_status', label: 'Durumu GÃ¼ncelle', icon: RefreshCw, desc: 'KaydÄ±n aÅŸamasÄ±nÄ± otomatik deÄŸiÅŸtirir.' },
+        { id: 'assign_to_user', label: 'KullanÄ±cÄ± Ata', icon: UserPlus, desc: 'Sorumlu kiÅŸiyi belirler.' },
+        { id: 'create_job', label: 'Ä°ÅŸ/Proje OluÅŸtur', icon: Briefcase, desc: 'Teklifi iÅŸe dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.' },
+        { id: 'create_task', label: 'GÃ¶rev OluÅŸtur', icon: CheckCircle, desc: 'Ä°lgili iÅŸe yeni bir gÃ¶rev ekler.' },
+        { id: 'create_appointment', label: 'Randevu OluÅŸtur', icon: Clock, desc: 'Ä°leri tarihli gÃ¶rÃ¼ÅŸme ayarlar.' },
+        { id: 'add_note', label: 'Not Ekle', icon: MessageSquare, desc: 'KayÄ±t gÃ¼nlÃ¼ÄŸÃ¼ne aÃ§Ä±klama ekler.' },
+        { id: 'send_webhook', label: 'Webhook GÃ¶nder', icon: Globe, desc: 'Harici bir URL tetikler.' },
+        { id: 'log_activity', label: 'Log KaydÄ± Yaz', icon: History, desc: 'Sistem gÃ¼nlÃ¼ÄŸÃ¼ne detay yazar.' },
     ]
 
     const fieldOptions = useMemo(() => {
@@ -164,7 +164,7 @@ export default function WorkflowsTab() {
             'App\\Models\\Proposal': [
                 { id: 'status', label: 'Teklif Durumu', type: 'select', values: [
                     { id: 'taslak', label: 'Taslak' },
-                    { id: 'SENT', label: 'Gönderildi' },
+                    { id: 'SENT', label: 'GÃ¶nderildi' },
                     { id: 'ACCEPTED', label: 'Kabul Edildi' },
                     { id: 'REJECTED', label: 'Reddedildi' }
                 ]},
@@ -172,22 +172,22 @@ export default function WorkflowsTab() {
                 ...common
             ],
             'App\\Models\\Customer': [
-                { id: 'type', label: 'Müşteri Tipi', type: 'select', values: [
+                { id: 'type', label: 'MÃ¼ÅŸteri Tipi', type: 'select', values: [
                     { id: '1', label: 'Bireysel' },
                     { id: '2', label: 'Kurumsal' }
                 ]},
                 { id: 'source', label: 'Kaynak', type: 'text' },
-                { id: 'city', label: 'Şehir', type: 'text' }
+                { id: 'city', label: 'Åehir', type: 'text' }
             ],
             'App\\Models\\JobCrm': [
-                { id: 'job_status_id', label: 'İş Durumu', type: 'select', values: jobStatuses.map(s => ({ id: String(s.id), label: s.name })) },
-                { id: 'status', label: 'Aşama Metni', type: 'text' },
+                { id: 'job_status_id', label: 'Ä°ÅŸ Durumu', type: 'select', values: jobStatuses.map(s => ({ id: String(s.id), label: s.name })) },
+                { id: 'status', label: 'AÅŸama Metni', type: 'text' },
                 { id: 'user_id', label: 'Sorumlu', type: 'select', values: userOptions },
                 ...common
             ],
             'App\\Models\\Payment': [
-                { id: 'amount', label: 'Ödeme Tutarı', type: 'number' },
-                { id: 'is_paid', label: 'Ödendi mi?', type: 'select', values: [{id: '1', label: 'Evet'}, {id: '0', label: 'Hayır'}] }
+                { id: 'amount', label: 'Ã–deme TutarÄ±', type: 'number' },
+                { id: 'is_paid', label: 'Ã–dendi mi?', type: 'select', values: [{id: '1', label: 'Evet'}, {id: '0', label: 'HayÄ±r'}] }
             ]
         }
         return options[form.trigger_model] || common
@@ -219,8 +219,8 @@ export default function WorkflowsTab() {
     return (
         <div className="space-y-6">
             <SettingsPageHeader
-                title="İş Otomasyonları"
-                actions={view === 'list' ? [{ label: 'Yeni Senaryo Oluştur', onClick: () => openModal(), icon: Zap, variant: 'primary' }] : []}
+                title="Ä°ÅŸ OtomasyonlarÄ±"
+                actions={view === 'list' ? [{ label: 'Yeni Senaryo OluÅŸtur', onClick: () => openModal(), icon: Zap, variant: 'primary' }] : []}
             />
 
             {/* Header Navigation */}
@@ -230,13 +230,13 @@ export default function WorkflowsTab() {
                         onClick={() => setView('list')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'list' ? 'bg-white dark:bg-white/10 text-[#905EFC] shadow-sm' : 'theme-text-secondary hover:text-[#1A1A2E]'}`}
                     >
-                        <List size={14} /> Otomasyonlarım
+                        <List size={14} /> OtomasyonlarÄ±m
                     </button>
                     <button 
                         onClick={() => setView('logs')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === 'logs' ? 'bg-white dark:bg-white/10 text-[#905EFC] shadow-sm' : 'theme-text-secondary hover:text-[#1A1A2E]'}`}
                     >
-                        <History size={14} /> Çalışma Kayıtları (Logs)
+                        <History size={14} /> Ã‡alÄ±ÅŸma KayÄ±tlarÄ± (Logs)
                     </button>
                 </div>
                 <div className="hidden" />
@@ -264,7 +264,7 @@ export default function WorkflowsTab() {
                                                 {events.find(e => e.id === w.trigger_event)?.label || w.trigger_event}
                                             </span>
                                             <span className="text-[10px] px-2 py-0.5 rounded-full font-black tracking-tighter bg-[#905EFC]/10 dark:bg-[#905EFC]/10 text-[#905EFC]">
-                                                {w.actions?.length || 0} AKSİYON
+                                                {w.actions?.length || 0} AKSÄ°YON
                                             </span>
                                         </div>
                                     </div>
@@ -282,7 +282,7 @@ export default function WorkflowsTab() {
                     {workflows.length === 0 && !isLoading && (
                         <div className="py-20 text-center theme-surface rounded-xl border border-dashed theme-divider">
                             <Zap size={40} className="mx-auto text-[#E5E9F0] mb-4" />
-                            <p className="theme-text-secondary font-bold">Henüz bir otomasyon senaryonuz yok.</p>
+                            <p className="theme-text-secondary font-bold">HenÃ¼z bir otomasyon senaryonuz yok.</p>
                         </div>
                     )}
                 </div>
@@ -291,12 +291,12 @@ export default function WorkflowsTab() {
             {view === 'logs' && (
                 <div className="animate-in fade-in duration-500 lg:p-4">
                     <div className="theme-surface rounded-xl border theme-divider overflow-hidden shadow-sm">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse theme-table">
                             <thead>
                                 <tr className="bg-[#F4F5F7] dark:bg-white/5 border-b theme-divider">
                                     <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Tarih</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Otomasyon</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Tetikleyici / Kayıt ID</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Tetikleyici / KayÄ±t ID</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Durum</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase theme-text-secondary tracking-wider">Detay</th>
                                 </tr>
@@ -309,12 +309,12 @@ export default function WorkflowsTab() {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-[10px] font-bold text-[#905EFC] dark:text-[#905EFC]">{log.trigger_model}</span>
-                                                <span className="text-[9px] theme-text-secondary font-mono">ID: {log.model_id} • {log.trigger_event}</span>
+                                                <span className="text-[9px] theme-text-secondary font-mono">ID: {log.model_id} â€¢ {log.trigger_event}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {log.status === 'success' ? 'BAŞARILI' : 'HATA'}
+                                                {log.status === 'success' ? 'BAÅARILI' : 'HATA'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -328,7 +328,7 @@ export default function WorkflowsTab() {
                                     </tr>
                                 ))}
                                 {workflowLogs.length === 0 && (
-                                    <tr><td colSpan={5} className="px-6 py-20 text-center theme-text-secondary font-bold italic">Henüz çalışma kaydı bulunmuyor.</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-20 text-center theme-text-secondary font-bold italic">HenÃ¼z Ã§alÄ±ÅŸma kaydÄ± bulunmuyor.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -337,13 +337,13 @@ export default function WorkflowsTab() {
             )}
 
             {/* Workflow Editor Modal */}
-            <Modal open={modal.open} onClose={() => setModal({ open: false, workflow: null })} title={modal.workflow ? 'Senaryoyu Düzenle' : 'Yeni Senaryo'} size="lg">
+            <Modal open={modal.open} onClose={() => setModal({ open: false, workflow: null })} title={modal.workflow ? 'Senaryoyu DÃ¼zenle' : 'Yeni Senaryo'} size="lg">
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-1">
                     {/* Name Input */}
                     <div className="space-y-2 pb-4 border-b theme-divider">
-                        <label className="text-[10px] font-black theme-text-secondary uppercase tracking-widest ml-1">Senaryo Adı</label>
+                        <label className="text-[10px] font-black theme-text-secondary uppercase tracking-widest ml-1">Senaryo AdÄ±</label>
                         <div className="flex gap-3">
-                            <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="flex-1 px-4 py-2.5 border rounded-lg text-sm font-bold theme-input transition-all" placeholder="Örn: Teklif Kabul İş Başlat" />
+                            <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="flex-1 px-4 py-2.5 border rounded-lg text-sm font-bold theme-input transition-all" placeholder="Ã–rn: Teklif Kabul Ä°ÅŸ BaÅŸlat" />
                             <div className="bg-[#F4F5F7] dark:bg-white/5 px-4 py-2.5 rounded-lg border theme-divider flex items-center gap-2">
                                 <span className="text-[10px] font-black theme-text-secondary tracking-widest">DURUM</span>
                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -361,7 +361,7 @@ export default function WorkflowsTab() {
                                 <div className="w-6 h-6 bg-amber-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">1</div>
                                 <span className="text-xs font-bold theme-text-primary uppercase tracking-widest">Olay Tetikleyici</span>
                                 <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 rounded-full">
-                                    {models.find(m => m.id === form.trigger_model)?.label?.split(' ')[0]} • {events.find(e => e.id === form.trigger_event)?.label || form.trigger_event}
+                                    {models.find(m => m.id === form.trigger_model)?.label?.split(' ')[0]} â€¢ {events.find(e => e.id === form.trigger_event)?.label || form.trigger_event}
                                 </span>
                             </div>
                             <ChevronDown size={16} className={`theme-text-secondary transition-transform ${expandedSections.step1 ? 'rotate-180' : ''}`} />
@@ -391,10 +391,10 @@ export default function WorkflowsTab() {
                         <button type="button" onClick={() => setExpandedSections(p => ({ ...p, step2: !p.step2 }))} className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-500/5 hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors">
                             <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 bg-blue-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">2</div>
-                                <span className="text-xs font-bold theme-text-primary uppercase tracking-widest">Çalışma Koşulları</span>
+                                <span className="text-xs font-bold theme-text-primary uppercase tracking-widest">Ã‡alÄ±ÅŸma KoÅŸullarÄ±</span>
                                 {form.conditions.length > 0 && (
                                     <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 rounded-full">
-                                        {form.conditions.length} Koşul
+                                        {form.conditions.length} KoÅŸul
                                     </span>
                                 )}
                             </div>
@@ -415,17 +415,17 @@ export default function WorkflowsTab() {
                                             </select>
                                             {selectedField?.type === 'select' ? (
                                                 <select value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} className="flex-1 px-2.5 py-1.5 border rounded-lg text-[10px] font-bold theme-input">
-                                                    <option value="">Seçin</option>
+                                                    <option value="">SeÃ§in</option>
                                                     {selectedField.values.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
                                                 </select>
                                             ) : (
-                                                <input type={selectedField?.type || 'text'} value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} placeholder="Değer" className="flex-1 px-2.5 py-1.5 border rounded-lg text-[10px] font-bold theme-input" />
+                                                <input type={selectedField?.type || 'text'} value={c.value} onChange={e => updateCondition(idx, 'value', e.target.value)} placeholder="DeÄŸer" className="flex-1 px-2.5 py-1.5 border rounded-lg text-[10px] font-bold theme-input" />
                                             )}
                                             <button type="button" onClick={() => removeCondition(idx)} className="p-1.5 theme-text-secondary hover:text-red-500"><Trash2 size={14} /></button>
                                         </div>
                                     )
                                 })}
-                                <button type="button" onClick={addCondition} className="w-full text-[10px] font-black text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-lg border border-dashed border-blue-300 dark:border-blue-500/30 transition-all">+ Koşul Ekle</button>
+                                <button type="button" onClick={addCondition} className="w-full text-[10px] font-black text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-lg border border-dashed border-blue-300 dark:border-blue-500/30 transition-all">+ KoÅŸul Ekle</button>
                             </div>
                         )}
                     </div>
@@ -435,7 +435,7 @@ export default function WorkflowsTab() {
                         <button type="button" onClick={() => setExpandedSections(p => ({ ...p, step3: !p.step3 }))} className="w-full flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-500/5 hover:bg-green-100 dark:hover:bg-green-500/10 transition-colors">
                             <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 bg-green-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black">3</div>
-                                <span className="text-xs font-bold theme-text-primary uppercase tracking-widest">Yapılacak İşlemler</span>
+                                <span className="text-xs font-bold theme-text-primary uppercase tracking-widest">YapÄ±lacak Ä°ÅŸlemler</span>
                                 {form.actions.length > 0 && (
                                     <span className="text-[10px] text-green-600 dark:text-green-400 font-bold px-2 py-0.5 bg-green-100 dark:bg-green-500/20 rounded-full">
                                         {form.actions.length} Aksiyon
@@ -469,7 +469,7 @@ export default function WorkflowsTab() {
                                                 <div className="space-y-2 text-xs">
                                                     <input type="email" value={action.parameters.to || ''} onChange={e => updateActionParam(actionIdx, 'to', e.target.value)} placeholder="E-posta" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
                                                     <input type="text" value={action.parameters.subject || ''} onChange={e => updateActionParam(actionIdx, 'subject', e.target.value)} placeholder="Konu" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
-                                                    <textarea rows={2} value={action.parameters.body || ''} onChange={e => updateActionParam(actionIdx, 'body', e.target.value)} placeholder="İçerik..." className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input resize-none" />
+                                                    <textarea rows={2} value={action.parameters.body || ''} onChange={e => updateActionParam(actionIdx, 'body', e.target.value)} placeholder="Ä°Ã§erik..." className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input resize-none" />
                                                 </div>
                                             )}
 
@@ -479,20 +479,20 @@ export default function WorkflowsTab() {
                                                         {fieldOptions.filter(f => f.type === 'select').map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                                                     </select>
                                                     <select value={action.parameters.value || ''} onChange={e => updateActionParam(actionIdx, 'value', e.target.value)} className="px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input">
-                                                        <option value="">Seçin</option>
+                                                        <option value="">SeÃ§in</option>
                                                         {fieldOptions.find(f => f.id === (action.parameters.field || 'status'))?.values?.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
                                                     </select>
                                                 </div>
                                             )}
 
                                             {action.type === 'create_task' && (
-                                                <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Görev adı" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
+                                                <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="GÃ¶rev adÄ±" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
                                             )}
 
                                             {action.type === 'create_appointment' && (
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="Başlık" className="px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
-                                                    <input type="number" value={action.parameters.offset_days || 0} onChange={e => updateActionParam(actionIdx, 'offset_days', e.target.value)} placeholder="Gün" className="px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
+                                                    <input type="text" value={action.parameters.title || ''} onChange={e => updateActionParam(actionIdx, 'title', e.target.value)} placeholder="BaÅŸlÄ±k" className="px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
+                                                    <input type="number" value={action.parameters.offset_days || 0} onChange={e => updateActionParam(actionIdx, 'offset_days', e.target.value)} placeholder="GÃ¼n" className="px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
                                                 </div>
                                             )}
 
@@ -501,18 +501,18 @@ export default function WorkflowsTab() {
                                             )}
 
                                             {action.type === 'add_note' && (
-                                                <input type="text" value={action.parameters.content || ''} onChange={e => updateActionParam(actionIdx, 'content', e.target.value)} placeholder="Not içeriği" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
+                                                <input type="text" value={action.parameters.content || ''} onChange={e => updateActionParam(actionIdx, 'content', e.target.value)} placeholder="Not iÃ§eriÄŸi" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
                                             )}
 
                                             {action.type === 'assign_to_user' && (
                                                 <select value={action.parameters.user_id || ''} onChange={e => updateActionParam(actionIdx, 'user_id', e.target.value)} className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input">
-                                                    <option value="">Personel Seçin</option>
+                                                    <option value="">Personel SeÃ§in</option>
                                                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                                                 </select>
                                             )}
 
                                             {action.type === 'log_activity' && (
-                                                <input type="text" value={action.parameters.description || ''} onChange={e => updateActionParam(actionIdx, 'description', e.target.value)} placeholder="Log açıklaması" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
+                                                <input type="text" value={action.parameters.description || ''} onChange={e => updateActionParam(actionIdx, 'description', e.target.value)} placeholder="Log aÃ§Ä±klamasÄ±" className="w-full px-2.5 py-1.5 border rounded text-[10px] font-bold theme-input" />
                                             )}
                                         </div>
                                     )
@@ -524,7 +524,7 @@ export default function WorkflowsTab() {
 
                     {/* Footer Buttons */}
                     <div className="flex gap-3 pt-4 border-t theme-divider mt-4">
-                        <button type="button" onClick={() => setModal({ open: false, workflow: null })} className="flex-1 px-4 py-2.5 border-2 theme-divider rounded-lg text-[10px] font-black theme-text-secondary hover:text-[#1A1A2E] dark:hover:text-white hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all uppercase tracking-widest">İptal</button>
+                        <button type="button" onClick={() => setModal({ open: false, workflow: null })} className="flex-1 px-4 py-2.5 border-2 theme-divider rounded-lg text-[10px] font-black theme-text-secondary hover:text-[#1A1A2E] dark:hover:text-white hover:bg-[#F4F5F7] dark:hover:bg-white/5 transition-all uppercase tracking-widest">Ä°ptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-[1.5] px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-lg text-[10px] font-black shadow-lg shadow-[#905EFC]/20 transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-[#905EFC] uppercase tracking-widest flex items-center justify-center gap-2">
                             {saveMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} 
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
@@ -548,7 +548,7 @@ export default function WorkflowsTab() {
                                 </span>
                             </div>
                             <p className="text-xs theme-text-secondary font-medium leading-relaxed">
-                                {step.status === 'success' ? (step.result || 'İşlem başarıyla icra edildi.') : (step.error || 'Bilinmeyen bir hata oluştu.')}
+                                {step.status === 'success' ? (step.result || 'Ä°ÅŸlem baÅŸarÄ±yla icra edildi.') : (step.error || 'Bilinmeyen bir hata oluÅŸtu.')}
                             </p>
                         </div>
                     ))}
@@ -561,10 +561,10 @@ export default function WorkflowsTab() {
                 <div className="space-y-6">
                     <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-4 text-red-600 border border-red-100 dark:border-red-500/20 shadow-sm">
                         <AlertCircle className="shrink-0" size={24} />
-                        <p className="text-xs font-bold leading-relaxed">"{deleteConfirm?.name}" isimli otomasyonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+                        <p className="text-xs font-bold leading-relaxed">"{deleteConfirm?.name}" isimli otomasyonu silmek istediÄŸinize emin misiniz? Bu iÅŸlem geri alÄ±namaz.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border theme-divider rounded-xl text-xs font-black theme-text-secondary hover:bg-[#F4F5F7] transition-all uppercase tracking-widest">İptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-3 border theme-divider rounded-xl text-xs font-black theme-text-secondary hover:bg-[#F4F5F7] transition-all uppercase tracking-widest">Ä°ptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 transition-all uppercase tracking-widest">Sil</button>
                     </div>
                 </div>
@@ -572,3 +572,4 @@ export default function WorkflowsTab() {
         </div>
     )
 }
+

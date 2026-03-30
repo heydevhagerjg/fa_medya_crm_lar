@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, ShieldCheck, Clock, Layers, Wallet, Loader2, XCircle, CheckCircle, Download } from 'lucide-react'
 import api from '../../lib/api.js'
@@ -37,13 +37,13 @@ export default function SubscriptionTab() {
                     })
                 } catch (error) {
                     console.error('Paddle Checkout Error:', error)
-                    toast.error('Ödeme ekranı açılırken bir hata oluştu.')
+                    toast.error('Ã–deme ekranÄ± aÃ§Ä±lÄ±rken bir hata oluÅŸtu.')
                 }
             } else {
-                toast.error(res.message || 'Ödeme bilgileri alınamadı.')
+                toast.error(res.message || 'Ã–deme bilgileri alÄ±namadÄ±.')
             }
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Ödeme linki oluşturulamadı.')
+        onError: (err) => toast.error(err.response?.data?.message || 'Ã–deme linki oluÅŸturulamadÄ±.')
     })
 
     const cancelMutation = useMutation({
@@ -52,7 +52,7 @@ export default function SubscriptionTab() {
             qc.invalidateQueries(['subscription'])
             toast.success(res.message)
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'İşlem başarısız.')
+        onError: (err) => toast.error(err.response?.data?.message || 'Ä°ÅŸlem baÅŸarÄ±sÄ±z.')
     })
 
     const swapMutation = useMutation({
@@ -61,10 +61,10 @@ export default function SubscriptionTab() {
             qc.invalidateQueries(['subscription'])
             toast.success(res.message)
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'İşlem başarısız.')
+        onError: (err) => toast.error(err.response?.data?.message || 'Ä°ÅŸlem baÅŸarÄ±sÄ±z.')
     })
 
-    if (isLoading) return <div className="text-center py-8 theme-text-secondary">Yükleniyor...</div>
+    if (isLoading) return <div className="text-center py-8 theme-text-secondary">YÃ¼kleniyor...</div>
 
     const receipts = sub.receipts || []
     const totalPages = Math.ceil(receipts.length / perPage)
@@ -76,7 +76,7 @@ export default function SubscriptionTab() {
 
     return (
         <div className="max-w-4xl space-y-6">
-            <SettingsPageHeader title="Abonelik ve Ödeme" />
+            <SettingsPageHeader title="Abonelik ve Ã–deme" />
 
             <div className={`grid grid-cols-1 ${sub.is_gifted ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6`}>
                 <div className="theme-surface p-6 rounded-2xl border theme-divider shadow-sm">
@@ -85,15 +85,15 @@ export default function SubscriptionTab() {
                         <CreditCard size={18} className="text-indigo-500" />
                     </div>
                     <div className="flex items-end gap-2 mb-2">
-                        <p className="text-2xl font-black theme-text-primary uppercase tracking-tight">{sub.package?.name || 'Paket Seçilmedi'}</p>
+                        <p className="text-2xl font-black theme-text-primary uppercase tracking-tight">{sub.package?.name || 'Paket SeÃ§ilmedi'}</p>
                     </div>
                     {sub.is_subscribed || sub.on_trial || sub.is_gifted || sub.is_free ? (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-100 dark:border-green-500/20 w-fit">
-                            <ShieldCheck size={12} /> AKTİF
+                            <ShieldCheck size={12} /> AKTÄ°F
                         </div>
                     ) : (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg border border-red-100 dark:border-red-500/20 w-fit uppercase">
-                            Pasif / Süresi Dolmuş
+                            Pasif / SÃ¼resi DolmuÅŸ
                         </div>
                     )}
                 </div>
@@ -101,13 +101,13 @@ export default function SubscriptionTab() {
                 {!sub.is_gifted && (
                     <div className="theme-surface p-6 rounded-2xl border theme-divider shadow-sm">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="text-xs font-bold theme-text-secondary uppercase tracking-widest">DENEME BİTİŞ</div>
+                            <div className="text-xs font-bold theme-text-secondary uppercase tracking-widest">DENEME BÄ°TÄ°Å</div>
                             <Clock size={16} className="text-amber-500" />
                         </div>
                         <p className="text-xl font-bold theme-text-primary">
                             {sub.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                         </p>
-                        <p className="text-xs theme-text-secondary mt-2 font-medium">Kredi kartı gerekmeden ücretsiz deneyin.</p>
+                        <p className="text-xs theme-text-secondary mt-2 font-medium">Kredi kartÄ± gerekmeden Ã¼cretsiz deneyin.</p>
                     </div>
                 )}
 
@@ -118,7 +118,7 @@ export default function SubscriptionTab() {
                                 <p className="text-sm font-bold theme-text-primary">Abonelik Aktif</p>
                                 <p className="text-xs theme-text-secondary mt-1">
                                     {sub.subscription?.ends_at
-                                        ? `Bitiş: ${new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')}`
+                                        ? `BitiÅŸ: ${new Date(sub.subscription.ends_at).toLocaleDateString('tr-TR')}`
                                         : `Yenileme: ${nextBilledAt ? new Date(nextBilledAt).toLocaleDateString('tr-TR') : '-'}`
                                     }
                                 </p>
@@ -126,12 +126,12 @@ export default function SubscriptionTab() {
 
                             {!sub.subscription?.ends_at && (
                                 <button
-                                    onClick={() => { if (window.confirm('Aboneliğinizi dönem sonunda sona ermek üzere iptal etmek istediğinize emin misiniz?')) cancelMutation.mutate() }}
+                                    onClick={() => { if (window.confirm('AboneliÄŸinizi dÃ¶nem sonunda sona ermek Ã¼zere iptal etmek istediÄŸinize emin misiniz?')) cancelMutation.mutate() }}
                                     disabled={cancelMutation.isPending}
                                     className="w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg border border-red-100 dark:border-red-500/20 transition-colors"
                                 >
                                     {cancelMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
-                                    Aboneliği İptal Et
+                                    AboneliÄŸi Ä°ptal Et
                                 </button>
                             )}
                             {sub.subscription?.ends_at && (
@@ -146,8 +146,8 @@ export default function SubscriptionTab() {
                                 <ShieldCheck size={20} />
                             </div>
                             <div>
-                                <p className="text-sm font-bold theme-text-primary">Sınırsız Erişim</p>
-                                <p className="text-[10px] theme-text-secondary mt-1 uppercase font-black tracking-widest">Yönetici Tarafından Yetkilendirildi</p>
+                                <p className="text-sm font-bold theme-text-primary">SÄ±nÄ±rsÄ±z EriÅŸim</p>
+                                <p className="text-[10px] theme-text-secondary mt-1 uppercase font-black tracking-widest">YÃ¶netici TarafÄ±ndan Yetkilendirildi</p>
                             </div>
                         </div>
                     ) : sub.is_free ? (
@@ -157,19 +157,19 @@ export default function SubscriptionTab() {
                             </div>
                             <div>
                                 <p className="text-sm font-bold theme-text-primary">{sub.package?.name || 'Aktif Plan'}</p>
-                                <p className="text-[10px] theme-text-secondary mt-1 uppercase font-black tracking-widest">Ömür Boyu Ücretsiz Kullanım</p>
+                                <p className="text-[10px] theme-text-secondary mt-1 uppercase font-black tracking-widest">Ã–mÃ¼r Boyu Ãœcretsiz KullanÄ±m</p>
                             </div>
                         </div>
                     ) : (
                         <>
-                            <p className="text-sm font-medium theme-text-secondary mb-3">Tam özellikler için abone olun</p>
+                            <p className="text-sm font-medium theme-text-secondary mb-3">Tam Ã¶zellikler iÃ§in abone olun</p>
                             <button
                                 onClick={() => checkoutMutation.mutate()}
                                 disabled={checkoutMutation.isPending}
                                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                             >
                                 {checkoutMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
-                                Şimdi Abone Ol
+                                Åimdi Abone Ol
                             </button>
                         </>
                     )}
@@ -179,7 +179,7 @@ export default function SubscriptionTab() {
             {!sub.is_gifted && sub.all_packages?.length > 0 && (
                 <div className="theme-surface border theme-divider rounded-2xl shadow-sm overflow-hidden p-6">
                     <h3 className="text-sm font-bold theme-text-primary mb-4 flex items-center gap-2">
-                        <Layers size={18} className="text-indigo-500" /> {sub.is_subscribed ? 'Paket Değiştir / Yükselt' : 'Bir Paket Seçin ve Başlayın'}
+                        <Layers size={18} className="text-indigo-500" /> {sub.is_subscribed ? 'Paket DeÄŸiÅŸtir / YÃ¼kselt' : 'Bir Paket SeÃ§in ve BaÅŸlayÄ±n'}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {sub.all_packages.map(p => {
@@ -196,10 +196,10 @@ export default function SubscriptionTab() {
                                     <p className="text-lg font-black theme-text-primary mb-3">
                                         {Number(p.price) > 0 ? (
                                             <>
-                                                {Number(p.price).toLocaleString('tr-TR')} <span className="text-xs font-normal theme-text-secondary">₺ / ay</span>
+                                                {Number(p.price).toLocaleString('tr-TR')} <span className="text-xs font-normal theme-text-secondary">â‚º / ay</span>
                                             </>
                                         ) : (
-                                            <span className="text-green-500">Ücretsiz</span>
+                                            <span className="text-green-500">Ãœcretsiz</span>
                                         )}
                                     </p>
                                     <button
@@ -207,7 +207,7 @@ export default function SubscriptionTab() {
                                         onClick={() => {
                                             if (isFree) {
                                                 if (sub.is_subscribed) {
-                                                    if (window.confirm(`${p.name} ücretsiz paketine geçmek istediğinizden emin misiniz? Mevcut ücretli aboneliğiniz dönem sonunda sona erecek şekilde iptal edilecektir.`)) {
+                                                    if (window.confirm(`${p.name} Ã¼cretsiz paketine geÃ§mek istediÄŸinizden emin misiniz? Mevcut Ã¼cretli aboneliÄŸiniz dÃ¶nem sonunda sona erecek ÅŸekilde iptal edilecektir.`)) {
                                                         swapMutation.mutate(p.id)
                                                     }
                                                 } else {
@@ -217,7 +217,7 @@ export default function SubscriptionTab() {
                                             }
 
                                             if (sub.is_subscribed) {
-                                                if (window.confirm(`${p.name} paketine geçmek istediğinizden emin misiniz? Aradaki fiyat farkı Paddle tarafından otomatik hesaplanacaktır.`)) {
+                                                if (window.confirm(`${p.name} paketine geÃ§mek istediÄŸinizden emin misiniz? Aradaki fiyat farkÄ± Paddle tarafÄ±ndan otomatik hesaplanacaktÄ±r.`)) {
                                                     swapMutation.mutate(p.id)
                                                 }
                                             } else {
@@ -226,7 +226,7 @@ export default function SubscriptionTab() {
                                         }}
                                         className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${(isCurrent && (sub.is_subscribed || isFree)) ? 'theme-button-secondary theme-text-secondary cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'}`}
                                     >
-                                        {isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : (isCurrent && (sub.is_subscribed || isFree)) ? 'Şu Anki Paketiniz' : sub.is_subscribed ? 'Bu Pakete Geç' : 'Bu Paketle Başla'}
+                                        {isPending ? <Loader2 size={14} className="animate-spin m-auto" /> : (isCurrent && (sub.is_subscribed || isFree)) ? 'Åu Anki Paketiniz' : sub.is_subscribed ? 'Bu Pakete GeÃ§' : 'Bu Paketle BaÅŸla'}
                                     </button>
                                 </div>
                             )
@@ -237,14 +237,14 @@ export default function SubscriptionTab() {
 
             <div className="theme-surface border theme-divider rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b theme-divider">
-                    <h3 className="text-sm font-bold theme-text-primary">Ödeme Geçmişi</h3>
+                    <h3 className="text-sm font-bold theme-text-primary">Ã–deme GeÃ§miÅŸi</h3>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-sm theme-table">
                         <thead className="bg-[#F4F5F7]/50 dark:bg-white/5 theme-text-secondary text-[10px] uppercase font-bold">
                             <tr>
                                 <th className="px-6 py-3">Tarih</th>
-                                <th className="px-6 py-3">Açıklama</th>
+                                <th className="px-6 py-3">AÃ§Ä±klama</th>
                                 <th className="px-6 py-3 text-right">Tutar</th>
                                 <th className="px-6 py-3 text-right">Durum</th>
                             </tr>
@@ -255,17 +255,17 @@ export default function SubscriptionTab() {
                                     <td className="px-6 py-4 theme-text-secondary">
                                         {new Date(r.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </td>
-                                    <td className="px-6 py-4 font-medium theme-text-primary">{r.description || 'Abonelik Ödemesi'}</td>
+                                    <td className="px-6 py-4 font-medium theme-text-primary">{r.description || 'Abonelik Ã–demesi'}</td>
                                     <td className="px-6 py-4 text-right font-mono font-bold theme-text-primary">{r.total ? (r.total / 100).toFixed(2) : '0.00'} {r.currency}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-3">
                                             <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold rounded-lg border border-green-200 dark:border-green-500/20 uppercase">
-                                                Başarılı
+                                                BaÅŸarÄ±lÄ±
                                             </span>
                                             <button
-                                                onClick={() => api.get(`/billing/receipt/${r.id}`).then(res => res.data.url && window.open(res.data.url, '_blank')).catch(() => toast.error('Fatura alınamadı'))}
+                                                onClick={() => api.get(`/billing/receipt/${r.id}`).then(res => res.data.url && window.open(res.data.url, '_blank')).catch(() => toast.error('Fatura alÄ±namadÄ±'))}
                                                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg theme-text-secondary hover:text-indigo-500 transition-colors"
-                                                title="Faturayı İndir"
+                                                title="FaturayÄ± Ä°ndir"
                                             >
                                                 <Download size={14} />
                                             </button>
@@ -275,7 +275,7 @@ export default function SubscriptionTab() {
                             ))}
                             {(!sub.receipts || sub.receipts.length === 0) && (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center theme-text-secondary">Henüz bir ödeme kaydı bulunmamaktadır.</td>
+                                    <td colSpan="4" className="px-6 py-8 text-center theme-text-secondary">HenÃ¼z bir Ã¶deme kaydÄ± bulunmamaktadÄ±r.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -289,25 +289,26 @@ export default function SubscriptionTab() {
                 />
             </div>
 
-            <Modal open={successModal} onClose={() => window.location.reload()} title="Ödeme Başarılı" size="sm">
+            <Modal open={successModal} onClose={() => window.location.reload()} title="Ã–deme BaÅŸarÄ±lÄ±" size="sm">
                 <div className="text-center py-4 space-y-4">
                     <div className="w-16 h-16 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto">
                         <CheckCircle size={32} className="text-green-500" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold theme-text-primary">Aboneliğiniz Aktif Edildi</h3>
+                        <h3 className="text-lg font-bold theme-text-primary">AboneliÄŸiniz Aktif Edildi</h3>
                         <p className="text-sm theme-text-secondary mt-2">
-                            Ödemeniz başarıyla alındı. Yeni limitleriniz ve özellikleriniz tanımlandı.
+                            Ã–demeniz baÅŸarÄ±yla alÄ±ndÄ±. Yeni limitleriniz ve Ã¶zellikleriniz tanÄ±mlandÄ±.
                         </p>
                     </div>
                     <button
                         onClick={() => window.location.reload()}
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
                     >
-                        Paneli Yenile ve Başla
+                        Paneli Yenile ve BaÅŸla
                     </button>
                 </div>
             </Modal>
         </div>
     )
 }
+

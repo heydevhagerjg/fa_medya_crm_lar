@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { 
     Database, Download, RefreshCcw, Loader2, Info, Search, Clock, CheckCircle2, AlertCircle, X, Trash2
 } from 'lucide-react'
@@ -26,11 +26,11 @@ export default function TenantBackupPage() {
             qc.invalidateQueries(['admin-all-tenant-backups'])
             toast.success('Yedekleme iptal edildi.')
         },
-        onError: () => toast.error('İptal işlemi başarısız.')
+        onError: () => toast.error('Ä°ptal iÅŸlemi baÅŸarÄ±sÄ±z.')
     })
 
     const handleCancel = (id) => {
-        if (window.confirm('Bu yedekleme işlemini iptal etmek istediğinize emin misiniz?')) {
+        if (window.confirm('Bu yedekleme iÅŸlemini iptal etmek istediÄŸinize emin misiniz?')) {
             cancelBackup(id)
         }
     }
@@ -39,13 +39,13 @@ export default function TenantBackupPage() {
         mutationFn: (id) => api.delete(`/admin/tenants/backups/${id}`),
         onSuccess: () => {
             qc.invalidateQueries(['admin-all-tenant-backups'])
-            toast.success('Yedek kaydı silindi.')
+            toast.success('Yedek kaydÄ± silindi.')
         },
-        onError: () => toast.error('Silme işlemi başarısız.')
+        onError: () => toast.error('Silme iÅŸlemi baÅŸarÄ±sÄ±z.')
     })
 
     const handleDelete = (id) => {
-        if (window.confirm('Bu yedek kaydını (varsa dosyasını da) silmek istediğinize emin misiniz?')) {
+        if (window.confirm('Bu yedek kaydÄ±nÄ± (varsa dosyasÄ±nÄ± da) silmek istediÄŸinize emin misiniz?')) {
             deleteBackup(id)
         }
     }
@@ -75,7 +75,7 @@ export default function TenantBackupPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Firma Yedekleri</h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                        Tüm firmaların yerel yedeklerini tek bir yerden yönetin.
+                        TÃ¼m firmalarÄ±n yerel yedeklerini tek bir yerden yÃ¶netin.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export default function TenantBackupPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors" size={18} />
                         <input
                             type="text"
-                            placeholder="Firma veya dosya adı ara..."
+                            placeholder="Firma veya dosya adÄ± ara..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all w-64"
@@ -102,21 +102,21 @@ export default function TenantBackupPage() {
             <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 rounded-2xl p-4 flex gap-3 text-purple-700 dark:text-purple-400">
                 <Info className="shrink-0" size={20} />
                 <div className="text-sm leading-relaxed">
-                    <strong>Bilgi:</strong> Firma özelindeki yedekleri "Firmalar" sayfası üzerinden tetikleyebilirsiniz. Bu sayfada tamamlanan veya devam eden tüm firma yedeklerini görebilirsiniz.
+                    <strong>Bilgi:</strong> Firma Ã¶zelindeki yedekleri "Firmalar" sayfasÄ± Ã¼zerinden tetikleyebilirsiniz. Bu sayfada tamamlanan veya devam eden tÃ¼m firma yedeklerini gÃ¶rebilirsiniz.
                 </div>
             </div>
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[32px] overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left theme-table">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-200 dark:border-gray-800">
                                 <th className="px-6 py-4">Firma</th>
-                                <th className="px-6 py-4">Dosya Adı</th>
+                                <th className="px-6 py-4">Dosya AdÄ±</th>
                                 <th className="px-6 py-4">Boyut</th>
-                                <th className="px-6 py-4">Durum (İlerleme)</th>
-                                <th className="px-6 py-4 text-right">Oluşturulma</th>
-                                <th className="px-6 py-4 text-right">İşlemler</th>
+                                <th className="px-6 py-4">Durum (Ä°lerleme)</th>
+                                <th className="px-6 py-4 text-right">OluÅŸturulma</th>
+                                <th className="px-6 py-4 text-right">Ä°ÅŸlemler</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -124,13 +124,13 @@ export default function TenantBackupPage() {
                                 <tr>
                                     <td colSpan="6" className="px-6 py-12 text-center">
                                         <Loader2 className="mx-auto animate-spin text-purple-600 mb-4" size={32} />
-                                        <div className="text-gray-500 font-medium font-bold uppercase tracking-wider text-xs">Yedekler yükleniyor...</div>
+                                        <div className="text-gray-500 font-medium font-bold uppercase tracking-wider text-xs">Yedekler yÃ¼kleniyor...</div>
                                     </td>
                                 </tr>
                             ) : filteredBackups.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400 font-medium italic">
-                                        Henüz bir yedek bulunmuyor.
+                                        HenÃ¼z bir yedek bulunmuyor.
                                     </td>
                                 </tr>
                             ) : (
@@ -150,7 +150,7 @@ export default function TenantBackupPage() {
                                             <div className="flex items-center gap-2">
                                                 <Database size={14} className="text-gray-400" />
                                                 <span className="text-sm text-gray-600 dark:text-gray-300 font-medium truncate max-w-[150px] block" title={bk.filename}>
-                                                    {bk.filename || 'Hazırlanıyor...'}
+                                                    {bk.filename || 'HazÄ±rlanÄ±yor...'}
                                                 </span>
                                             </div>
                                         </td>
@@ -175,7 +175,7 @@ export default function TenantBackupPage() {
                                                     )}
                                                     {bk.status === 'completed' ? 'TAMAMLANDI' :
                                                      bk.status === 'failed' ? 'HATA' :
-                                                     bk.status === 'processing' ? `İŞLENİYOR (${bk.progress}%)` : 'BEKLENİYOR'}
+                                                     bk.status === 'processing' ? `Ä°ÅLENÄ°YOR (${bk.progress}%)` : 'BEKLENÄ°YOR'}
                                                 </span>
                                                 {(bk.status === 'processing' || (bk.status === 'pending' && bk.progress > 0)) && (
                                                     <div className="space-y-1">
@@ -205,7 +205,7 @@ export default function TenantBackupPage() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 {(bk.status === 'processing' || bk.status === 'pending') && (
-                                                    <button onClick={() => handleCancel(bk.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl" title="İptal">
+                                                    <button onClick={() => handleCancel(bk.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl" title="Ä°ptal">
                                                         <X size={18} />
                                                     </button>
                                                 )}
@@ -213,7 +213,7 @@ export default function TenantBackupPage() {
                                                     <button
                                                         onClick={() => handleDownload(bk)}
                                                         className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-600/10 rounded-xl transition-all"
-                                                        title="İndir"
+                                                        title="Ä°ndir"
                                                     >
                                                         <Download size={18} />
                                                     </button>
@@ -222,7 +222,7 @@ export default function TenantBackupPage() {
                                                     <button
                                                         onClick={() => handleDelete(bk.id)}
                                                         className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                                                        title="Kaydı Sil"
+                                                        title="KaydÄ± Sil"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
@@ -239,3 +239,4 @@ export default function TenantBackupPage() {
         </div>
     )
 }
+

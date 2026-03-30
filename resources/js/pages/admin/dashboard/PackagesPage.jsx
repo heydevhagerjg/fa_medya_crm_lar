@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
@@ -59,10 +59,10 @@ export default function PackagesPage() {
             : api.put(`/admin/packages/${modal.package.id}`, data),
         onSuccess: () => {
             qc.invalidateQueries(['admin-packages'])
-            toast.success(modal.mode === 'create' ? 'Paket oluşturuldu.' : 'Paket güncellendi.')
+            toast.success(modal.mode === 'create' ? 'Paket oluÅŸturuldu.' : 'Paket gÃ¼ncellendi.')
             closeModal()
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Hata oluÅŸtu.'),
     })
 
     const deleteMutation = useMutation({
@@ -79,7 +79,7 @@ export default function PackagesPage() {
         onSuccess: (res) => {
             toast.success(res.data.message || 'Limitler senkronize edildi.')
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'Senkronizasyon hatası.'),
+        onError: (err) => toast.error(err.response?.data?.message || 'Senkronizasyon hatasÄ±.'),
     })
 
     const openCreateModal = () => {
@@ -112,7 +112,7 @@ export default function PackagesPage() {
                         <Box size={24} className="text-blue-500" />
                         Sistem Paketleri
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tenantların seçebileceği üyelik paketleri</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">TenantlarÄ±n seÃ§ebileceÄŸi Ã¼yelik paketleri</p>
                 </div>
                 <button
                     onClick={openCreateModal}
@@ -134,23 +134,23 @@ export default function PackagesPage() {
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                 {isLoading ? (
-                    <div className="p-8 text-center text-gray-400">Yükleniyor...</div>
+                    <div className="p-8 text-center text-gray-400">YÃ¼kleniyor...</div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center text-gray-500">
                         <Box size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                        <p>{search ? 'Aramayla eşleşen paket bulunamadı.' : 'Henüz paket tanımlanmamış.'}</p>
+                        <p>{search ? 'Aramayla eÅŸleÅŸen paket bulunamadÄ±.' : 'HenÃ¼z paket tanÄ±mlanmamÄ±ÅŸ.'}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse theme-table">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <th className="px-5 py-4">Paket Adı</th>
+                                    <th className="px-5 py-4">Paket AdÄ±</th>
                                     <th className="px-5 py-4">Fiyat</th>
-                                    <th className="px-5 py-4">Personel/Müşteri/İş</th>
+                                    <th className="px-5 py-4">Personel/MÃ¼ÅŸteri/Ä°ÅŸ</th>
                                     <th className="px-5 py-4">Kota / Dosya Limiti</th>
                                     <th className="px-5 py-4">Durum</th>
-                                    <th className="px-5 py-4 text-right">İşlem</th>
+                                    <th className="px-5 py-4 text-right">Ä°ÅŸlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -164,19 +164,19 @@ export default function PackagesPage() {
                                             <div className="text-[10px] text-gray-400 mt-0.5">ID: {pkg.id}</div>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">₺{pkg.price}</div>
-                                            <div className="text-[10px] text-gray-400 mt-0.5">/ aylık</div>
+                                            <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">â‚º{pkg.price}</div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5">/ aylÄ±k</div>
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex gap-2">
-                                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[10px] font-bold rounded">U: {pkg.personnel_limit === 0 ? '∞' : pkg.personnel_limit}</span>
-                                                <span className="px-2 py-0.5 bg-green-50 dark:bg-green-500/10 text-green-600 text-[10px] font-bold rounded">C: {pkg.customer_limit === 0 ? '∞' : pkg.customer_limit}</span>
-                                                <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded">J: {pkg.job_limit === 0 ? '∞' : pkg.job_limit}</span>
+                                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[10px] font-bold rounded">U: {pkg.personnel_limit === 0 ? 'âˆ' : pkg.personnel_limit}</span>
+                                                <span className="px-2 py-0.5 bg-green-50 dark:bg-green-500/10 text-green-600 text-[10px] font-bold rounded">C: {pkg.customer_limit === 0 ? 'âˆ' : pkg.customer_limit}</span>
+                                                <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded">J: {pkg.job_limit === 0 ? 'âˆ' : pkg.job_limit}</span>
                                             </div>
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="text-sm text-gray-900 dark:text-white font-bold">
-                                                {pkg.disk_usage_limit === 0 ? '∞' : pkg.disk_usage_limit + ' MB'}
+                                                {pkg.disk_usage_limit === 0 ? 'âˆ' : pkg.disk_usage_limit + ' MB'}
                                             </div>
                                             <div className="text-[10px] text-gray-400 mt-0.5">Tek Dosya: {pkg.single_file_limit} MB</div>
                                         </td>
@@ -194,7 +194,7 @@ export default function PackagesPage() {
                                         <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
-                                                    onClick={() => { if (confirm('Bu paketi kullanan TÜM firmaların limitlerini şu anki paket özellikleriyle güncellemek istediğinize emin misiniz?')) syncMutation.mutate(pkg.id) }}
+                                                    onClick={() => { if (confirm('Bu paketi kullanan TÃœM firmalarÄ±n limitlerini ÅŸu anki paket Ã¶zellikleriyle gÃ¼ncellemek istediÄŸinize emin misiniz?')) syncMutation.mutate(pkg.id) }}
                                                     disabled={syncMutation.isPending}
                                                     className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors"
                                                     title="Limitleri Firmalara Senkronize Et"
@@ -204,7 +204,7 @@ export default function PackagesPage() {
                                                 <button onClick={() => openEditModal(pkg)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button onClick={() => { if (confirm('Silmek istediğinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                                <button onClick={() => { if (confirm('Silmek istediÄŸinize emin misiniz?')) deleteMutation.mutate(pkg.id) }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -217,30 +217,30 @@ export default function PackagesPage() {
                 )}
             </div>
 
-            <Modal open={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'Yeni Paket Oluştur' : 'Paketi Düzenle'} size="xl">
+            <Modal open={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'Yeni Paket OluÅŸtur' : 'Paketi DÃ¼zenle'} size="xl">
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="max-h-[80vh] overflow-y-auto px-1 custom-scrollbar pb-4">
                     <div className="space-y-6">
-                        {/* 1. Temel Bilgiler & Fiyatlandırma */}
+                        {/* 1. Temel Bilgiler & FiyatlandÄ±rma */}
                         <div className="bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Box size={16} /> 1. Temel Bilgiler & Fiyatlandırma
+                                <Box size={16} /> 1. Temel Bilgiler & FiyatlandÄ±rma
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paket Adı *</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Paket AdÄ± *</label>
                                     <input
                                         type="text"
                                         value={form.name}
                                         onChange={e => setForm({ ...form, name: e.target.value })}
                                         required
                                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Örn: Gold Paket"
+                                        placeholder="Ã–rn: Gold Paket"
                                     />
                                 </div>
                                 <div className="md:col-span-1">
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Fiyat (TL) *</label>
                                     <div className="relative">
-                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₺</span>
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">â‚º</span>
                                         <input
                                             type="number"
                                             value={form.price}
@@ -251,7 +251,7 @@ export default function PackagesPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Deneme (Gün)</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Deneme (GÃ¼n)</label>
                                     <input
                                         type="number"
                                         value={form.trial_days}
@@ -261,13 +261,13 @@ export default function PackagesPage() {
                                 </div>
                                 <div className="md:col-span-2 space-y-3">
                                     <div className="flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-white dark:border-gray-700">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satışa çıkar (Aktif)</span>
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bu paketi satÄ±ÅŸa Ã§Ä±kar (Aktif)</span>
                                         <Switch checked={form.is_active} onChange={v => setForm({ ...form, is_active: v })} />
                                     </div>
                                     <div className="flex items-center justify-between bg-amber-50/50 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-100/50 dark:border-amber-500/20">
                                         <div className="flex items-center gap-2">
                                             <Star size={16} className="text-amber-500" />
-                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Popüler Şerit Göster</span>
+                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">PopÃ¼ler Åerit GÃ¶ster</span>
                                         </div>
                                         <Switch checked={form.is_popular} onChange={v => setForm({ ...form, is_popular: v })} />
                                     </div>
@@ -278,7 +278,7 @@ export default function PackagesPage() {
                         {/* 2. Paddle Entegrasyonu */}
                         <div className="bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <CreditCard size={16} /> 2. Paddle Ödeme Entegrasyonu
+                                <CreditCard size={16} /> 2. Paddle Ã–deme Entegrasyonu
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -307,7 +307,7 @@ export default function PackagesPage() {
                         {/* 3. Genel Limitler */}
                         <div className="bg-emerald-50/30 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Shield size={16} /> 3. Genel Firma Limitleri (0 = Sınırsız)
+                                <Shield size={16} /> 3. Genel Firma Limitleri (0 = SÄ±nÄ±rsÄ±z)
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
@@ -315,11 +315,11 @@ export default function PackagesPage() {
                                     <input type="number" value={form.personnel_limit} onChange={e => setForm({ ...form, personnel_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> Müşteri</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Users size={12} /> MÃ¼ÅŸteri</label>
                                     <input type="number" value={form.customer_limit} onChange={e => setForm({ ...form, customer_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Briefcase size={12} /> İş Kaydı</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1 flex items-center gap-1.5"><Briefcase size={12} /> Ä°ÅŸ KaydÄ±</label>
                                     <input type="number" value={form.job_limit} onChange={e => setForm({ ...form, job_limit: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm" />
                                 </div>
                                 <div>
@@ -333,20 +333,20 @@ export default function PackagesPage() {
                             </div>
                         </div>
 
-                        {/* 4. Modüller ve Alt Limitler */}
+                        {/* 4. ModÃ¼ller ve Alt Limitler */}
                         <div className="bg-purple-50/30 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/20 rounded-2xl p-5">
                             <h3 className="text-xs font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Layers size={16} /> 4. Modül Erişimi & Özel Limitler
+                                <Layers size={16} /> 4. ModÃ¼l EriÅŸimi & Ã–zel Limitler
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
-                                    { key: 'appointment', label: 'Randevu Modülü', icon: Calendar, color: 'blue' },
+                                    { key: 'appointment', label: 'Randevu ModÃ¼lÃ¼', icon: Calendar, color: 'blue' },
                                     { key: 'service_tracking', label: 'Hizmet Takibi', icon: Activity, color: 'green', extra: { key: 'service_tracking_category_limit', label: 'Kategori Limiti' } },
-                                    { key: 'proposal', label: 'Teklif Modülü', icon: FileText, color: 'orange' },
+                                    { key: 'proposal', label: 'Teklif ModÃ¼lÃ¼', icon: FileText, color: 'orange' },
                                     { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
                                     { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
-                                    { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' },
-                                    { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
+                                    { key: 'step_templates', label: 'AdÄ±m ÅablonlarÄ±', icon: Layers, color: 'pink' },
+                                    { key: 'chat', label: 'Sohbet ModÃ¼lÃ¼', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
                                     const limitKey = mod.key === 'services_section' ? 'service_limit' : 
@@ -365,7 +365,7 @@ export default function PackagesPage() {
                                             {active && (
                                                 <div className="flex gap-4">
                                                     <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Limit (0=Sınırsız)</label>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Limit (0=SÄ±nÄ±rsÄ±z)</label>
                                                         <input type="number" value={form[limitKey]} onChange={e => setForm({ ...form, [limitKey]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
                                                     </div>
                                                     {mod.extra && (
@@ -379,12 +379,12 @@ export default function PackagesPage() {
                                         </div>
                                     )
                                 })}
-                                {/* Diğer basit özellikler */}
+                                {/* DiÄŸer basit Ã¶zellikler */}
                                 <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Shield size={18} className="text-cyan-500" />
-                                            <span className="text-sm font-bold">API Erişimi</span>
+                                            <span className="text-sm font-bold">API EriÅŸimi</span>
                                         </div>
                                         <Switch checked={form.api_key_feature} onChange={v => setForm({ ...form, api_key_feature: v })} />
                                     </div>
@@ -400,9 +400,9 @@ export default function PackagesPage() {
                     </div>
 
                     <div className="mt-8 flex gap-3 sticky bottom-0 bg-white dark:bg-gray-900 pt-4 border-t border-gray-100 dark:border-gray-800 z-10">
-                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">İptal</button>
+                        <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Ä°ptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-[2] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
-                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet ve Yayınla</>}
+                            {saveMutation.isPending ? 'Kaydediliyor...' : <><Save size={18} /> Paketi Kaydet ve YayÄ±nla</>}
                         </button>
                     </div>
                 </form>
@@ -422,3 +422,4 @@ function Switch({ checked, onChange }) {
         </button>
     )
 }
+

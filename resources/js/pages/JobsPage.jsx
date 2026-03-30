@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../lib/api.js'
@@ -42,7 +42,7 @@ export default function JobsPage() {
     // However, we keep a more robust check in the error handler below.
 
     if (isFeatureDisabled && currentUser?.tenant?.plan_job_feature !== undefined) {
-        return <PlanRestrictionView featureName="İş Takibi" />
+        return <PlanRestrictionView featureName="Ä°ÅŸ Takibi" />
     }
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
@@ -129,7 +129,7 @@ export default function JobsPage() {
             : api.post('/jobs', data),
         onSuccess: () => {
             qc.invalidateQueries(['jobs'])
-            toast.success(modal.job ? 'İş güncellendi.' : 'İş eklendi.')
+            toast.success(modal.job ? 'Ä°ÅŸ gÃ¼ncellendi.' : 'Ä°ÅŸ eklendi.')
             setModal({ open: false, job: null })
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata.'),
@@ -139,7 +139,7 @@ export default function JobsPage() {
         mutationFn: (id) => api.delete(`/jobs/${id}`),
         onSuccess: () => {
             qc.invalidateQueries(['jobs'])
-            toast.success('İş silindi.')
+            toast.success('Ä°ÅŸ silindi.')
             setDeleteConfirm(null)
         },
     })
@@ -159,19 +159,19 @@ export default function JobsPage() {
     return (
         <div className="space-y-5">
             <PageHeader
-                title="İşler"
-                subtitle={`${jobs.length} iş`}
+                title="Ä°ÅŸler"
+                subtitle={`${jobs.length} iÅŸ`}
                 icon={Briefcase}
                 iconColor="text-indigo-500"
                 actions={[
-                    { label: 'Yeni İş', onClick: () => openModal(), icon: Plus, variant: 'primary' }
+                    { label: 'Yeni Ä°ÅŸ', onClick: () => openModal(), icon: Plus, variant: 'primary' }
                 ]}
-                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'İş veya müşteri ara...' }}
-                breadcrumbs={['İşler']}
+                search={{ icon: Search, value: search, onChange: e => setSearch(e.target.value), placeholder: 'Ä°ÅŸ veya mÃ¼ÅŸteri ara...' }}
+                breadcrumbs={['Ä°ÅŸler']}
             >
                 <div className="flex flex-col sm:flex-row gap-3">
                     <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="theme-input px-3 py-2.5 rounded-xl text-sm">
-                        <option value="">Tüm Durumlar/Aşamalar</option>
+                        <option value="">TÃ¼m Durumlar/AÅŸamalar</option>
                         {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
@@ -198,33 +198,33 @@ export default function JobsPage() {
             {/* Table */}
             <div className="theme-surface border theme-divider rounded-2xl overflow-hidden">
                 {isLoading ? (
-                    <div className="p-8 text-center theme-text-secondary">Yükleniyor...</div>
+                    <div className="p-8 text-center theme-text-secondary">YÃ¼kleniyor...</div>
                 ) : isError ? (
                     <div className="p-12 text-center theme-text-secondary">
                         {error?.response?.status === 403 ? (
-                            <PlanRestrictionView featureName="İş" />
+                            <PlanRestrictionView featureName="Ä°ÅŸ" />
                         ) : (
                             <>
                                 <XCircle size={40} className="mx-auto text-red-400 mb-3" />
-                                <p>Veriler yüklenemedi. Oturumunuz kapanmış olabilir, lütfen sayfayı yenileyiniz.</p>
+                                <p>Veriler yÃ¼klenemedi. Oturumunuz kapanmÄ±ÅŸ olabilir, lÃ¼tfen sayfayÄ± yenileyiniz.</p>
                             </>
                         )}
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="p-12 text-center">
                         <Briefcase size={40} className="mx-auto theme-text-secondary mb-3" />
-                        <p className="theme-text-secondary">İş bulunamadı.</p>
+                        <p className="theme-text-secondary">Ä°ÅŸ bulunamadÄ±.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full theme-table">
                             <thead>
                                 <tr className="border-b theme-divider bg-[#F4F5F7] dark:bg-white/5">
-                                    <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">İş</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Ä°ÅŸ</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider hidden md:table-cell">Tarih</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider hidden lg:table-cell">Fiyat</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Durum</th>
-                                    <th className="text-right px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">İşlem</th>
+                                    <th className="text-right px-5 py-3 text-xs font-semibold theme-text-secondary uppercase tracking-wider">Ä°ÅŸlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -249,7 +249,7 @@ export default function JobsPage() {
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-semibold theme-text-primary">{formatCurrency(job.totalPrice || job.total_price)}</span>
                                                     <span className={`text-[10px] font-bold ${job.isVatIncluded ? 'text-emerald-500' : 'text-orange-500'}`}>
-                                                        {job.isVatIncluded ? 'KDV DAHİL' : 'KDV HARİÇ'}
+                                                        {job.isVatIncluded ? 'KDV DAHÄ°L' : 'KDV HARÄ°Ã‡'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -257,7 +257,7 @@ export default function JobsPage() {
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: job.jobStatus?.color || '#94a3b8' }} />
                                                     <span className="text-xs font-semibold theme-text-primary">
-                                                        {job.jobStatus?.name || 'Aşama Belirtilmemiş'}
+                                                        {job.jobStatus?.name || 'AÅŸama BelirtilmemiÅŸ'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -284,24 +284,24 @@ export default function JobsPage() {
             </div>
 
             {/* Add/Edit Modal */}
-            <Modal open={modal.open} onClose={() => setModal({ open: false, job: null })} title={modal.job ? 'İş Düzenle' : 'Yeni İş'} size="lg">
+            <Modal open={modal.open} onClose={() => setModal({ open: false, job: null })} title={modal.job ? 'Ä°ÅŸ DÃ¼zenle' : 'Yeni Ä°ÅŸ'} size="lg">
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form) }} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium theme-text-primary mb-1">Başlık *</label>
+                            <label className="block text-sm font-medium theme-text-primary mb-1">BaÅŸlÄ±k *</label>
                             <input type="text" value={form.title || ''} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required className="w-full px-3 py-2 rounded-lg text-sm theme-input" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium theme-text-primary mb-1">Müşteri *</label>
+                            <label className="block text-sm font-medium theme-text-primary mb-1">MÃ¼ÅŸteri *</label>
                             <select value={form.customerId || ''} onChange={e => setForm(p => ({ ...p, customerId: e.target.value }))} required className="w-full px-3 py-2 rounded-lg text-sm theme-input">
-                                <option value="">Seçin...</option>
+                                <option value="">SeÃ§in...</option>
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium theme-text-primary mb-1">Hizmet</label>
                             <select value={form.serviceId || ''} onChange={e => setForm(p => ({ ...p, serviceId: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-sm theme-input">
-                                <option value="">Seçin...</option>
+                                <option value="">SeÃ§in...</option>
                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
@@ -312,13 +312,13 @@ export default function JobsPage() {
                                     Personel Ata (Opsiyonel)
                                 </label>
                                 <select value={form.userId || ''} onChange={e => setForm(p => ({ ...p, userId: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-sm theme-input">
-                                    <option value="">Havuz / Atanmamış</option>
+                                    <option value="">Havuz / AtanmamÄ±ÅŸ</option>
                                     {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === 'ADMIN' ? 'Yetkili' : 'Personel'})</option>)}
                                 </select>
                             </div>
                         )}
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium theme-text-primary mb-1.5">İş Durumu / Aşama</label>
+                            <label className="block text-sm font-medium theme-text-primary mb-1.5">Ä°ÅŸ Durumu / AÅŸama</label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 {statuses.map(s => (
                                     <button
@@ -340,11 +340,11 @@ export default function JobsPage() {
                         </div>
                         <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium theme-text-primary mb-1">Başlangıç Tarihi</label>
+                                <label className="block text-sm font-medium theme-text-primary mb-1">BaÅŸlangÄ±Ã§ Tarihi</label>
                                 <input type="date" value={form.startDate || ''} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-sm theme-input" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium theme-text-primary mb-1">Bitiş Tarihi</label>
+                                <label className="block text-sm font-medium theme-text-primary mb-1">BitiÅŸ Tarihi</label>
                                 <input type="date" value={form.endDate || ''} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-sm theme-input" />
                             </div>
                         </div>
@@ -381,7 +381,7 @@ export default function JobsPage() {
 
                         <div className={form.isVatIncluded ? 'sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4' : 'sm:col-span-2'}>
                             <div className={form.isVatIncluded ? '' : 'w-full'}>
-                                <label className="block text-sm font-medium theme-text-primary mb-1">{form.isVatIncluded ? 'Ara Toplam (₺)' : 'Fiyat (₺)'}</label>
+                                <label className="block text-sm font-medium theme-text-primary mb-1">{form.isVatIncluded ? 'Ara Toplam (â‚º)' : 'Fiyat (â‚º)'}</label>
                                 <input type="number" min="0" step="0.01" value={form.subtotal || 0} onChange={e => setForm(p => ({ ...p, subtotal: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-sm font-medium theme-input" />
                             </div>
                             {form.isVatIncluded && (
@@ -400,7 +400,7 @@ export default function JobsPage() {
                             )}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium theme-text-primary mb-1">Açıklama</label>
+                            <label className="block text-sm font-medium theme-text-primary mb-1">AÃ§Ä±klama</label>
                             <textarea value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="w-full px-3 py-2 rounded-lg text-sm resize-none theme-input" />
                         </div>
                         {services.find(s => s.id == form.serviceId)?.customfield?.map(cf => (
@@ -415,7 +415,7 @@ export default function JobsPage() {
                         ))}
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModal({ open: false, job: null })} className="flex-1 px-4 py-2.5 border theme-divider rounded-xl text-sm font-medium theme-text-primary hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">İptal</button>
+                        <button type="button" onClick={() => setModal({ open: false, job: null })} className="flex-1 px-4 py-2.5 border theme-divider rounded-xl text-sm font-medium theme-text-primary hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">Ä°ptal</button>
                         <button type="submit" disabled={saveMutation.isPending} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </button>
@@ -424,11 +424,11 @@ export default function JobsPage() {
             </Modal>
 
             {/* Delete Confirm */}
-            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="İşi Sil">
+            <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Ä°ÅŸi Sil">
                 <div className="space-y-4">
-                    <p className="theme-text-secondary"><span className="font-semibold theme-text-primary">{deleteConfirm?.title}</span> işini silmek istediğinize emin misiniz?</p>
+                    <p className="theme-text-secondary"><span className="font-semibold theme-text-primary">{deleteConfirm?.title}</span> iÅŸini silmek istediÄŸinize emin misiniz?</p>
                     <div className="flex gap-3">
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border theme-divider rounded-xl text-sm font-medium theme-text-primary hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">İptal</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border theme-divider rounded-xl text-sm font-medium theme-text-primary hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">Ä°ptal</button>
                         <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
                             {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
                         </button>
@@ -438,3 +438,4 @@ export default function JobsPage() {
         </div >
     )
 }
+
