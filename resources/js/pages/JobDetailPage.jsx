@@ -1306,7 +1306,7 @@ export default function JobDetailPage() {
             {customFieldSidebar && (
                 <>
                     <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setCustomFieldSidebar(false)} />
-                    <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white dark:bg-gray-900 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out font-sans border-l border-gray-200 dark:border-gray-800">
+                    <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white dark:bg-gray-900 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out font-sans border-l border-gray-200 dark:border-gray-800">
                         <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <LayoutList size={20} className="text-purple-500" />
