@@ -226,13 +226,22 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
 }
 
 function parseIceServers() {
+    const fallback = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+    ]
     try {
         const parsed = JSON.parse(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '[]')
-        return Array.isArray(parsed) && parsed.length > 0
-            ? parsed
-            : [{ urls: 'stun:stun.l.google.com:19302' }]
+        if (!Array.isArray(parsed) || parsed.length === 0) return fallback
+        // TURN sunucusu yoksa STUN fallback ekle
+        const hasTurn = parsed.some(s => {
+            const u = Array.isArray(s.urls) ? s.urls : [s.urls || '']
+            return u.some(url => url.startsWith('turn:'))
+        })
+        return hasTurn ? parsed : [...parsed, ...fallback.slice(1)]
     } catch {
-        return [{ urls: 'stun:stun.l.google.com:19302' }]
+        return fallback
     }
 }
 
@@ -296,6 +305,7 @@ export default function ChatPage() {
     const iceServersRef = useRef(parseIceServers())
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
     const iceCandidateBufferRef = useRef(new Map())
+    const processedSignalsRef = useRef(new Set())
     const handleIncomingSignalRef = useRef(null)
     const applyCallUpdateRef = useRef(null)
 
@@ -395,6 +405,7 @@ export default function ChatPage() {
         cleanupPeerConnections()
         cleanupRemoteAudios()
         cleanupLocalStream()
+        processedSignalsRef.current.clear()
     }, [stopCallSounds, cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
 
     const ensureLocalStream = useCallback(async () => {
@@ -545,13 +556,30 @@ export default function ChatPage() {
         if (String(signal.from_user_id) === String(currentUser?.id)) return
         if (signal.target_user_id && String(signal.target_user_id) !== String(currentUser?.id)) return
 
+        // Aynı sinyalin çift kanaldan (chat + user) gelmesini engelle
+        const signalKey = `${signal.from_user_id}:${signal.signal_type}:${signal.sent_at || ''}`
+        if (processedSignalsRef.current.has(signalKey)) return
+        processedSignalsRef.current.add(signalKey)
+        // Bellek taşmasını önle
+        if (processedSignalsRef.current.size > 200) {
+            const entries = [...processedSignalsRef.current]
+            processedSignalsRef.current = new Set(entries.slice(-100))
+        }
+
         const remoteUserId = String(signal.from_user_id)
         const signalType = signal.signal_type
         const payload = signal.payload || {}
 
+        console.log('[WebRTC] Signal received:', signalType, 'from', remoteUserId)
+
         try {
             if (signalType === 'offer') {
                 const peerConnection = await getOrCreatePeerConnection(activeCall.chat_id, activeCall.id, remoteUserId)
+                // Zaten offer işlenmişse tekrar işleme (signaling state koruması)
+                if (peerConnection.signalingState !== 'stable' && peerConnection.signalingState !== 'have-local-offer') {
+                    console.warn('[WebRTC] Skipping offer, signalingState:', peerConnection.signalingState)
+                    return
+                }
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer))
                 const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
                 iceCandidateBufferRef.current.delete(remoteUserId)
@@ -561,18 +589,25 @@ export default function ChatPage() {
                 const answer = await peerConnection.createAnswer()
                 await peerConnection.setLocalDescription(answer)
                 await sendSignal(activeCall.chat_id, activeCall.id, 'answer', { answer: peerConnection.localDescription }, remoteUserId)
+                console.log('[WebRTC] Answer sent to', remoteUserId)
                 return
             }
 
             if (signalType === 'answer') {
                 const peerConnection = peerConnectionsRef.current.get(remoteUserId)
                 if (!peerConnection) return
+                // Answer zaten işlenmişse atla
+                if (peerConnection.signalingState !== 'have-local-offer') {
+                    console.warn('[WebRTC] Skipping answer, signalingState:', peerConnection.signalingState)
+                    return
+                }
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer))
                 const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
                 iceCandidateBufferRef.current.delete(remoteUserId)
                 for (const c of buffered) {
                     await peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
                 }
+                console.log('[WebRTC] Remote description (answer) set for', remoteUserId)
                 return
             }
 
@@ -585,10 +620,10 @@ export default function ChatPage() {
                     iceCandidateBufferRef.current.set(remoteUserId, buf)
                     return
                 }
-                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate))
+                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(() => {})
             }
         } catch (error) {
-            console.error('Signal handling error:', error)
+            console.error('[WebRTC] Signal handling error:', signalType, error)
         }
     }, [activeCall, currentUser?.id, getOrCreatePeerConnection, sendSignal])
 
@@ -863,8 +898,15 @@ export default function ChatPage() {
 
         setIsCallActionPending(true)
         try {
-            // Mikrofon erişimini arama başlamadan önce al (race condition önlenir)
-            await ensureLocalStream()
+            // Mikrofon erişimini önce kontrol et
+            try {
+                await ensureLocalStream()
+            } catch (micErr) {
+                toast.error('Mikrofon erişimi sağlanamadı. Lütfen tarayıcı izinlerini kontrol edin.')
+                console.error('[WebRTC] Mic access failed:', micErr)
+                setIsCallActionPending(false)
+                return
+            }
 
             const response = await api.post(`/chats/${selectedChat.id}/calls`, { type: 'audio' })
             const call = response.data?.data
@@ -901,9 +943,7 @@ export default function ChatPage() {
                 setSearchParams({ open: String(incomingCall.chat_id) }, { replace: true })
             }
 
-            // Mikrofon erişimini kabul etmeden önce al (race condition önlenir)
-            await ensureLocalStream()
-
+            // Önce API çağrısını yap ki karşı taraf bilgilensin
             const response = await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/accept`)
             const call = response.data?.data
             if (!call) return
@@ -911,6 +951,15 @@ export default function ChatPage() {
             stopCallSounds()
             setActiveCall(call)
             setIncomingCall(null)
+
+            // Mikrofon erişimini al - başarısız olursa arama yine kabul edilmiş olur
+            try {
+                await ensureLocalStream()
+            } catch (micErr) {
+                console.error('[WebRTC] Mic access failed after accept:', micErr)
+                toast.error('Mikrofon erişimi sağlanamadı. Karşı taraf sizi duyamayacak.')
+            }
+
             setIsInCall(true)
             toast.success('Arama kabul edildi.')
         } catch (error) {
