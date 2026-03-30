@@ -456,10 +456,14 @@ export default function ChatPage() {
         })
 
         peerConnection.ontrack = (event) => {
-            const [stream] = event.streams || []
-            if (stream) {
-                attachRemoteStream(remoteUserId, stream)
-            }
+            const stream = (event.streams && event.streams.length > 0)
+                ? event.streams[0]
+                : (() => {
+                    const ms = new MediaStream()
+                    ms.addTrack(event.track)
+                    return ms
+                })()
+            attachRemoteStream(remoteUserId, stream)
         }
 
         peerConnection.onicecandidate = (event) => {
@@ -524,7 +528,7 @@ export default function ChatPage() {
         if (String(signal.from_user_id) === String(currentUser?.id)) return
         if (signal.target_user_id && String(signal.target_user_id) !== String(currentUser?.id)) return
 
-        const remoteUserId = signal.from_user_id
+        const remoteUserId = String(signal.from_user_id)
         const signalType = signal.signal_type
         const payload = signal.payload || {}
 
