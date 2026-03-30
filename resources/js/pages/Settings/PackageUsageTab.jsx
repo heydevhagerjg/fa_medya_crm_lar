@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../../lib/api.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function PackageUsageTab() {
     const { data: sub, isLoading } = useQuery({
@@ -11,12 +12,7 @@ export default function PackageUsageTab() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold theme-text-primary">Paket Kullanımları</h2>
-                    <p className="text-sm theme-text-secondary">Paket özellikleriniz ve güncel kullanım limitleriniz.</p>
-                </div>
-            </div>
+            <SettingsPageHeader title="Paket Kullanımı" />
 
             <div className="theme-surface border theme-divider rounded-xl overflow-hidden shadow-sm">
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">

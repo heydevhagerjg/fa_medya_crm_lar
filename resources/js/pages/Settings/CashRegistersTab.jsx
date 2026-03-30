@@ -4,6 +4,7 @@ import { Wallet } from 'lucide-react'
 export default function CashRegistersTab() {
     return <GenericCrudTab
         queryKey="cash-registers" apiPath="/settings/cash-registers" label="Kasa"
+        pageTitle="Kasa Yönetimi"
         icon={Wallet}
         emptyForm={{ name: '', is_default: false }}
         renderForm={(form, setForm) => (

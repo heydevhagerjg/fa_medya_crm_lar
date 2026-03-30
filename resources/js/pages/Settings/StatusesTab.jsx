@@ -7,6 +7,7 @@ import Modal from '../../components/ui/Modal.jsx'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import StatusItem from './Shared/StatusItem.jsx'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function StatusesTab() {
     const qc = useQueryClient()
@@ -61,19 +62,12 @@ export default function StatusesTab() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold theme-text-primary">İş Akış Durumları</h2>
-                    <p className="text-sm theme-text-secondary">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
-                </div>
-                <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
-                >
-                    <Plus size={18} />
-                    Durum Ekle
-                </button>
-            </div>
+            <SettingsPageHeader
+                title="İş Akış Durumları"
+                actions={[
+                    { label: 'Durum Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' },
+                ]}
+            />
 
             <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3">
                 <AlertCircle className="text-blue-600 dark:text-blue-400" size={18} />

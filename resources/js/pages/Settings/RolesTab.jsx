@@ -4,6 +4,7 @@ import { Plus, Trash2, Edit2, Shield, Loader2 } from 'lucide-react'
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function RolesTab() {
     const qc = useQueryClient()
@@ -68,12 +69,12 @@ export default function RolesTab() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h2 className="text-sm font-medium theme-text-secondary uppercase tracking-wider">Rol Listesi</h2>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-[#905EFC]/20">
-                    <Plus size={16} /> Rol Ekle
-                </button>
-            </div>
+            <SettingsPageHeader
+                title="Yetki Grupları (Roller)"
+                actions={[
+                    { label: 'Rol Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' },
+                ]}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {rolesLoading ? (

@@ -9,6 +9,7 @@ import {
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function WorkflowsTab() {
     const qc = useQueryClient()
@@ -217,6 +218,11 @@ export default function WorkflowsTab() {
 
     return (
         <div className="space-y-6">
+            <SettingsPageHeader
+                title="İş Otomasyonları"
+                actions={view === 'list' ? [{ label: 'Yeni Senaryo Oluştur', onClick: () => openModal(), icon: Zap, variant: 'primary' }] : []}
+            />
+
             {/* Header Navigation */}
             <div className="flex items-center justify-between gap-4 theme-surface p-4 rounded-xl border theme-divider shadow-sm">
                 <div className="flex items-center gap-1 p-1 bg-[#F4F5F7] dark:bg-white/5 rounded-xl border theme-divider">
@@ -233,14 +239,7 @@ export default function WorkflowsTab() {
                         <History size={14} /> Çalışma Kayıtları (Logs)
                     </button>
                 </div>
-                {view === 'list' && (
-                    <button
-                        onClick={() => openModal()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-xs font-black shadow-lg shadow-[#905EFC]/20 active:scale-95 transition-all"
-                    >
-                        <Zap size={16} /> Yeni Senaryo Oluştur
-                    </button>
-                )}
+                <div className="hidden" />
             </div>
 
             {view === 'list' && (

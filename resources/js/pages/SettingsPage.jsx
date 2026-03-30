@@ -6,7 +6,6 @@ import {
     CreditCard, Palette
 } from 'lucide-react'
 import { useAuthStore } from '../stores/index.js'
-import PageHeader from '../components/layout/PageHeader.jsx'
 
 // Modüler Bileşenler
 import GeneralTab from './Settings/GeneralTab.jsx'
@@ -63,26 +62,6 @@ export default function SettingsPage() {
         { id: 'plan-usage', label: 'Paket Kullanımı', icon: Activity, to: '/settings?tab=plan-usage' },
     ]
 
-    const menuLabels = {
-        'general': 'Genel Bilgiler',
-        'services': 'Hizmet Tanımları',
-        'statuses': 'İş Akış Durumları',
-        'templates': 'Adım Şablonları',
-        'cash-registers': 'Kasa Yönetimi',
-        'expense-categories': 'Gider Kategorileri',
-        'appointment-titles': 'Randevu Başlıkları',
-        'service-tracking': 'Hizmet Takip Kategorileri',
-        'workflows': 'İş Otomasyonları',
-        'users': 'Personel Yönetimi',
-        'roles': 'Yetki Grupları (Roller)',
-        'api-keys': 'API / Entegrasyon',
-        'theme': 'Tema',
-        'backups': 'Veri Yedekleme',
-        'logs': 'Denetim Kayıtları',
-        'subscription': 'Abonelik & Ödeme',
-        'plan-usage': 'Paket Kullanımı',
-    }
-
     const renderTab = () => {
         switch (activeTab) {
             case 'general': return <GeneralTab tenant={tenant} setTenant={setTenant} />
@@ -108,15 +87,7 @@ export default function SettingsPage() {
 
     return (
         <div className="flex flex-col w-full min-h-screen p-6">
-            <PageHeader
-                title={menuLabels[activeTab] || 'Ayarlar'}
-                breadcrumbs={['Ayarlar', menuLabels[activeTab] || 'Ayarlar']}
-                icon={Settings}
-                iconColor="text-[#905EFC]"
-            />
-            <div className="mt-6">
-                {renderTab()}
-            </div>
+            {renderTab()}
         </div>
     )
 }

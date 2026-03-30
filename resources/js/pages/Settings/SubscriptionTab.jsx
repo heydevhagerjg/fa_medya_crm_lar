@@ -5,6 +5,7 @@ import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
 import Pagination from '../../components/ui/Pagination.jsx'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function SubscriptionTab() {
     const [successModal, setSuccessModal] = useState(false)
@@ -75,6 +76,8 @@ export default function SubscriptionTab() {
 
     return (
         <div className="max-w-4xl space-y-6">
+            <SettingsPageHeader title="Abonelik ve Ödeme" />
+
             <div className={`grid grid-cols-1 ${sub.is_gifted ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6`}>
                 <div className="theme-surface p-6 rounded-2xl border theme-divider shadow-sm">
                     <div className="flex items-center justify-between mb-4">

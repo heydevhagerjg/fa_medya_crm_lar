@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function TemplatesTab() {
     const { user } = useAuthStore()
@@ -45,9 +46,12 @@ export default function TemplatesTab() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-medium transition-colors"><Plus size={16} /> Şablon Ekle</button>
-            </div>
+            <SettingsPageHeader
+                title="Adım Şablonları"
+                actions={[
+                    { label: 'Şablon Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' },
+                ]}
+            />
             <div className="space-y-3">
                 {templates.map(t => (
                     <div key={t.id} className="theme-surface border theme-divider rounded-xl p-4">

@@ -7,6 +7,7 @@ import Modal from '../../components/ui/Modal.jsx'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
 import FieldLabelCombobox from '../../components/ui/FieldLabelCombobox.jsx'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function ServicesTab() {
     const { user } = useAuthStore()
@@ -44,19 +45,12 @@ export default function ServicesTab() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold theme-text-primary">Hizmet Tanımları</h2>
-                    <p className="text-sm theme-text-secondary">Müşterilerinize sunduğunuz hizmetleri ve özel alanları yönetin.</p>
-                </div>
-                <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
-                >
-                    <Plus size={18} />
-                    Hizmet Ekle
-                </button>
-            </div>
+            <SettingsPageHeader
+                title="Hizmet Tanımları"
+                actions={[
+                    { label: 'Hizmet Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' },
+                ]}
+            />
 
             {isLoading ? (
                 <div className="flex justify-center py-12"><Loader2 className="animate-spin theme-text-secondary" size={32} /></div>

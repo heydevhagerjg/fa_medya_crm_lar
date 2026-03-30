@@ -4,6 +4,7 @@ import { Save, Loader2, Image as ImageIcon, Briefcase, Mail, Phone, MapPin, Buil
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function GeneralTab({ tenant: initialTenant, setTenant: setParentTenant }) {
     const qc = useQueryClient()
@@ -67,6 +68,8 @@ export default function GeneralTab({ tenant: initialTenant, setTenant: setParent
 
     return (
         <div className="space-y-5 max-w-4xl">
+            <SettingsPageHeader title="Genel Bilgiler" />
+
             {isLoading && (
                 <div className="theme-surface border theme-divider rounded-xl p-6 flex items-center justify-center min-h-[300px]">
                     <div className="flex items-center gap-3">

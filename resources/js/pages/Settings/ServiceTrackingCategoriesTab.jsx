@@ -9,6 +9,7 @@ export default function ServiceTrackingCategoriesTab() {
 
     return <GenericCrudTab
         queryKey="service-tracking-categories" apiPath="/settings/service-tracking-categories" label="Hizmet Takip Kategorisi"
+        pageTitle="Hizmet Takip Kategorileri"
         emptyForm={{ name: '' }}
         renderForm={(form, setForm) => (
             <div>

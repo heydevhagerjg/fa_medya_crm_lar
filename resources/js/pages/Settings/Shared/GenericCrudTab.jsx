@@ -4,8 +4,9 @@ import { Plus, Trash2, Edit2, Settings, Loader2 } from 'lucide-react'
 import api from '../../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../../components/ui/Modal.jsx'
+import SettingsPageHeader from './SettingsPageHeader.jsx'
 
-export default function GenericCrudTab({ queryKey, apiPath, label, renderForm, emptyForm, formToPayload = f => f, icon: Icon = Settings }) {
+export default function GenericCrudTab({ queryKey, apiPath, label, pageTitle = label, renderForm, emptyForm, formToPayload = f => f, icon: Icon = Settings }) {
     const qc = useQueryClient()
     const [modal, setModal] = useState({ open: false, item: null })
     const [form, setForm] = useState(emptyForm)
@@ -30,19 +31,17 @@ export default function GenericCrudTab({ queryKey, apiPath, label, renderForm, e
 
     return (
         <div className="space-y-5">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-base font-black theme-text-primary">{label}</h2>
-                    <p className="text-xs theme-text-secondary mt-0.5">Mevcut tanımlamaları yönetin veya yenisini ekleyin.</p>
-                </div>
-                <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-bold shadow-md shadow-[#905EFC]/20 transition-all active:scale-95"
-                >
-                    <Plus size={16} />
-                    {label} Ekle
-                </button>
-            </div>
+            <SettingsPageHeader
+                title={pageTitle}
+                actions={[
+                    {
+                        label: `${label} Ekle`,
+                        onClick: () => openModal(),
+                        icon: Plus,
+                        variant: 'primary',
+                    },
+                ]}
+            />
 
             {isLoading ? (
                 <div className="flex justify-center py-12"><Loader2 className="animate-spin theme-text-secondary" size={28} /></div>

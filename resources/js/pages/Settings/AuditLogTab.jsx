@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { User, Clock, Loader2, Database, ShieldAlert, FileText, Smartphone, Laptop, Globe } from 'lucide-react'
 import api from '../../lib/api.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function AuditLogTab() {
     const { data: logs = [], isLoading } = useQuery({
@@ -156,6 +157,8 @@ export default function AuditLogTab() {
 
     return (
         <div className="space-y-4">
+            <SettingsPageHeader title="Denetim Kayıtları" />
+
             <div className="bg-[#905EFC]/10 dark:bg-[#905EFC]/10 p-4 rounded-xl border border-[#905EFC]/20 dark:border-[#905EFC]/10 flex items-start gap-4">
                 <div className="p-2 bg-[#905EFC]/20 dark:bg-[#905EFC]/10 rounded-xl text-[#905EFC]">
                     <ShieldAlert size={20} />

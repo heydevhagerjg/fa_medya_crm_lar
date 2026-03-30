@@ -1,11 +1,25 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Download, Database, Loader2, Play, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
+import {
+    Trash2,
+    Download,
+    Database,
+    Loader2,
+    Play,
+    Calendar,
+    AlertCircle,
+    Clock,
+    ShieldCheck,
+    HardDrive,
+    Archive,
+    RefreshCw,
+} from 'lucide-react'
 import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function BackupTab() {
     const { user } = useAuthStore()
@@ -15,10 +29,13 @@ export default function BackupTab() {
     const qc = useQueryClient()
     const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-    const { data: backups = [], isLoading } = useQuery({
+    const { data: backupData, isLoading, isFetching, refetch } = useQuery({
         queryKey: ['backups'],
-        queryFn: () => api.get('/settings/backup/list').then(r => r.data.backups)
+        queryFn: () => api.get('/settings/backup/list').then(r => r.data)
     })
+
+    const backups = backupData?.backups || []
+    const backupRequested = !!backupData?.backup_requested
 
     const createMutation = useMutation({
         mutationFn: () => api.post('/settings/backup/export'),
@@ -56,84 +73,151 @@ export default function BackupTab() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
+    const formatDateTime = (value) => {
+        if (!value) return '-'
+        const date = new Date(value)
+        return date.toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+    }
+
+    const totalSize = useMemo(
+        () => backups.reduce((acc, item) => acc + (Number(item.size) || 0), 0),
+        [backups]
+    )
+
+    const lastBackup = backups[0] || null
+
+    const requestBackup = () => {
+        if (backupRequested) {
+            toast('Yedek talebiniz zaten sırada. Hazır olunca burada listelenecek.')
+            return
+        }
+        createMutation.mutate()
+    }
+
     return (
         <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#905EFC] p-6 rounded-xl shadow-lg shadow-[#905EFC]/20 text-white">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                        <Database size={24} className="text-white" />
+            <SettingsPageHeader
+                title="Veri Yedekleme"
+                actions={[
+                    {
+                        label: backupRequested ? 'Talep Bekliyor' : createMutation.isPending ? 'Gönderiliyor...' : 'Yedek Talep Et',
+                        onClick: requestBackup,
+                        icon: Play,
+                        variant: 'primary',
+                    },
+                    {
+                        label: isFetching ? 'Yenileniyor...' : 'Yenile',
+                        onClick: () => refetch(),
+                        icon: RefreshCw,
+                        variant: 'outline',
+                    },
+                ]}
+            />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="theme-surface border theme-divider rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-widest theme-text-secondary">Talep Durumu</span>
+                        <Clock size={16} className={backupRequested ? 'text-amber-500' : 'text-green-500'} />
                     </div>
-                    <div>
-                        <h2 className="text-lg font-bold">Veri Yedekleme</h2>
-                        <p className="text-white/80 text-sm opacity-80">Sistem verilerinizi dilediğiniz zaman yedekleyin.</p>
+                    <div className="text-lg font-black theme-text-primary">
+                        {backupRequested ? 'İşlem Sırada' : 'Hazır'}
                     </div>
+                    <p className="text-xs mt-2 theme-text-secondary">
+                        {backupRequested
+                            ? 'Admin tarafında yedek üretimi bekleniyor.'
+                            : 'Yeni yedek talebi oluşturabilirsiniz.'}
+                    </p>
                 </div>
-                <button
-                    onClick={() => createMutation.mutate()}
-                    disabled={createMutation.isPending}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-[#905EFC] hover:bg-[#905EFC]/10 rounded-xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50"
-                >
-                    {createMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
-                    Şimdi Yedekle
-                </button>
+
+                <div className="theme-surface border theme-divider rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-widest theme-text-secondary">Son Başarılı Yedek</span>
+                        <ShieldCheck size={16} className="text-emerald-500" />
+                    </div>
+                    <div className="text-base font-black theme-text-primary truncate">
+                        {lastBackup ? formatDateTime(lastBackup.created_at) : 'Kayıt Yok'}
+                    </div>
+                    <p className="text-xs mt-2 theme-text-secondary">
+                        {lastBackup ? `Dosya: ${lastBackup.filename}` : 'Henüz tamamlanmış yedek bulunmuyor.'}
+                    </p>
+                </div>
+
+                <div className="theme-surface border theme-divider rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-widest theme-text-secondary">Arşiv Boyutu</span>
+                        <HardDrive size={16} className="text-indigo-500" />
+                    </div>
+                    <div className="text-2xl font-black theme-text-primary">{formatSize(totalSize)}</div>
+                    <p className="text-xs mt-2 theme-text-secondary">Toplam {backups.length} yedek dosyası saklanıyor.</p>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="theme-surface p-5 rounded-xl border theme-divider space-y-2">
-                    <div className="flex items-center gap-2 text-[#905EFC] font-bold text-xs uppercase tracking-widest mb-2"><Clock size={14} /> Otomatik Yedekleme</div>
-                    <p className="text-2xl font-black theme-text-primary">Her Gece</p>
-                    <p className="text-xs theme-text-secondary">Sistem verileriniz her gece 03:00'te otomatik yedeklenir.</p>
+            {backupRequested && (
+                <div className="theme-surface border theme-divider rounded-xl p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                        <Clock size={16} />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold theme-text-primary">Yedek talebiniz işleme alındı</p>
+                        <p className="text-xs theme-text-secondary mt-1">
+                            Talep tamamlandığında kayıt, aşağıdaki Yedekleme Geçmişi listesine otomatik düşecektir.
+                        </p>
+                    </div>
                 </div>
-                <div className="theme-surface p-5 rounded-xl border theme-divider space-y-2">
-                    <div className="flex items-center gap-2 text-green-500 font-bold text-xs uppercase tracking-widest mb-2"><CheckCircle2 size={14} /> Durum</div>
-                    <p className="text-2xl font-black theme-text-primary">Güvende</p>
-                    <p className="text-xs theme-text-secondary">Son 30 günlük yedekleme geçmişiniz saklanmaktadır.</p>
-                </div>
-                <div className="theme-surface p-5 rounded-xl border theme-divider space-y-2">
-                    <div className="flex items-center gap-2 text-amber-500 font-bold text-xs uppercase tracking-widest mb-2"><Database size={14} /> Saklama</div>
-                    <p className="text-2xl font-black theme-text-primary">30 Gün</p>
-                    <p className="text-xs theme-text-secondary">Eski yedekler otomatik olarak silinerek yer açılır.</p>
-                </div>
-            </div>
+            )}
 
-            <div className="theme-surface border theme-divider rounded-xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center justify-between">
-                    <span className="text-xs font-bold theme-text-secondary uppercase tracking-widest">Yedekleme Geçmişi</span>
-                    <span className="text-[10px] theme-text-secondary italic">Toplam {backups.length} dosya</span>
+            <div className="theme-surface border theme-divider rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b theme-divider flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Archive size={16} className="theme-text-secondary" />
+                        <span className="text-xs font-bold theme-text-secondary uppercase tracking-widest">Yedekleme Geçmişi</span>
+                    </div>
+                    <span className="text-[11px] theme-text-secondary">Toplam {backups.length} kayıt</span>
                 </div>
 
                 {isLoading ? (
-                    <div className="p-12 text-center theme-text-secondary"><Loader2 className="animate-spin mx-auto" size={32} /></div>
+                    <div className="p-12 text-center theme-text-secondary">
+                        <Loader2 className="animate-spin mx-auto" size={32} />
+                    </div>
                 ) : (
-                    <div className="divide-y divide-gray-50 dark:divide-white/5">
+                    <div className="divide-y theme-divider">
                         {backups.map(b => (
-                            <div key={b.id} className="group px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-colors">
+                            <div key={b.id} className="group px-5 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:theme-surface-alt transition-colors">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-[#F4F5F7] dark:bg-white/5 rounded-xl flex items-center justify-center theme-text-secondary group-hover:bg-[#905EFC]/10 group-hover:text-[#905EFC] transition-colors">
+                                    <div className="w-10 h-10 theme-surface-alt rounded-xl flex items-center justify-center theme-text-secondary group-hover:text-indigo-500 transition-colors">
                                         <Database size={20} />
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold theme-text-primary flex items-center gap-2">
-                                            {new Date(b.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            <span className="font-normal text-xs theme-text-secondary">{new Date(b.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        <div className="text-[11px] theme-text-secondary mt-1 flex items-center gap-3">
-                                            <span className="flex items-center gap-1"><Calendar size={10} /> {formatSize(b.size)}</span>
+                                        <div className="text-sm font-bold theme-text-primary">{b.filename}</div>
+                                        <div className="text-[11px] theme-text-secondary mt-1 flex items-center gap-3 flex-wrap">
+                                            <span className="flex items-center gap-1"><Calendar size={10} /> {formatDateTime(b.created_at)}</span>
                                             <span className="w-1 h-1 bg-[#E5E9F0] rounded-full" />
-                                            <span className="flex items-center gap-1 font-mono uppercase text-[9px]">{b.name}</span>
+                                            <span className="font-semibold">{formatSize(b.size)}</span>
+                                            <span className="w-1 h-1 bg-[#E5E9F0] rounded-full" />
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${b.has_file ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'}`}>
+                                                {b.has_file ? 'Hazır' : 'Dosya Eksik'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <button
+                                        disabled={!b.has_file}
                                         onClick={() => downloadBackup(b.id)}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#E5E9F0] dark:bg-white/5 hover:bg-[#E5E9F0] dark:hover:bg-white/10 theme-text-primary rounded-xl text-xs font-bold transition-all"
+                                        className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 theme-surface-alt hover:theme-surface border theme-divider theme-text-primary rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Download size={14} /> İndir
                                     </button>
                                     <button
                                         onClick={() => setDeleteConfirm(b)}
-                        className="p-2.5 theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                                        className="p-2.5 theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                                         title="Yedeği Sil"
                                     >
                                         <Trash2 size={16} />
@@ -147,7 +231,7 @@ export default function BackupTab() {
                 {backups.length === 0 && !isLoading && (
                     <div className="p-12 text-center theme-text-secondary">
                         <Database size={40} className="mx-auto mb-3 opacity-20" />
-                        <p className="text-sm font-medium italic">Henüz bir yedek kaydı bulunmuyor.</p>
+                        <p className="text-sm font-medium italic">Henüz tamamlanmış yedek kaydı bulunmuyor.</p>
                     </div>
                 )}
             </div>

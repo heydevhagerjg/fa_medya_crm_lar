@@ -5,6 +5,7 @@ import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function AppointmentTitlesTab() {
     const { user } = useAuthStore()
@@ -43,6 +44,8 @@ export default function AppointmentTitlesTab() {
 
     return (
         <div className="space-y-4">
+            <SettingsPageHeader title="Randevu Başlıkları" />
+
             <div className="theme-surface border theme-divider rounded-xl p-4">
                 <h3 className="text-sm font-medium theme-text-primary mb-3">
                     {editing ? 'Başlığı Düzenle' : 'Yeni Randevu Başlığı Ekle'}

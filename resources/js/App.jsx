@@ -22,7 +22,6 @@ import AppointmentsPage from './pages/AppointmentsPage.jsx'
 import ServiceTrackingPage from './pages/ServiceTrackingPage.jsx'
 import ProposalsPage from './pages/ProposalsPage.jsx'
 import PublicProposalPage from './pages/PublicProposalPage.jsx'
-import BackupPage from './pages/BackupPage.jsx'
 import AdminTenantsPage from './pages/admin/dashboard/TenantsPage.jsx'
 import AdminPackagesPage from './pages/admin/dashboard/PackagesPage.jsx'
 import AdminSettingsPage from './pages/admin/dashboard/SettingsPage.jsx'
@@ -172,7 +171,6 @@ export default function App() {
                 <Route path="/files" element={<FilesPage />} />
                 <Route path="/files/folder/:folderId" element={<FilesPage />} />
                 <Route path="/settings/*" element={<SettingsPage />} />
-                <Route path="/backup" element={<BackupPage />} />
                 <Route path="/chats" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/api-docs" element={<ApiDocsPage />} />

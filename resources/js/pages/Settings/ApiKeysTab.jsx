@@ -7,6 +7,7 @@ import Modal from '../../components/ui/Modal.jsx'
 import { useAuthStore } from '../../stores/index.js'
 import { Link } from 'react-router-dom'
 import PlanRestrictionView from '../../components/ui/PlanRestrictionView.jsx'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function ApiKeysTab() {
     const { user } = useAuthStore()
@@ -105,6 +106,8 @@ export default function ApiKeysTab() {
 
     return (
         <div className="space-y-4">
+            <SettingsPageHeader title="API / Entegrasyon" />
+
             <div className={`theme-surface border theme-divider rounded-xl p-5 space-y-5 transition-all duration-300 ${isFormOpen ? 'ring-2 ring-[#905EFC]/20 shadow-lg' : ''}`}>
                 <div
                     className="flex items-center justify-between cursor-pointer group"

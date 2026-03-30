@@ -5,6 +5,7 @@ import api from '../../lib/api.js'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal.jsx'
 import { useAuthStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function UsersTab() {
     const qc = useQueryClient()
@@ -143,12 +144,12 @@ export default function UsersTab() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-sm font-medium theme-text-secondary uppercase tracking-wider">Kullanıcı Listesi (Hiyerarşik)</h2>
-                <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-[#905EFC] hover:bg-[#7B4FD4] text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-[#905EFC]/20">
-                    <Plus size={16} /> Kullanıcı Ekle
-                </button>
-            </div>
+            <SettingsPageHeader
+                title="Personel Yönetimi"
+                actions={[
+                    { label: 'Kullanıcı Ekle', onClick: () => openModal(), icon: Plus, variant: 'primary' },
+                ]}
+            />
 
             {isLoading ? (
                 <div className="py-12 text-center theme-text-secondary"><Loader2 className="animate-spin mx-auto" size={32} /></div>

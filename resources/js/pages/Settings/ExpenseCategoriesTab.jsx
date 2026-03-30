@@ -4,6 +4,7 @@ import { FolderOpen } from 'lucide-react'
 export default function ExpenseCategoriesTab() {
     return <GenericCrudTab
         queryKey="expense-categories" apiPath="/settings/expense-categories" label="Kategori"
+        pageTitle="Gider Kategorileri"
         icon={FolderOpen}
         emptyForm={{ name: '' }}
         renderForm={(form, setForm) => (

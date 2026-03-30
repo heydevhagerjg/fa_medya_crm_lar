@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Moon, Sun, Palette } from 'lucide-react'
 import { useThemeStore } from '../../stores/index.js'
+import SettingsPageHeader from './Shared/SettingsPageHeader.jsx'
 
 export default function ThemeTab() {
     const { theme, palette, toggleTheme, setPalette, availablePalettes } = useThemeStore()
@@ -13,6 +14,8 @@ export default function ThemeTab() {
 
     return (
         <div className="space-y-5 max-w-3xl">
+            <SettingsPageHeader title="Tema" />
+
             {/* Appearance Mode Section */}
             <div className="theme-surface border theme-divider rounded-xl p-6 overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] dark:opacity-[0.06]">

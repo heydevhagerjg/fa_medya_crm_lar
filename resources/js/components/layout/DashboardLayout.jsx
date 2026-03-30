@@ -23,13 +23,6 @@ import {
     Moon,
     Bell,
     User,
-    FolderOpen,
-    FileCode,
-    LayoutList,
-    Calendar,
-    Clock,
-    AlertCircle,
-    Lock,
     Search,
     ChevronLeft,
     ChevronRight,
@@ -44,6 +37,10 @@ import {
     Key,
     ShieldAlert,
     Palette,
+    LayoutList,
+    Calendar,
+    Clock,
+    FolderOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -103,20 +100,6 @@ const navItems = [
         icon: MessageSquare,
         label: "Sohbetler",
         feature: "chat",
-    },
-    {
-        to: "/backup",
-        icon: Database,
-        label: "Yedek",
-        permission: "settings.manage",
-        feature: "backup",
-    },
-    {
-        to: "/api-docs",
-        icon: FileCode,
-        label: "API Dokümanı",
-        permission: "admin_only",
-        feature: "api_key",
     },
 ];
 
