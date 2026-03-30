@@ -8,6 +8,7 @@ use App\Modules\Chat\Events\ChatCallSignal;
 use App\Modules\Chat\Events\ChatCallUpdated;
 use App\Modules\Chat\Models\Chat;
 use App\Modules\Chat\Models\ChatCallSession;
+use App\Services\AgoraTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -195,6 +196,39 @@ class ChatCallController extends Controller
             'success' => true,
             'data' => $this->serializeCall($call),
         ]);
+    }
+
+    public function token(Chat $chat, ChatCallSession $call, Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->ensureCallAccess($chat, $call, (string) $user->id);
+
+        if (!in_array($call->status, ['ringing', 'active'], true)) {
+            return response()->json(['message' => 'Aktif görüşme yok.'], 409);
+        }
+
+        try {
+            $token = AgoraTokenService::buildToken(
+                channelName: (string) $call->id,
+                userAccount: (string) $user->id,
+                tokenExpireSeconds: 3600,
+                privilegeExpireSeconds: 3600,
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'token' => $token,
+                    'channel' => (string) $call->id,
+                    'uid' => (string) $user->id,
+                    'app_id' => config('services.agora.app_id'),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Token oluşturulamadı: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function signal(Chat $chat, ChatCallSession $call, Request $request): JsonResponse

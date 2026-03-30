@@ -40,5 +40,6 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'check.tenant', 'check.restor
     Route::post('/chats/{chat}/calls/{call}/accept', [ChatCallController::class, 'accept']);
     Route::post('/chats/{chat}/calls/{call}/reject', [ChatCallController::class, 'reject']);
     Route::post('/chats/{chat}/calls/{call}/end', [ChatCallController::class, 'end']);
+    Route::get('/chats/{chat}/calls/{call}/token', [ChatCallController::class, 'token']);
     Route::post('/chats/{chat}/calls/{call}/signal', [ChatCallController::class, 'signal']);
 });

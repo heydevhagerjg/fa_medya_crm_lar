@@ -309,17 +309,25 @@ export default function ChatPage() {
     // ─── Agora Ses Yönetimi ──────────────────────────────────────────────────────
 
     const joinAgoraChannel = useCallback(async (callId) => {
-        const appId = import.meta.env.VITE_AGORA_APP_ID
-        if (!appId) {
-            toast.error('Agora App ID tanımlı değil.')
-            throw new Error('VITE_AGORA_APP_ID is not set')
+        // 1. Fetch token from backend (secure — App Certificate never exposed)
+        const chatId = activeCall?.chat_id
+        if (!chatId) throw new Error('Chat ID not available')
+
+        const tokenRes = await api.get(`/chats/${chatId}/calls/${callId}/token`)
+        const { token, channel, uid, app_id: appId } = tokenRes.data?.data || {}
+
+        if (!appId || !token) {
+            toast.error('Ses bağlantısı için gerekli bilgiler alınamadı.')
+            throw new Error('Missing Agora token or appId from backend')
         }
 
+        // 2. Create Agora client (reuse if exists)
         if (!agoraClientRef.current) {
             agoraClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
         }
         const client = agoraClientRef.current
 
+        // 3. Event listeners for remote audio
         client.on('user-published', async (user, mediaType) => {
             await client.subscribe(user, mediaType)
             if (mediaType === 'audio') {
@@ -335,10 +343,11 @@ export default function ChatPage() {
             }
         })
 
-        // Channel = call session UUID, token = null (testing mode)
-        await client.join(appId, String(callId), null, String(currentUser?.id))
-        console.log('[Agora] Joined channel:', callId)
+        // 4. Join channel with server-side token
+        await client.join(appId, channel, token, uid)
+        console.log('[Agora] Joined channel:', channel)
 
+        // 5. Create and publish local audio
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
             AEC: true,
             ANS: true,
@@ -347,7 +356,7 @@ export default function ChatPage() {
         localAudioTrackRef.current = audioTrack
         await client.publish([audioTrack])
         console.log('[Agora] Audio track published')
-    }, [currentUser?.id])
+    }, [activeCall?.chat_id])
 
     const leaveAgoraChannel = useCallback(async () => {
         if (localAudioTrackRef.current) {
@@ -358,6 +367,7 @@ export default function ChatPage() {
         if (agoraClientRef.current) {
             agoraClientRef.current.removeAllListeners()
             await agoraClientRef.current.leave().catch(() => {})
+            agoraClientRef.current = null
             console.log('[Agora] Left channel')
         }
     }, [])
@@ -463,8 +473,11 @@ export default function ChatPage() {
             }
         })
 
-        return () => { cancelled = true }
-    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel])
+        return () => {
+            cancelled = true
+            leaveAgoraChannel()
+        }
+    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel, leaveAgoraChannel])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
