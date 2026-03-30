@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import AgoraRTC from 'agora-rtc-sdk-ng'
 import api from '../lib/api.js'
 import ChatSidebar from '../components/chat/ChatSidebar'
 import ChatWindow from '../components/chat/ChatWindow'
@@ -225,26 +226,6 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
     )
 }
 
-function parseIceServers() {
-    const fallback = [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-    ]
-    try {
-        const parsed = JSON.parse(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '[]')
-        if (!Array.isArray(parsed) || parsed.length === 0) return fallback
-        // TURN sunucusu yoksa STUN fallback ekle
-        const hasTurn = parsed.some(s => {
-            const u = Array.isArray(s.urls) ? s.urls : [s.urls || '']
-            return u.some(url => url.startsWith('turn:'))
-        })
-        return hasTurn ? parsed : [...parsed, ...fallback.slice(1)]
-    } catch {
-        return fallback
-    }
-}
-
 function formatDuration(seconds) {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
     const mm = String(Math.floor(safe / 60)).padStart(2, '0')
@@ -299,16 +280,9 @@ function IncomingCallModal({ call, pending, onAccept, onReject }) {
 export default function ChatPage() {
     const { user: currentUser } = useAuthStore()
     const queryClient = useQueryClient()
-    const peerConnectionsRef = useRef(new Map())
-    const remoteAudioRef = useRef(new Map())
-    const localStreamRef = useRef(null)
-    const iceServersRef = useRef(parseIceServers())
+    const agoraClientRef = useRef(null)
+    const localAudioTrackRef = useRef(null)
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
-    const iceCandidateBufferRef = useRef(new Map())
-    const processedSignalsRef = useRef(new Set())
-    const pendingSignalsRef = useRef([])
-    const pcPromisesRef = useRef(new Map())
-    const handleIncomingSignalRef = useRef(null)
     const applyCallUpdateRef = useRef(null)
 
     const [selectedChat, setSelectedChat] = useState(null)
@@ -332,28 +306,63 @@ export default function ChatPage() {
         }),
     })
 
-    const cleanupRemoteAudios = useCallback(() => {
-        for (const [, element] of remoteAudioRef.current.entries()) {
-            element.pause()
-            element.srcObject = null
-            element.remove()
+    // ─── Agora Ses Yönetimi ──────────────────────────────────────────────────────
+
+    const joinAgoraChannel = useCallback(async (callId) => {
+        const appId = import.meta.env.VITE_AGORA_APP_ID
+        if (!appId) {
+            toast.error('Agora App ID tanımlı değil.')
+            throw new Error('VITE_AGORA_APP_ID is not set')
         }
-        remoteAudioRef.current.clear()
+
+        if (!agoraClientRef.current) {
+            agoraClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
+        }
+        const client = agoraClientRef.current
+
+        client.on('user-published', async (user, mediaType) => {
+            await client.subscribe(user, mediaType)
+            if (mediaType === 'audio') {
+                console.log('[Agora] Remote user published audio:', user.uid)
+                user.audioTrack.play()
+            }
+        })
+
+        client.on('user-unpublished', (user, mediaType) => {
+            if (mediaType === 'audio') {
+                console.log('[Agora] Remote user unpublished audio:', user.uid)
+                user.audioTrack?.stop()
+            }
+        })
+
+        // Channel = call session UUID, token = null (testing mode)
+        await client.join(appId, String(callId), null, String(currentUser?.id))
+        console.log('[Agora] Joined channel:', callId)
+
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+            AEC: true,
+            ANS: true,
+            AGC: true,
+        })
+        localAudioTrackRef.current = audioTrack
+        await client.publish([audioTrack])
+        console.log('[Agora] Audio track published')
+    }, [currentUser?.id])
+
+    const leaveAgoraChannel = useCallback(async () => {
+        if (localAudioTrackRef.current) {
+            localAudioTrackRef.current.stop()
+            localAudioTrackRef.current.close()
+            localAudioTrackRef.current = null
+        }
+        if (agoraClientRef.current) {
+            agoraClientRef.current.removeAllListeners()
+            await agoraClientRef.current.leave().catch(() => {})
+            console.log('[Agora] Left channel')
+        }
     }, [])
 
-    const cleanupPeerConnections = useCallback(() => {
-        for (const [, peerConnection] of peerConnectionsRef.current.entries()) {
-            peerConnection.close()
-        }
-        peerConnectionsRef.current.clear()
-        iceCandidateBufferRef.current.clear()
-    }, [])
-
-    const cleanupLocalStream = useCallback(() => {
-        if (!localStreamRef.current) return
-        localStreamRef.current.getTracks().forEach(track => track.stop())
-        localStreamRef.current = null
-    }, [])
+    // ─── Çalma Sesi ───────────────────────────────────────────────────────────────
 
     const stopCallSounds = useCallback(() => {
         const s = callSoundRef.current
@@ -369,10 +378,7 @@ export default function ChatPage() {
         const AudioCtx = window.AudioContext || window.webkitAudioContext
         if (!AudioCtx) return
         const ctx = new AudioCtx()
-        // Chrome autoplay policy: WebSocket event'inden gelen çağrıda resume gerekir
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {})
-        }
+        if (ctx.state === 'suspended') { ctx.resume().catch(() => {}) }
         const s = callSoundRef.current
         s.stopped = false
         s.ctx = ctx
@@ -393,167 +399,21 @@ export default function ChatPage() {
             s.timerId = setTimeout(() => {
                 s.nodes.forEach(n => { try { n.stop() } catch (_) {} })
                 s.nodes = []
-                if (!s.stopped) {
-                    s.timerId = setTimeout(tick, offMs)
-                }
+                if (!s.stopped) { s.timerId = setTimeout(tick, offMs) }
             }, onMs)
         }
         tick()
     }, [stopCallSounds])
 
-    // Arayana: çağrı sesi (1s çalar, 3s sessiz)
     const startRingbackTone = useCallback(() => playTonePattern(1000, 3000), [playTonePattern])
-    // Aranana: telefon çalma sesi (2s çalar, 4s sessiz)
     const startRingTone = useCallback(() => playTonePattern(2000, 4000), [playTonePattern])
 
-    const teardownCallMedia = useCallback(() => {
+    const teardownCallMedia = useCallback(async () => {
         stopCallSounds()
-        cleanupPeerConnections()
-        cleanupRemoteAudios()
-        cleanupLocalStream()
-        processedSignalsRef.current.clear()
-        pendingSignalsRef.current = []
-    }, [stopCallSounds, cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
+        await leaveAgoraChannel()
+    }, [stopCallSounds, leaveAgoraChannel])
 
-    const ensureLocalStream = useCallback(async () => {
-        if (localStreamRef.current) return localStreamRef.current
-        if (!navigator?.mediaDevices?.getUserMedia) {
-            throw new Error('Tarayıcınız sesli görüşmeyi desteklemiyor.')
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-            },
-            video: false,
-        })
-        localStreamRef.current = stream
-        // Debug: tarayıcı konsolundan erişim için
-        window.__webrtcDebug = window.__webrtcDebug || {}
-        window.__webrtcDebug.localStream = stream
-        window.__webrtcDebug.peerConnections = peerConnectionsRef.current
-        window.__webrtcDebug.remoteAudios = remoteAudioRef.current
-        return stream
-    }, [])
-
-    const attachRemoteStream = useCallback((remoteUserId, stream) => {
-        console.log('[WebRTC] attachRemoteStream for user', remoteUserId,
-            'tracks:', stream.getAudioTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState, label: t.label })))
-
-        let audioElement = remoteAudioRef.current.get(remoteUserId)
-        if (!audioElement) {
-            audioElement = document.createElement('audio')
-            audioElement.autoplay = true
-            audioElement.playsInline = true
-            audioElement.setAttribute('data-remote-user', String(remoteUserId))
-            audioElement.style.display = 'none'
-            document.body.appendChild(audioElement)
-            remoteAudioRef.current.set(remoteUserId, audioElement)
-        }
-
-        if (audioElement.srcObject !== stream) {
-            audioElement.srcObject = stream
-            audioElement.volume = 1.0
-            audioElement.muted = false
-            audioElement.play()
-                .then(() => console.log('[WebRTC] Remote audio playing for user', remoteUserId))
-                .catch((err) => {
-                    console.warn('[WebRTC] Autoplay blocked for user', remoteUserId, err)
-                    // If blocked, we might need a UI interaction like "Click to unmute"
-                })
-        }
-    }, [])
-
-    const sendSignal = useCallback(async (chatId, callId, signalType, payload, targetUserId = null) => {
-        await api.post(`/chats/${chatId}/calls/${callId}/signal`, {
-            signal_type: signalType,
-            target_user_id: targetUserId,
-            payload,
-        })
-    }, [])
-
-    const getOrCreatePeerConnection = useCallback(async (chatId, callId, remoteUserId) => {
-        if (peerConnectionsRef.current.has(remoteUserId)) {
-            return peerConnectionsRef.current.get(remoteUserId)
-        }
-
-        // If creation is already in progress, wait for it
-        if (pcPromisesRef.current.has(remoteUserId)) {
-            return await pcPromisesRef.current.get(remoteUserId)
-        }
-
-        const createPromise = (async () => {
-            try {
-                const localStream = await ensureLocalStream()
-                const audioTracks = localStream.getAudioTracks()
-                console.log('[WebRTC] Local audio tracks:', audioTracks.map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })))
-                if (audioTracks.length === 0) {
-                    throw new Error('Mikrofon erişimi sağlanamadı, ses gönderilemiyor.')
-                }
-
-                const peerConnection = new RTCPeerConnection({
-                    iceServers: iceServersRef.current,
-                })
-
-                audioTracks.forEach(track => {
-                    peerConnection.addTrack(track, localStream)
-                })
-
-                peerConnection.ontrack = (event) => {
-                    console.log('[WebRTC] ontrack fired:', event.track.kind, 'enabled:', event.track.enabled, 'readyState:', event.track.readyState)
-                    const stream = (event.streams && event.streams.length > 0)
-                        ? event.streams[0]
-                        : (() => {
-                            const ms = new MediaStream()
-                            ms.addTrack(event.track)
-                            return ms
-                        })()
-                    attachRemoteStream(remoteUserId, stream)
-                }
-
-                peerConnection.onicecandidate = (event) => {
-                    if (!event.candidate) return
-                    sendSignal(chatId, callId, 'ice-candidate', { candidate: event.candidate }, remoteUserId)
-                        .catch(() => { })
-                }
-
-                peerConnection.onconnectionstatechange = () => {
-                    console.log('[WebRTC] connectionState for', remoteUserId, ':', peerConnection.connectionState)
-                    const terminalStates = ['failed', 'closed', 'disconnected']
-                    if (terminalStates.includes(peerConnection.connectionState)) {
-                        peerConnection.close()
-                        peerConnectionsRef.current.delete(remoteUserId)
-                        pcPromisesRef.current.delete(remoteUserId)
-                    }
-                }
-
-                peerConnection.oniceconnectionstatechange = () => {
-                    console.log('[WebRTC] iceConnectionState for', remoteUserId, ':', peerConnection.iceConnectionState)
-                }
-
-                peerConnectionsRef.current.set(remoteUserId, peerConnection)
-                return peerConnection
-            } finally {
-                // Do NOT delete the promise before peerConnectionsRef is set if successful
-                // We delete it after it has served its purpose of "locking" the creation
-                if (pcPromisesRef.current.get(remoteUserId) === createPromise) {
-                    pcPromisesRef.current.delete(remoteUserId)
-                }
-            }
-        })()
-
-        pcPromisesRef.current.set(remoteUserId, createPromise)
-        return await createPromise
-    }, [attachRemoteStream, ensureLocalStream, sendSignal])
-
-    const createOfferForPeer = useCallback(async (callPayload, remoteUserId) => {
-        const peerConnection = await getOrCreatePeerConnection(callPayload.chat_id, callPayload.id, remoteUserId)
-        const offer = await peerConnection.createOffer()
-        await peerConnection.setLocalDescription(offer)
-        await sendSignal(callPayload.chat_id, callPayload.id, 'offer', { offer: peerConnection.localDescription }, remoteUserId)
-    }, [getOrCreatePeerConnection, sendSignal])
+    // ─── Call State Yönetimi ──────────────────────────────────────────────────────
 
     const applyCallUpdate = useCallback((payload) => {
         if (!payload?.id) return
@@ -587,145 +447,24 @@ export default function ChatPage() {
         }
     }, [currentUser?.id, incomingCall, stopCallSounds, teardownCallMedia])
 
-    const handleIncomingSignal = useCallback(async (signal) => {
-        if (!activeCall || String(signal.call_id) !== String(activeCall.id)) return
-        if (String(signal.from_user_id) === String(currentUser?.id)) return
-        if (signal.target_user_id && String(signal.target_user_id) !== String(currentUser?.id)) return
-
-        // Kullanıcı henüz aramaya katılmadıysa sinyalleri buffer'a al
-        if (!isInCall) {
-            console.log('[WebRTC] Buffering signal (not in call yet):', signal.signal_type)
-            pendingSignalsRef.current.push(signal)
-            return
-        }
-
-        // Aynı sinyalin çift kanaldan (chat + user) gelmesini engelle
-        const signalKey = `${signal.from_user_id}:${signal.signal_type}:${signal.sent_at || ''}`
-        if (processedSignalsRef.current.has(signalKey)) return
-        processedSignalsRef.current.add(signalKey)
-        // Bellek taşmasını önle
-        if (processedSignalsRef.current.size > 200) {
-            const entries = [...processedSignalsRef.current]
-            processedSignalsRef.current = new Set(entries.slice(-100))
-        }
-
-        const remoteUserId = String(signal.from_user_id)
-        const signalType = signal.signal_type
-        const payload = signal.payload || {}
-
-        console.log('[WebRTC] Signal received:', signalType, 'from', remoteUserId)
-
-        try {
-            if (signalType === 'offer') {
-                const peerConnection = await getOrCreatePeerConnection(activeCall.chat_id, activeCall.id, remoteUserId)
-                // Zaten offer işlenmişse tekrar işleme (signaling state koruması)
-                if (peerConnection.signalingState !== 'stable' && peerConnection.signalingState !== 'have-local-offer') {
-                    console.warn('[WebRTC] Skipping offer, signalingState:', peerConnection.signalingState)
-                    return
-                }
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer))
-                const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
-                iceCandidateBufferRef.current.delete(remoteUserId)
-                for (const c of buffered) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
-                }
-                const answer = await peerConnection.createAnswer()
-                await peerConnection.setLocalDescription(answer)
-                await sendSignal(activeCall.chat_id, activeCall.id, 'answer', { answer: peerConnection.localDescription }, remoteUserId)
-                console.log('[WebRTC] Answer sent to', remoteUserId)
-                return
-            }
-
-            if (signalType === 'answer') {
-                const peerConnection = peerConnectionsRef.current.get(remoteUserId)
-                if (!peerConnection) return
-                // Answer zaten işlenmişse atla
-                if (peerConnection.signalingState !== 'have-local-offer') {
-                    console.warn('[WebRTC] Skipping answer, signalingState:', peerConnection.signalingState)
-                    return
-                }
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer))
-                const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
-                iceCandidateBufferRef.current.delete(remoteUserId)
-                for (const c of buffered) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
-                }
-                console.log('[WebRTC] Remote description (answer) set for', remoteUserId)
-                return
-            }
-
-            if (signalType === 'ice-candidate') {
-                if (!payload.candidate) return
-                const peerConnection = peerConnectionsRef.current.get(remoteUserId)
-
-                // PC yoksa veya henüz remoteDescription set edilmemişse arabelleğe al
-                if (!peerConnection || !peerConnection.remoteDescription) {
-                    console.log('[WebRTC] Buffering ice-candidate for', remoteUserId)
-                    const buf = iceCandidateBufferRef.current.get(remoteUserId) || []
-                    buf.push(payload.candidate)
-                    iceCandidateBufferRef.current.set(remoteUserId, buf)
-                    return
-                }
-
-                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(e => {
-                    console.warn('[WebRTC] Error adding ice-candidate:', e)
-                })
-            }
-        } catch (error) {
-            console.error('[WebRTC] Signal handling error:', signalType, error)
-        }
-    }, [activeCall, currentUser?.id, isInCall, getOrCreatePeerConnection, sendSignal])
-
-    useEffect(() => { handleIncomingSignalRef.current = handleIncomingSignal }, [handleIncomingSignal])
     useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
 
-    // isInCall true olduğunda: önce bekleyen sinyalleri sırayla işle, sonra offer gönder
+    // Arama active olduğunda Agora kanalına katıl
     useEffect(() => {
-        if (!activeCall?.id || !isInCall || activeCall.status !== 'active' || !currentUser?.id) return
+        if (!activeCall?.id || !isInCall || activeCall.status !== 'active') return
 
         let cancelled = false
-
-        ;(async () => {
-            // 1. Önce bekleyen sinyalleri SIRAYLA işle
-            const pending = pendingSignalsRef.current.splice(0)
-            if (pending.length > 0) {
-                console.log('[WebRTC] Flushing', pending.length, 'buffered signals')
-                for (const sig of pending) {
-                    if (cancelled) return
-                    try {
-                        await handleIncomingSignalRef.current?.(sig)
-                    } catch (e) {
-                        console.error('[WebRTC] Error processing buffered signal:', e)
-                    }
-                }
-                console.log('[WebRTC] Flush complete')
+        joinAgoraChannel(activeCall.id).then(() => {
+            if (!cancelled) console.log('[Agora] Connected to call', activeCall.id)
+        }).catch(err => {
+            if (!cancelled) {
+                console.error('[Agora] Join error:', err)
+                toast.error('Ses kanalına bağlanılamadı.')
             }
-
-            if (cancelled) return
-
-            // 2. Sonra gerekirse offer gönder (flush'ın bitip PC oluşturmasını bekledik)
-            const joinedParticipants = (activeCall.participants || [])
-                .filter(p => p.status === 'joined' && String(p.user_id) !== String(currentUser.id))
-
-            for (const participant of joinedParticipants) {
-                if (cancelled) return
-                const remoteUserId = String(participant.user_id)
-                const shouldInitiate = String(currentUser.id) < remoteUserId
-                if (!shouldInitiate) continue
-                if (peerConnectionsRef.current.has(remoteUserId)) continue
-
-                try {
-                    console.log('[WebRTC] Creating offer for', remoteUserId)
-                    await createOfferForPeer(activeCall, remoteUserId)
-                    console.log('[WebRTC] Offer sent to', remoteUserId)
-                } catch (error) {
-                    console.error('[WebRTC] Offer create error:', error)
-                }
-            }
-        })()
+        })
 
         return () => { cancelled = true }
-    }, [activeCall, isInCall, currentUser?.id, createOfferForPeer])
+    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
@@ -784,9 +523,6 @@ export default function ChatPage() {
             })
             .listen('.chat.call.updated', (event) => {
                 applyCallUpdateRef.current?.(event)
-            })
-            .listen('.chat.call.signal', (e) => {
-                handleIncomingSignalRef.current?.(e)
             })
 
         return () => {
@@ -908,9 +644,6 @@ export default function ChatPage() {
             .listen('.chat.call.updated', (e) => {
                 applyCallUpdateRef.current?.(e)
             })
-            .listen('.chat.call.signal', (e) => {
-                handleIncomingSignalRef.current?.(e)
-            })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
     }, [selectedChat, currentUser, queryClient, markAsRead])
 
@@ -973,16 +706,6 @@ export default function ChatPage() {
 
         setIsCallActionPending(true)
         try {
-            // Mikrofon erişimini önce kontrol et
-            try {
-                await ensureLocalStream()
-            } catch (micErr) {
-                toast.error('Mikrofon erişimi sağlanamadı. Lütfen tarayıcı izinlerini kontrol edin.')
-                console.error('[WebRTC] Mic access failed:', micErr)
-                setIsCallActionPending(false)
-                return
-            }
-
             const response = await api.post(`/chats/${selectedChat.id}/calls`, { type: 'audio' })
             const call = response.data?.data
             if (!call) return
@@ -1018,7 +741,6 @@ export default function ChatPage() {
                 setSearchParams({ open: String(incomingCall.chat_id) }, { replace: true })
             }
 
-            // Önce API çağrısını yap ki karşı taraf bilgilensin
             const response = await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/accept`)
             const call = response.data?.data
             if (!call) return
@@ -1026,15 +748,6 @@ export default function ChatPage() {
             stopCallSounds()
             setActiveCall(call)
             setIncomingCall(null)
-
-            // Mikrofon erişimini al - başarısız olursa arama yine kabul edilmiş olur
-            try {
-                await ensureLocalStream()
-            } catch (micErr) {
-                console.error('[WebRTC] Mic access failed after accept:', micErr)
-                toast.error('Mikrofon erişimi sağlanamadı. Karşı taraf sizi duyamayacak.')
-            }
-
             setIsInCall(true)
             toast.success('Arama kabul edildi.')
         } catch (error) {
