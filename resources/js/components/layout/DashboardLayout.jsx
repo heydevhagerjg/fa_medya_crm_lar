@@ -198,7 +198,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
             .then((res) => {
                 updateUser(res.data);
             })
-            .catch(() => { });
+            .catch(() => {});
     }, []);
 
     // ─── Global Chat Notifications ───────────────────────────────────────────
@@ -206,33 +206,40 @@ export default function DashboardLayout({ children, isRestoring = false }) {
         if (!user?.id || !window.Echo) return;
 
         const channel = window.Echo.private(`user.chats.${user.id}`)
-            .listen('.chat.created', (e) => {
-                queryClient.invalidateQueries(['chats']);
-                if (!location.pathname.startsWith('/chats')) {
-                    toast('💬 Yeni bir sohbet başlatıldı', {
+            .listen(".chat.created", (e) => {
+                queryClient.invalidateQueries(["chats"]);
+                if (!location.pathname.startsWith("/chats")) {
+                    toast("💬 Yeni bir sohbet başlatıldı", {
                         duration: 4000,
-                        style: { cursor: 'pointer' },
-                        onClick: () => navigate(`/chats?open=${e?.chat?.id || e?.id || ''}`),
+                        style: { cursor: "pointer" },
+                        onClick: () =>
+                            navigate(
+                                `/chats?open=${e?.chat?.id || e?.id || ""}`,
+                            ),
                     });
                 }
             })
-            .listen('.message.created', (e) => {
-                queryClient.invalidateQueries(['chats']);
-                if (!location.pathname.startsWith('/chats') && e.user?.name) {
+            .listen(".message.created", (e) => {
+                queryClient.invalidateQueries(["chats"]);
+                if (!location.pathname.startsWith("/chats") && e.user?.name) {
                     toast(
                         (t) => (
                             <span
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => { toast.dismiss(t.id); navigate(`/chats?open=${e.chat_id}`); }}
+                                style={{ cursor: "pointer" }}
+                                onClick={() => {
+                                    toast.dismiss(t.id);
+                                    navigate(`/chats?open=${e.chat_id}`);
+                                }}
                             >
-                                <strong>{e.user.name}</strong>: {e.content?.slice(0, 60) || 'Yeni mesaj'}
+                                <strong>{e.user.name}</strong>:{" "}
+                                {e.content?.slice(0, 60) || "Yeni mesaj"}
                             </span>
                         ),
                         {
-                            icon: '💬',
+                            icon: "💬",
                             duration: 5000,
-                            id: `chat-msg-${e.chat_id}`,  // prevent duplicate toasts per chat
-                        }
+                            id: `chat-msg-${e.chat_id}`, // prevent duplicate toasts per chat
+                        },
                     );
                 }
             });
@@ -286,7 +293,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
     const handleLogout = async () => {
         try {
             await api.post("/auth/logout");
-        } catch { }
+        } catch {}
         clearAuth();
         navigate("/login");
         toast.success("Çıkış yapıldı.");
@@ -295,19 +302,21 @@ export default function DashboardLayout({ children, isRestoring = false }) {
     const handleRecalculateStorage = async () => {
         if (isRecalculating) return;
         setIsRecalculating(true);
-        const loadingToast = toast.loading('Depolama alanı hesaplanıyor...');
+        const loadingToast = toast.loading("Depolama alanı hesaplanıyor...");
         try {
-            const res = await api.post('/tenant/recalculate-storage');
+            const res = await api.post("/tenant/recalculate-storage");
             updateUser({
                 ...user,
                 tenant: {
                     ...user.tenant,
-                    storage_used: res.data.storage_used
-                }
+                    storage_used: res.data.storage_used,
+                },
             });
-            toast.success('Depolama alanı güncellendi.', { id: loadingToast });
+            toast.success("Depolama alanı güncellendi.", { id: loadingToast });
         } catch (err) {
-            toast.error(err?.response?.data?.message || 'Hesaplama hatası', { id: loadingToast });
+            toast.error(err?.response?.data?.message || "Hesaplama hatası", {
+                id: loadingToast,
+            });
         } finally {
             setIsRecalculating(false);
         }
@@ -331,7 +340,11 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                 >
                     {!expanded && (
                         <img
-                            src={theme === 'dark' ? "/logo/small-logo.png" : "/logo/small-logo-dark.png"}
+                            src={
+                                theme === "dark"
+                                    ? "/logo/small-logo.png"
+                                    : "/logo/small-logo-dark.png"
+                            }
                             alt="Logo"
                             width={32}
                             height={32}
@@ -340,9 +353,13 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                     )}
                     {expanded && (
                         <img
-                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"}
+                            src={
+                                theme === "dark"
+                                    ? "/logo/big-logo.png"
+                                    : "/logo/big-logo-dark.png"
+                            }
                             alt="Logo"
-                            style={{ width: 'auto', height: 40 }}
+                            style={{ width: "auto", height: 40 }}
                             className="rounded-full"
                         />
                     )}
@@ -375,13 +392,18 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                             <LinkComponent
                                 key={item.to}
                                 {...(!isRestoring ? { to: item.to } : {})}
-                                onClick={() => !isRestoring && isMobile && setMobileOpen(false)}
+                                onClick={() =>
+                                    !isRestoring &&
+                                    isMobile &&
+                                    setMobileOpen(false)
+                                }
                                 className={`
                                     relative group flex items-center gap-3 transition-all duration-200 shrink-0 rounded-xl
                                     ${expanded ? "px-3 py-2.5" : "w-11 h-11 mx-auto justify-center"}
-                                    ${isActive && !isRestoring
-                                        ? "theme-nav-item-active shadow-md"
-                                        : "theme-nav-item"
+                                    ${
+                                        isActive && !isRestoring
+                                            ? "theme-nav-item-active shadow-md"
+                                            : "theme-nav-item"
                                     }
                                     ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}
                                 `}
@@ -389,7 +411,9 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                             >
                                 <IconComp
                                     size={18}
-                                    strokeWidth={isActive && !isRestoring ? 2.5 : 1.8}
+                                    strokeWidth={
+                                        isActive && !isRestoring ? 2.5 : 1.8
+                                    }
                                     className="shrink-0"
                                 />
                                 {expanded && (
@@ -403,7 +427,10 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                     <span
                                         className={`${expanded ? "ml-auto" : "absolute -top-0.5 -right-0.5"} theme-muted-badge flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full`}
                                     >
-                                        <Lock size={8} className="theme-text-secondary" />
+                                        <Lock
+                                            size={8}
+                                            className="theme-text-secondary"
+                                        />
                                     </span>
                                 )}
                                 {!expanded && (
@@ -428,8 +455,8 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                         isMobile={isMobile}
                         setMobileOpen={setMobileOpen}
                         onExpandSidebar={() => {
-                            setExpanded(true)
-                            localStorage.setItem("sidebar-expanded", "true")
+                            setExpanded(true);
+                            localStorage.setItem("sidebar-expanded", "true");
                         }}
                     />
                 )}
@@ -448,27 +475,32 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                 1024 /
                                 1024 /
                                 user.tenant.storage_limit) *
-                            100,
+                                100,
                         );
                         const color =
                             pct > 90
                                 ? "#ef4444"
                                 : pct > 70
-                                    ? "#f59e0b"
-                                    : "#905EFC";
+                                  ? "#f59e0b"
+                                  : "#905EFC";
                         const usedMb = Math.round(
                             user.tenant.storage_used / 1024 / 1024,
                         );
                         return expanded ? (
                             <div
                                 onClick={handleRecalculateStorage}
-                                className={`theme-nav-item mb-1 cursor-pointer rounded-xl px-3 py-2.5 transition-all group/storage ${isRecalculating ? 'opacity-50 pointer-events-none' : ''}`}
+                                className={`theme-nav-item mb-1 cursor-pointer rounded-xl px-3 py-2.5 transition-all group/storage ${isRecalculating ? "opacity-50 pointer-events-none" : ""}`}
                                 title="Depolama alanını yeniden hesaplamak için tıklayın"
                             >
                                 <div className="theme-text-secondary mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-wider">
                                     <div className="flex items-center gap-1.5">
                                         <span>Depolama</span>
-                                        {isRecalculating && <Activity size={10} className="animate-pulse text-[#905EFC]" />}
+                                        {isRecalculating && (
+                                            <Activity
+                                                size={10}
+                                                className="animate-pulse text-[#905EFC]"
+                                            />
+                                        )}
                                     </div>
                                     <span className="group-hover/storage:text-[#905EFC] transition-colors">
                                         {usedMb} / {user.tenant.storage_limit}{" "}
@@ -477,11 +509,11 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                 </div>
                                 <div className="theme-progress-track h-1.5 w-full overflow-hidden rounded-full shadow-inner">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-700 ease-out ${isRecalculating ? 'animate-pulse' : ''}`}
+                                        className={`h-full rounded-full transition-all duration-700 ease-out ${isRecalculating ? "animate-pulse" : ""}`}
                                         style={{
                                             width: `${pct}%`,
                                             backgroundColor: color,
-                                            boxShadow: `0 0 8px ${color}40`
+                                            boxShadow: `0 0 8px ${color}40`,
                                         }}
                                     />
                                 </div>
@@ -489,7 +521,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                         ) : (
                             <div
                                 onClick={handleRecalculateStorage}
-                                className={`theme-nav-item relative group mb-1 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl transition-all ${isRecalculating ? 'animate-spin-slow' : ''}`}
+                                className={`theme-nav-item relative group mb-1 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl transition-all ${isRecalculating ? "animate-spin-slow" : ""}`}
                             >
                                 <svg
                                     width="44"
@@ -560,9 +592,10 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                     onClick={() => isMobile && setMobileOpen(false)}
                     className={`relative group flex items-center gap-3 rounded-xl transition-all
                         ${expanded ? "px-3 py-2.5 w-full" : "w-11 h-11 mx-auto justify-center"}
-                        ${location.pathname === "/profile"
-                            ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
-                            : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
+                        ${
+                            location.pathname === "/profile"
+                                ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
+                                : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
                         }`}
                 >
                     <User size={18} strokeWidth={1.8} className="shrink-0" />
@@ -657,11 +690,15 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                     <div className="theme-divider flex h-17.5 shrink-0 items-center border-b px-5">
                         <div className="flex items-center gap-3">
                             <img
-                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"}
-                            alt="Logo"
-                            style={{ width: 'auto', height: 40 }}
-                            className="rounded-full"
-                        />
+                                src={
+                                    theme === "dark"
+                                        ? "/logo/big-logo.png"
+                                        : "/logo/big-logo-dark.png"
+                                }
+                                alt="Logo"
+                                style={{ width: "auto", height: 40 }}
+                                className="rounded-full"
+                            />
                         </div>
                     </div>
                     <nav className="flex-1 flex flex-col gap-0.5 py-3 px-3 overflow-y-auto">
@@ -676,16 +713,26 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                 return (
                                     <LinkComponent
                                         key={item.to}
-                                        {...(!isRestoring ? { to: item.to } : {})}
-                                        onClick={() => !isRestoring && setMobileOpen(false)}
+                                        {...(!isRestoring
+                                            ? { to: item.to }
+                                            : {})}
+                                        onClick={() =>
+                                            !isRestoring && setMobileOpen(false)
+                                        }
                                         className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${isActive && !isRestoring ? "theme-nav-item-active shadow-md" : "theme-nav-item"} ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}`}
                                     >
                                         <IconComp
                                             size={18}
-                                            strokeWidth={isActive && !isRestoring ? 2.5 : 1.8}
+                                            strokeWidth={
+                                                isActive && !isRestoring
+                                                    ? 2.5
+                                                    : 1.8
+                                            }
                                             className="shrink-0"
                                         />
-                                        <span className={`text-sm font-semibold ${isActive && !isRestoring ? "theme-nav-label-active" : "theme-nav-label"}`}>
+                                        <span
+                                            className={`text-sm font-semibold ${isActive && !isRestoring ? "theme-nav-label-active" : "theme-nav-label"}`}
+                                        >
                                             {item.label}
                                         </span>
                                     </LinkComponent>
@@ -712,7 +759,9 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                             className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${location.pathname === "/profile" ? "theme-nav-item-active" : "theme-nav-item"}`}
                         >
                             <User size={18} strokeWidth={1.8} />
-                            <span className={`text-sm font-semibold ${location.pathname === "/profile" ? "theme-nav-label-active" : "theme-nav-label"}`}>
+                            <span
+                                className={`text-sm font-semibold ${location.pathname === "/profile" ? "theme-nav-label-active" : "theme-nav-label"}`}
+                            >
                                 Profilim
                             </span>
                         </NavLink>
