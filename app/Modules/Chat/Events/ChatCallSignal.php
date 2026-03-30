@@ -23,9 +23,17 @@ class ChatCallSignal implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('chat.' . $this->callSession->chat_id),
         ];
+
+        // Also send directly to the target user's personal channel so they
+        // receive WebRTC signals even if they haven't opened the chat yet.
+        if ($this->targetUserId) {
+            $channels[] = new PrivateChannel('user.chats.' . $this->targetUserId);
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string

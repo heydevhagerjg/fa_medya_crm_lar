@@ -638,13 +638,16 @@ export default function ChatPage() {
                 toast((event.caller_name || 'Bir kişi') + ' sizi arıyor')
             })
             .listen('.chat.call.updated', (event) => {
-                applyCallUpdate(event)
+                applyCallUpdateRef.current?.(event)
+            })
+            .listen('.chat.call.signal', (e) => {
+                handleIncomingSignalRef.current?.(e)
             })
 
         return () => {
             window.Echo.leave(`user.chats.${currentUser.id}`)
         }
-    }, [currentUser?.id, applyCallUpdate, startRingTone])
+    }, [currentUser?.id, startRingTone])
 
     useEffect(() => {
         if (!activeCall?.id || !isInCall || activeCall.status !== 'active') {
