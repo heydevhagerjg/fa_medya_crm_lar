@@ -6,9 +6,9 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
   if (isSystem) {
     return (
       <div className="flex justify-center my-3">
-        <div className="bg-white dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2">
-          <Info size={12} className="text-[#905efc]" />
-          <span className="text-[11px] text-[#9097A6]">{message.content}</span>
+        <div className="theme-surface border theme-divider px-4 py-1.5 rounded-full flex items-center gap-2">
+          <Info size={12} className="text-primary" />
+          <span className="text-[11px] theme-text-secondary">{message.content}</span>
         </div>
       </div>
     )
@@ -25,7 +25,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
 
   const renderTimestamp = (overlay = false) => (
     <div className={`flex items-center gap-1 ${overlay ? 'absolute bottom-1.5 right-2 z-10' : 'mt-1'} ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <span className={`text-[10px] ${overlay ? 'text-white font-semibold drop-shadow-md' : isOwn ? 'text-white/60' : 'text-[#9097A6]'}`}>
+      <span className={`text-[10px] ${overlay ? 'text-white font-semibold drop-shadow-md' : isOwn ? 'text-white/60' : 'theme-text-secondary'}`}>
         {timeStr}
       </span>
       {isOwn && (
@@ -51,7 +51,7 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
               />
             ) : (
               <div className="bg-white/10 border border-white/20 p-2.5 rounded-xl flex items-center gap-2.5 backdrop-blur-sm">
-                <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
                   <FileText className="text-white" size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -75,9 +75,9 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
 
         {/* Avatar */}
         {!isOwn && (
-          <div className="flex-shrink-0 w-8 h-8 self-end mb-0.5 border-transparent">
+          <div className="shrink-0 w-8 h-8 self-end mb-0.5 border-transparent">
             {!isSequential && (
-              <div className="w-8 h-8 rounded-full bg-[#1A1A2E]/10 dark:bg-white/10 flex items-center justify-center text-[11px] font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10 self-end">
+              <div className="theme-surface-alt w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold theme-text-primary border theme-divider self-end">
                 {message.user?.name?.charAt(0).toUpperCase()}
               </div>
             )}
@@ -88,9 +88,9 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
           {/* Sender name (for received messages) */}
           {!isOwn && !isSequential && (
-            <div className="text-[11px] font-semibold text-[#905efc] mb-1 px-1 flex items-center gap-1">
+            <div className="text-[11px] font-semibold text-primary mb-1 px-1 flex items-center gap-1">
               {message.user?.name}
-              {message.user?.role === 'ADMIN' && <Shield size={9} className="text-[#905efc]" />}
+              {message.user?.role === 'ADMIN' && <Shield size={9} className="text-primary" />}
             </div>
           )}
 
@@ -111,8 +111,8 @@ export default function MessageItem({ message, isOwn, isSystem, isSequential = f
             )}
 
             <div className={`relative transition-all duration-200 ${isImageOnly ? 'p-1' : 'px-4 py-2.5'} rounded-2xl ${isOwn
-              ? `bg-[#905efc] text-white shadow-[#905efc]/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
-              : `bg-white dark:bg-[#12122A] text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/5 ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
+              ? `bg-primary text-white shadow-primary/20 ${isSequential ? 'rounded-tr-sm rounded-br-sm' : 'rounded-br-sm shadow-lg'}`
+              : `theme-surface theme-text-primary border theme-divider ${isSequential ? 'rounded-tl-sm rounded-bl-sm' : 'rounded-bl-sm shadow-sm'}`
               }`}>
               {message.content && (
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
@@ -139,7 +139,7 @@ function AttachmentImage({ file, onClick, overlay, isImageOnly }) {
     >
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">
-          <div className="w-10 h-10 border-2 border-white/20 border-t-[#905efc] rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>
         </div>
       )}
 
@@ -152,7 +152,7 @@ function AttachmentImage({ file, onClick, overlay, isImageOnly }) {
 
       {/* WhatsApp style gradient for overlay visibility */}
       {overlay && (
-        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-black/40 to-transparent pointer-events-none" />
       )}
       
       {overlay}
@@ -163,7 +163,7 @@ function AttachmentImage({ file, onClick, overlay, isImageOnly }) {
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#905efc] hover:scale-110 z-20 shadow-lg border border-white/10"
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:scale-110 z-20 shadow-lg border border-white/10"
         title="İndir"
       >
         <Download className="text-white" size={14} />

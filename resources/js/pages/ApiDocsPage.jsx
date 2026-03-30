@@ -6,6 +6,8 @@ import PlanRestrictionView from '../components/ui/PlanRestrictionView.jsx'
 export default function ApiDocsPage() {
     const { user } = useAuthStore()
     const isApiKeyDisabled = user?.tenant?.plan_api_key_feature === false || user?.tenant?.plan_api_key_feature === 0
+    const sectionEyebrowClass = 'text-xs font-black theme-text-secondary uppercase tracking-widest ml-1'
+    const codeBlockClass = 'rounded-[2rem] p-6 shadow-2xl border theme-divider overflow-x-auto'
 
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/" replace />
@@ -20,22 +22,22 @@ export default function ApiDocsPage() {
     }
 
     return (
-        <div className="space-y-8 pb-12 max-w-7xl mx-auto p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
+        <div className="theme-app-shell space-y-8 pb-12 max-w-7xl mx-auto p-6">
+            <div className="theme-surface flex flex-col md:flex-row md:items-center justify-between gap-6 p-8 rounded-[2.5rem] border theme-divider shadow-sm">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-indigo-500 rounded-xl text-white">
                             <FileCode size={24} />
                         </div>
-                        <h1 className="text-3xl font-black text-gray-900 dark:text-white">
+                        <h1 className="text-3xl font-black theme-text-primary">
                             Özel API Dokümantasyonu
                         </h1>
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
+                    <p className="theme-text-secondary max-w-2xl leading-relaxed">
                         Famedya CRM altyapısını dış sistemlerle entegre etmek için oluşturduğunuz API anahtarlarını nasıl kullanacağınızı ve yeteneklerini buradan öğrenebilirsiniz.
                     </p>
                 </div>
-                <Link to="/settings/api-keys" className="flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl text-sm font-bold transition-all">
+                <Link to="/settings/api-keys" className="theme-button-secondary flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all">
                     <Key size={18} /> API Anahtarlarını Yönet
                 </Link>
             </div>
@@ -43,20 +45,20 @@ export default function ApiDocsPage() {
             {/* QUICK START / CORE INFO */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] shadow-sm relative overflow-hidden group">
+                    <div className="theme-surface p-8 border theme-divider rounded-[2.5rem] shadow-sm relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform pointer-events-none">
                             <Key size={160} />
                         </div>
-                        <h3 className="text-xl font-black mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                        <h3 className="text-xl font-black mb-4 theme-text-primary flex items-center gap-2">
                             <Shield size={24} className="text-indigo-500" /> API Anahtarı ile Yetkilendirme
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                        <p className="text-sm theme-text-secondary mb-6 leading-relaxed">
                             Ayarlar sayfasından oluşturduğunuz API anahtarını kullanırken, her isteğin header bölümüne <code>X-Api-Key</code> parametresini eklemelisiniz.
                             Bu yöntem, standart Bearer token sisteminden bağımsız çalışır ve statik entegrasyonlar için idealdir.
                         </p>
                         <div className="space-y-4">
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                <div className="text-[10px] uppercase tracking-widest font-black text-gray-400 mb-2">HTTP Header Örneği</div>
+                            <div className="theme-surface-alt p-4 rounded-2xl border theme-divider">
+                                <div className="text-[10px] uppercase tracking-widest font-black theme-text-secondary mb-2">HTTP Header Örneği</div>
                                 <code className="text-sm font-mono text-pink-600 dark:text-pink-400 break-all">
                                     X-Api-Key: fa_live_589e0df4e86c43be...
                                 </code>
@@ -65,7 +67,7 @@ export default function ApiDocsPage() {
                     </div>
 
                     <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/50 to-purple-600/50" />
+                        <div className="absolute inset-0 bg-linear-to-br from-indigo-500/50 to-purple-600/50" />
                         <div className="relative">
                             <h3 className="text-xl font-black mb-4 flex items-center gap-2">
                                 <Activity size={24} /> API Temel Bilgileri
@@ -98,7 +100,7 @@ export default function ApiDocsPage() {
                         </p>
                         <div className="mt-4 grid grid-cols-2 gap-2">
                             {['read', 'write', 'update', 'delete'].map(action => (
-                                <div key={action} className="px-2 py-1 bg-white dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900/30 text-[10px] font-bold text-amber-700 dark:text-amber-500 uppercase text-center">
+                                <div key={action} className="theme-surface px-2 py-1 rounded-lg border border-amber-100 dark:border-amber-900/30 text-[10px] font-bold text-amber-700 dark:text-amber-500 uppercase text-center">
                                     {action}
                                 </div>
                             ))}
@@ -117,7 +119,7 @@ export default function ApiDocsPage() {
             </div>
 
             {/* ENDPOINT CATEGORIES */}
-            <div className="grid grid-cols-1 gap-12 mt-12 bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800">
+            <div className="theme-surface grid grid-cols-1 gap-12 mt-12 p-8 rounded-[3rem] border theme-divider">
 
                 {/* 1. DASHBOARD & STATS */}
                 <section>
@@ -209,12 +211,12 @@ export default function ApiDocsPage() {
                     <SectionHeader icon={CreditCard} color="emerald" title="Finansal İşlemler" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Tahsilatlar</h4>
+                            <h4 className={sectionEyebrowClass}>Tahsilatlar</h4>
                             <EndpointItem method="GET" path="/payments" label="Liste" perm="finance:read" />
                             <EndpointItem method="POST" path="/payments" label="Ekle" perm="finance:write" req={`{\n  "jobId": 1,\n  "amount": 2000,\n  "cashRegisterId": 1\n}`} />
                         </div>
                         <div className="space-y-4">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Giderler</h4>
+                            <h4 className={sectionEyebrowClass}>Giderler</h4>
                             <EndpointItem method="GET" path="/expenses" label="Liste" perm="expenses:read" />
                             <EndpointItem method="POST" path="/expenses" label="Ekle" perm="expenses:write" />
                         </div>
@@ -243,14 +245,14 @@ export default function ApiDocsPage() {
                 </section>
 
                 {/* CODE EXAMPLES */}
-                <div className="pt-12 border-t border-gray-100 dark:border-gray-800">
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-8">Hızlı Kod Örnekleri</h2>
+                <div className="pt-12 border-t theme-divider">
+                    <h2 className="text-2xl font-black theme-text-primary mb-8">Hızlı Kod Örnekleri</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-bold text-gray-500">
+                            <div className="flex items-center gap-2 text-sm font-bold theme-text-secondary">
                                 <Terminal size={18} /> cURL
                             </div>
-                            <div className="bg-gray-950 rounded-[2rem] p-6 shadow-2xl ring-1 ring-white/10">
+                            <div className={`${codeBlockClass} bg-gray-950 ring-1 ring-white/10`}>
                                 <pre className="text-sm font-mono text-indigo-300 leading-relaxed overflow-x-auto">
                                     {`curl -X GET "${window.location.origin}/api/jobs" \\
   -H "X-Api-Key: SİZİN_API_ANAHTARINIZ" \\
@@ -260,10 +262,10 @@ export default function ApiDocsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-bold text-gray-500">
+                            <div className="flex items-center gap-2 text-sm font-bold theme-text-secondary">
                                 <Code size={18} /> JavaScript
                             </div>
-                            <div className="bg-gray-950 rounded-[2rem] p-6 shadow-2xl ring-1 ring-white/10">
+                            <div className={`${codeBlockClass} bg-gray-950 ring-1 ring-white/10`}>
                                 <pre className="text-sm font-mono text-emerald-300 leading-relaxed overflow-x-auto">
                                     {`fetch('${window.location.origin}/api/jobs', {
   headers: {
@@ -291,18 +293,18 @@ function SectionHeader({ icon: Icon, title, color }) {
         amber: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500',
     }
     return (
-        <div className="flex items-center gap-4 mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
+        <div className="flex items-center gap-4 mb-8 border-b theme-divider pb-4">
             <div className={`p-3 rounded-2xl ${colors[color]}`}>
                 <Icon size={28} />
             </div>
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white">{title}</h2>
+            <h2 className="text-2xl font-black theme-text-primary">{title}</h2>
         </div>
     )
 }
 
 function EndpointItem({ method, path, label, desc, req, perm }) {
     return (
-        <div className="p-6 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-3xl transition-all hover:border-indigo-500/30 group">
+        <div className="theme-surface p-6 border theme-divider rounded-3xl transition-all hover:border-indigo-500/30 group">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                 <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -319,20 +321,20 @@ function EndpointItem({ method, path, label, desc, req, perm }) {
                             /api{path}
                         </code>
                         {perm && (
-                            <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                            <div className="theme-muted-badge flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border theme-divider">
                                 <Share2 size={12} /> {perm}
                             </div>
                         )}
                     </div>
                     <div>
-                        <div className="text-base font-bold text-gray-900 dark:text-white">{label}</div>
-                        {desc && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</div>}
+                        <div className="text-base font-bold theme-text-primary">{label}</div>
+                        {desc && <div className="text-xs theme-text-secondary mt-0.5">{desc}</div>}
                     </div>
                 </div>
             </div>
             {req && (
                 <div className="mt-6">
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2.5 ml-1">Parametreler (JSON)</div>
+                    <div className="text-[10px] font-black theme-text-secondary uppercase tracking-[0.2em] mb-2.5 ml-1">Parametreler (JSON)</div>
                     <div className="bg-gray-950 rounded-2xl p-5 overflow-x-auto ring-1 ring-white/10 shadow-inner">
                         <pre className="text-xs text-green-400/90 font-mono leading-relaxed">
                             {req}

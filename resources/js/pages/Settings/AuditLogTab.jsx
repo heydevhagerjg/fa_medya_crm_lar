@@ -9,12 +9,12 @@ export default function AuditLogTab() {
     })
 
     const getActionColor = (action) => {
-        if (!action) return 'text-[#9097A6] bg-[#F4F5F7] dark:bg-gray-500/10'
+        if (!action) return 'theme-text-secondary bg-[#F4F5F7] dark:bg-gray-500/10'
         const lowerAction = action.toLowerCase()
         if (lowerAction.includes('create')) return 'text-green-600 bg-green-50 dark:bg-green-500/10'
         if (lowerAction.includes('update')) return 'text-amber-600 bg-amber-50 dark:bg-amber-500/10'
         if (lowerAction.includes('delete')) return 'text-red-600 bg-red-50 dark:bg-red-500/10'
-        return 'text-[#9097A6] bg-[#F4F5F7] dark:bg-gray-500/10'
+        return 'theme-text-secondary bg-[#F4F5F7] dark:bg-gray-500/10'
     }
 
     const getActionLabel = (action) => {
@@ -161,42 +161,42 @@ export default function AuditLogTab() {
                     <ShieldAlert size={20} />
                 </div>
                 <div>
-                    <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Güvenlik Logları</h3>
-                    <p className="text-xs text-[#9097A6] dark:text-[#9097A6] mt-1">Sistem üzerindeki tüm kritik işlemler (ekleme, silme, güncelleme) denetim amaçlı kayıt altına alınır.</p>
+                    <h3 className="text-sm font-bold theme-text-primary">Güvenlik Logları</h3>
+                    <p className="text-xs theme-text-secondary mt-1">Sistem üzerindeki tüm kritik işlemler (ekleme, silme, güncelleme) denetim amaçlı kayıt altına alınır.</p>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
+            <div className="theme-surface border theme-divider rounded-xl overflow-hidden shadow-sm">
                 <div className="divide-y divide-gray-50 dark:divide-white/5">
                     {logs.map(log => (
                         <div key={log.id} className="p-4 hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-all group">
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                                 <div className="flex items-start gap-4 flex-1">
-                                    <div className="w-10 h-10 bg-[#E5E9F0] dark:bg-white/5 rounded-xl flex items-center justify-center text-[#9097A6] group-hover:bg-[#905EFC]/10 group-hover:text-[#905EFC] transition-colors shrink-0">
+                                    <div className="w-10 h-10 bg-[#E5E9F0] dark:bg-white/5 rounded-xl flex items-center justify-center theme-text-secondary group-hover:bg-[#905EFC]/10 group-hover:text-[#905EFC] transition-colors shrink-0">
                                         <FileText size={18} />
                                     </div>
                                     <div className="min-w-0 flex-1 space-y-2">
-                                        <div className="text-sm text-[#1A1A2E] dark:text-white flex items-center gap-2 flex-wrap">
+                                        <div className="text-sm theme-text-primary flex items-center gap-2 flex-wrap">
                                             <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-black ${getActionColor(log.action)}`}>
                                                 {getActionLabel(log.action)}
                                             </span>
                                             {log.user ? (
                                                 <span>
                                                     <span className="font-semibold text-[#905EFC]">{log.user.name}</span>
-                                                    <span className="text-[#9097A6] mx-1">tarafından</span>
-                                                    <span className="text-[#1A1A2E] dark:text-white">
+                                                    <span className="theme-text-secondary mx-1">tarafından</span>
+                                                    <span className="theme-text-primary">
                                                         {getFullSentence(log.action, log.entity_type, log.entity_name, log.details)}
                                                     </span>
                                                 </span>
                                             ) : (
-                                                <span className="text-[#1A1A2E] dark:text-white">
+                                                <span className="theme-text-primary">
                                                     {getFullSentence(log.action, log.entity_type, log.entity_name, log.details)}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-[11px] text-[#9097A6] flex-wrap justify-end md:justify-start">
+                                <div className="flex items-center gap-2 text-[11px] theme-text-secondary flex-wrap justify-end md:justify-start">
                                     <span className="flex items-center gap-1">
                                         <Clock size={12} className="text-amber-400" />
                                         {new Date(log.created_at).toLocaleString('tr-TR')}
@@ -215,7 +215,7 @@ export default function AuditLogTab() {
                     ))}
                 </div>
                 {logs.length === 0 && (
-                    <div className="p-12 text-center text-[#9097A6] italic">
+                    <div className="p-12 text-center theme-text-secondary italic">
                         <Database size={32} className="mx-auto mb-2 opacity-20" />
                         Log kaydı bulunamadı.
                     </div>

@@ -39,12 +39,12 @@ export default function AppointmentTitlesTab() {
         }
     })
 
-    if (isLoading) return <div className="text-center py-8 text-[#9097A6]">Yükleniyor...</div>
+    if (isLoading) return <div className="text-center py-8 theme-text-secondary">Yükleniyor...</div>
 
     return (
         <div className="space-y-4">
-            <div className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-4">
-                <h3 className="text-sm font-medium text-[#1A1A2E] dark:text-white mb-3">
+            <div className="theme-surface border theme-divider rounded-xl p-4">
+                <h3 className="text-sm font-medium theme-text-primary mb-3">
                     {editing ? 'Başlığı Düzenle' : 'Yeni Randevu Başlığı Ekle'}
                 </h3>
                 <div className="flex gap-3">
@@ -53,7 +53,7 @@ export default function AppointmentTitlesTab() {
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="Örn: Telefon Araması, Yüz Yüze Görüşme"
-                        className="flex-1 px-3 py-2 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-white dark:bg-white/5 text-[#1A1A2E] dark:text-white focus:outline-none focus:border-[#905EFC]"
+                        className="flex-1 px-3 py-2 theme-input"
                     />
                     <button
                         onClick={() => saveMutation.mutate({ name })}
@@ -65,7 +65,7 @@ export default function AppointmentTitlesTab() {
                     {editing && (
                         <button
                             onClick={() => { setEditing(null); setName('') }}
-                            className="px-4 py-2 border border-[#E5E9F0] dark:border-white/10 text-[#1A1A2E] dark:text-white rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 border theme-divider theme-text-primary rounded-lg text-sm font-medium transition-colors"
                         >
                             İptal
                         </button>
@@ -75,18 +75,18 @@ export default function AppointmentTitlesTab() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {titles.map(t => (
-                    <div key={t.id} className="bg-white dark:bg-[#111111] border border-[#E5E9F0] dark:border-white/5 rounded-xl p-4 flex items-center justify-between group">
-                        <span className="text-sm font-medium text-[#1A1A2E] dark:text-white">{t.name}</span>
+                    <div key={t.id} className="theme-surface border theme-divider rounded-xl p-4 flex items-center justify-between group">
+                        <span className="text-sm font-medium theme-text-primary">{t.name}</span>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                                 onClick={() => { setEditing(t); setName(t.name) }}
-                                className="p-1.5 text-[#9097A6] hover:text-[#905EFC] rounded-md transition-colors"
+                                className="p-1.5 theme-text-secondary hover:text-[#905EFC] rounded-md transition-colors"
                             >
                                 <Edit2 size={16} />
                             </button>
                             <button
                                 onClick={() => { if (window.confirm('Emin misiniz?')) deleteMutation.mutate(t.id) }}
-                                className="p-1.5 text-[#9097A6] hover:text-red-500 rounded-md transition-colors"
+                                className="p-1.5 theme-text-secondary hover:text-red-500 rounded-md transition-colors"
                             >
                                 <Trash2 size={16} />
                             </button>
@@ -94,7 +94,7 @@ export default function AppointmentTitlesTab() {
                     </div>
                 ))}
             </div>
-            {titles.length === 0 && <p className="text-center text-[#9097A6] py-8">Henüz randevu başlığı eklenmemiş.</p>}
+            {titles.length === 0 && <p className="text-center theme-text-secondary py-8">Henüz randevu başlığı eklenmemiş.</p>}
         </div>
     )
 }

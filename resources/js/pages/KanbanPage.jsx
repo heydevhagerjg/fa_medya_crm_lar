@@ -20,19 +20,19 @@ function JobCardContent({ job, canMove, onOpenDetail }) {
             <div className="flex justify-between items-start mb-2">
                 <button
                     onClick={() => onOpenDetail?.(job.id)}
-                    className="text-left text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-2 pr-4"
+                    className="text-left text-sm font-bold theme-text-primary hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-2 pr-4"
                     onPointerDown={e => e.stopPropagation()}
                 >
                     {job.title}
                 </button>
-                <div className={`text-gray-400 transition-opacity ${canMove ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
+                <div className={`theme-text-secondary transition-opacity ${canMove ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
                     <GripVertical size={16} />
                 </div>
             </div>
 
             <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <User size={12} className="text-gray-400" />
+                <div className="flex items-center gap-2 text-xs theme-text-secondary">
+                    <User size={12} className="theme-text-secondary" />
                     <span className="truncate">{job.customer?.name || 'Müşteri Belirtilmemiş'}</span>
                 </div>
                 {job.assignedTo && (
@@ -48,12 +48,12 @@ function JobCardContent({ job, canMove, onOpenDetail }) {
                 )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+            <div className="mt-4 pt-3 border-t theme-divider flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[10px] theme-text-secondary">
                     <Calendar size={12} />
                     <span>{new Date(job.createdAt).toLocaleDateString('tr-TR')}</span>
                 </div>
-                <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                <div className="text-xs font-bold theme-text-primary">
                     {formatCurrency(job.totalPrice)}
                 </div>
             </div>
@@ -95,7 +95,7 @@ function SortableJobCard({ job, onOpenDetail }) {
     }
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} onPointerDown={handlePointerDown} className={`group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all mb-3 ${canMove ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-not-allowed opacity-50 hover:opacity-100 hover:shadow-md'}`}>
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} onPointerDown={handlePointerDown} className={`group relative theme-surface p-4 rounded-2xl border theme-divider shadow-sm transition-all mb-3 ${canMove ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-not-allowed opacity-50 hover:opacity-100 hover:shadow-md'}`}>
             <JobCardContent job={job} canMove={canMove} onOpenDetail={onOpenDetail} />
         </div>
     )
@@ -128,7 +128,7 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
         <div
             ref={setNodeRef}
             onClick={() => isCollapsed && onToggle(status.id)}
-            className={`flex flex-col h-full bg-gray-100/50 dark:bg-gray-900/40 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-16 cursor-pointer hover:bg-gray-200/60 dark:hover:bg-gray-800/60' : 'w-80'}`}
+            className={`flex flex-col h-full bg-[#F4F5F7]/60 dark:bg-white/5 rounded-3xl border theme-divider overflow-hidden flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-16 cursor-pointer hover:bg-[#E5E9F0]/70 dark:hover:bg-white/10' : 'w-80'}`}
         >
             {/* Column Header */}
             <div className={`p-4 flex items-center justify-between ${isCollapsed ? 'flex-col gap-4 h-full' : ''}`}>
@@ -136,17 +136,17 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color || '#6366f1' }} />
                     {!isCollapsed ? (
                         <>
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate max-w-[140px]">{status.name}</h3>
-                            <span className="px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-500 rounded-full text-[11px] font-bold shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h3 className="font-bold theme-text-primary truncate max-w-[140px]">{status.name}</h3>
+                            <span className="px-2 py-0.5 theme-surface theme-text-secondary rounded-full text-[11px] font-bold shadow-sm border theme-divider">
                                 {totalCount}
                             </span>
                         </>
                     ) : (
                         <div className="flex flex-col items-center gap-4">
-                            <span className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl text-lg font-black text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-gray-700">
+                            <span className="w-10 h-10 flex items-center justify-center theme-surface rounded-xl text-lg font-black text-indigo-600 dark:text-indigo-400 shadow-sm border theme-divider">
                                 {totalCount}
                             </span>
-                            <span className="[writing-mode:vertical-lr] rotate-180 font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase tracking-widest text-md py-2">
+                            <span className="[writing-mode:vertical-lr] rotate-180 font-bold theme-text-secondary whitespace-nowrap uppercase tracking-widest text-md py-2">
                                 {status.name}
                             </span>
                         </div>
@@ -154,7 +154,7 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onToggle(status.id); }}
-                    className="p-1.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                    className="p-1.5 hover:bg-white dark:hover:bg-white/10 rounded-lg theme-text-secondary hover:text-indigo-600 transition-colors"
                 >
                     {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                 </button>
@@ -166,7 +166,7 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-50">
                             <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-[10px] font-bold text-gray-400">Yükleniyor...</span>
+                            <span className="text-[10px] font-bold theme-text-secondary">Yükleniyor...</span>
                         </div>
                     ) : (
                         <>
@@ -182,14 +182,14 @@ function KanbanColumn({ status, onOpenDetail, isCollapsed, onToggle }) {
                                 <button
                                     onClick={() => fetchNextPage()}
                                     disabled={isFetchingNextPage}
-                                    className="w-full py-3 mt-2 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-[11px] font-black text-gray-400 hover:text-indigo-600 hover:border-indigo-500 hover:bg-white dark:hover:bg-gray-900 transition-all mb-4 disabled:opacity-50"
+                                    className="w-full py-3 mt-2 border-2 border-dashed theme-divider rounded-2xl text-[11px] font-black theme-text-secondary hover:text-indigo-600 hover:border-indigo-500 hover:bg-white dark:hover:bg-white/10 transition-all mb-4 disabled:opacity-50"
                                 >
                                     {isFetchingNextPage ? 'Yükleniyor...' : 'Daha Fazla Yükle'}
                                 </button>
                             )}
 
                             {jobs.length === 0 && (
-                                <div className="h-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-gray-400 text-xs italic text-center px-4">
+                                <div className="h-24 border-2 border-dashed theme-divider rounded-2xl flex items-center justify-center theme-text-secondary text-xs italic text-center px-4">
                                     İş bulunamadı
                                 </div>
                             )}
@@ -409,7 +409,7 @@ export default function KanbanPage() {
         }
     }
 
-    if (statusesLoading) return <div className="flex items-center justify-center min-h-[60vh] text-gray-400">Yükleniyor...</div>
+    if (statusesLoading) return <div className="flex items-center justify-center min-h-[60vh] theme-text-secondary">Yükleniyor...</div>
 
     return (
         <div className="space-y-6 h-full">
@@ -423,9 +423,9 @@ export default function KanbanPage() {
                 ]}
                 breadcrumbs={['İş Takip']}
             >
-                <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1 border border-gray-200 dark:border-gray-700">
-                    <button className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-900 shadow-sm border border-gray-200/50 dark:border-gray-700">Kanban</button>
-                    <Link to="/jobs" className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Liste</Link>
+                <div className="hidden md:flex items-center bg-[#F4F5F7] dark:bg-white/5 rounded-xl p-1 gap-1 border theme-divider">
+                    <button className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 theme-surface shadow-sm border theme-divider">Kanban</button>
+                    <Link to="/jobs" className="px-3 py-1.5 rounded-lg text-xs font-bold theme-text-secondary hover:theme-text-primary">Liste</Link>
                 </div>
             </PageHeader>
 
@@ -452,18 +452,18 @@ export default function KanbanPage() {
                         {/* Add Another List (Redirect to Settings) */}
                         <Link
                             to="/settings?tab=statuses"
-                            className="flex-shrink-0 w-64 h-14 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-600 hover:border-indigo-500 hover:bg-indigo-50/10 dark:hover:bg-indigo-500/5 transition-all group"
+                            className="flex-shrink-0 w-64 h-14 border-2 border-dashed theme-divider rounded-2xl flex items-center justify-center gap-2 theme-text-secondary hover:text-indigo-600 hover:border-indigo-500 hover:bg-indigo-50/10 dark:hover:bg-indigo-500/5 transition-all group"
                         >
                             <Plus size={18} className="group-hover:scale-110 transition-transform" />
                             <span className="text-sm font-bold">Yeni Liste Ekle</span>
                         </Link>
 
                         {sortedStatuses.length === 0 && (
-                            <div className="w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 p-12 text-center text-gray-400">
-                                <AlertCircle size={48} className="mb-4 text-gray-300" />
+                            <div className="w-full flex flex-col items-center justify-center bg-[#F4F5F7] dark:bg-white/5 rounded-3xl border border-dashed theme-divider p-12 text-center theme-text-secondary">
+                                <AlertCircle size={48} className="mb-4 theme-text-secondary" />
                                 <h3 className="text-xl font-bold mb-2">Henüz Aşama Tanımlanmamış</h3>
                                 <p className="mb-6 max-w-sm mx-auto">Kanban özelliğini kullanmak için Ayarlar {">"} İş Durumları bölümünden aşama eklemelisiniz.</p>
-                                <Link to="/settings?tab=statuses" className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white hover:bg-gray-100 transition-all shadow-sm">
+                                <Link to="/settings?tab=statuses" className="px-6 py-2.5 theme-surface border theme-divider rounded-xl text-sm font-bold theme-text-primary hover:bg-[#F4F5F7] dark:hover:bg-white/10 transition-all shadow-sm">
                                     Durum Ayarlarına Git
                                 </Link>
                             </div>
@@ -478,7 +478,7 @@ export default function KanbanPage() {
                         }),
                     }}>
                         {activeJob ? (
-                            <div className="w-80 group relative bg-white dark:bg-gray-800 p-4 rounded-2xl border-2 border-indigo-500 shadow-2xl transition-all mb-3 rotate-3 cursor-grabbing opacity-90">
+                            <div className="w-80 group relative theme-surface p-4 rounded-2xl border-2 border-indigo-500 shadow-2xl transition-all mb-3 rotate-3 cursor-grabbing opacity-90">
                                 <JobCardContent job={activeJob} canMove={true} />
                             </div>
                         ) : null}
@@ -492,11 +492,11 @@ export default function KanbanPage() {
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { 
-                    background: #e2e8f0; 
+                    background: var(--theme-border-subtle); 
                     border-radius: 10px;
                 }
-                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--theme-border-subtle); }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--theme-border-subtle) 70%, #ffffff); }
             `}</style>
         </div>
     )

@@ -76,28 +76,28 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <div
-                className="relative w-full max-w-md bg-white dark:bg-[#0D0D1A] rounded-3xl shadow-2xl border border-[#E5E9F0] dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                className="relative w-full max-w-md theme-surface rounded-3xl shadow-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-200"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E9F0] dark:border-white/5">
-                    <h2 className="text-base font-bold text-[#1A1A2E] dark:text-white">Yeni Sohbet</h2>
+                <div className="flex items-center justify-between px-6 py-5 border-b theme-divider">
+                    <h2 className="text-base font-bold theme-text-primary">Yeni Sohbet</h2>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        className="w-8 h-8 rounded-xl flex items-center justify-center theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                     >
                         <X size={16} />
                     </button>
                 </div>
 
                 {/* Tab Switcher */}
-                <div className="flex gap-1 mx-6 mt-4 p-1 bg-[#F4F5F7] dark:bg-white/5 rounded-2xl">
+                <div className="flex gap-1 mx-6 mt-4 p-1 theme-surface-alt rounded-2xl">
                     <button
                         onClick={() => setTab('direct')}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
                             tab === 'direct'
-                                ? 'bg-white dark:bg-white/10 text-[#905efc] shadow-sm'
-                                : 'text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white'
+                                ? 'theme-surface text-primary shadow-sm'
+                                : 'theme-text-secondary hover:theme-text-primary'
                         }`}
                     >
                         <User size={14} /> Bireysel
@@ -106,8 +106,8 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                         onClick={() => setTab('group')}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
                             tab === 'group'
-                                ? 'bg-white dark:bg-white/10 text-[#905efc] shadow-sm'
-                                : 'text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white'
+                                ? 'theme-surface text-primary shadow-sm'
+                                : 'theme-text-secondary hover:theme-text-primary'
                         }`}
                     >
                         <Users size={14} /> Grup
@@ -123,27 +123,27 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                                 placeholder="Grup adı *"
                                 value={groupName}
                                 onChange={e => setGroupName(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                                className="w-full px-4 py-2.5 rounded-2xl border theme-input text-sm"
                             />
                             <input
                                 type="text"
                                 placeholder="Açıklama (isteğe bağlı)"
                                 value={groupDesc}
                                 onChange={e => setGroupDesc(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                                className="w-full px-4 py-2.5 rounded-2xl border theme-input text-sm"
                             />
                         </div>
                     )}
 
                     {/* Search */}
                     <div className="relative">
-                        <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9097A6]" size={14} />
+                        <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 theme-text-secondary" size={14} />
                         <input
                             type="text"
                             placeholder={tab === 'group' ? 'Katılımcı ara... (en az 2)' : 'Personel ara...'}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#E5E9F0] dark:border-white/10 bg-[#F4F5F7] dark:bg-white/5 text-sm text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] focus:outline-none focus:ring-2 focus:ring-[#905efc]/20 focus:border-[#905efc]/40"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border theme-input text-sm"
                         />
                     </div>
 
@@ -153,9 +153,9 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                             {selected.map(id => {
                                 const u = users.find(u => u.id === id)
                                 return u ? (
-                                    <span key={id} className="flex items-center gap-1 pl-2.5 pr-1 py-1 bg-[#905efc]/10 text-[#905efc] rounded-full text-xs font-semibold">
+                                    <span key={id} className="flex items-center gap-1 pl-2.5 pr-1 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
                                         {u.name}
-                                        <button onClick={() => toggleSelect(id)} className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#905efc]/20 transition-colors">
+                                        <button onClick={() => toggleSelect(id)} className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors">
                                             <X size={10} />
                                         </button>
                                     </span>
@@ -168,10 +168,10 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                     <div className="max-h-56 overflow-y-auto space-y-0.5 -mx-1 px-1">
                         {usersLoading ? (
                             <div className="flex justify-center py-8">
-                                <div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                             </div>
                         ) : filteredUsers.length === 0 ? (
-                            <p className="text-center text-xs text-[#9097A6] py-6">Kullanıcı bulunamadı</p>
+                            <p className="text-center text-xs theme-text-secondary py-6">Kullanıcı bulunamadı</p>
                         ) : filteredUsers.map(u => {
                             const isSelected = selected.includes(u.id)
                             return (
@@ -180,20 +180,20 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                                     onClick={() => tab === 'direct' ? handleDirectChat(u) : toggleSelect(u.id)}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-all ${
                                         isSelected
-                                            ? 'bg-[#905efc]/8 dark:bg-[#905efc]/15'
-                                            : 'hover:bg-[#F4F5F7] dark:hover:bg-white/5'
+                                                ? 'bg-primary/8 dark:bg-primary/15'
+                                                : 'hover:theme-surface-alt'
                                     }`}
                                 >
-                                    <div className="w-9 h-9 rounded-xl bg-[#905efc]/10 text-[#905efc] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                                         {u.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-semibold text-[#1A1A2E] dark:text-white truncate">{u.name}</div>
-                                        <div className="text-[11px] text-[#9097A6] truncate">{u.email}</div>
+                                        <div className="text-sm font-semibold theme-text-primary truncate">{u.name}</div>
+                                        <div className="text-[11px] theme-text-secondary truncate">{u.email}</div>
                                     </div>
                                     {tab === 'group' && (
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                                            isSelected ? 'bg-[#905efc] border-[#905efc]' : 'border-[#E5E9F0] dark:border-white/20'
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                            isSelected ? 'bg-primary border-primary' : 'theme-divider'
                                         }`}>
                                             {isSelected && <Check size={11} className="text-white" strokeWidth={3} />}
                                         </div>
@@ -210,7 +210,7 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
                         <button
                             onClick={handleGroupCreate}
                             disabled={isPending || selected.length < 2 || !groupName.trim()}
-                            className="w-full py-3 rounded-2xl bg-[#905efc] text-white text-sm font-bold hover:bg-[#7c4ef0] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#905efc]/25"
+                            className="theme-button-primary w-full py-3 rounded-2xl text-white text-sm font-bold active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/25"
                         >
                             {isPending ? (
                                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Oluşturuluyor...</>
@@ -412,10 +412,10 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="-m-5 lg:-m-8 h-[calc(100dvh-70px)] flex overflow-hidden bg-white dark:bg-[#0A0A18] animate-in fade-in zoom-in-95 duration-500">
+        <div className="-m-5 lg:-m-8 h-[calc(100dvh-70px)] flex overflow-hidden theme-app-shell animate-in fade-in zoom-in-95 duration-500">
             <Toaster position="top-right" />
 
-            <div className={`w-full md:w-[320px] flex-shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`w-full md:w-[320px] shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
                 <ChatSidebar
                     chats={chats}
                     selectedChatId={selectedChat?.id}

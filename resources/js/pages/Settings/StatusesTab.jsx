@@ -63,8 +63,8 @@ export default function StatusesTab() {
         <div className="space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white">İş Akış Durumları</h2>
-                    <p className="text-sm text-[#9097A6]">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
+                    <h2 className="text-xl font-bold theme-text-primary">İş Akış Durumları</h2>
+                    <p className="text-sm theme-text-secondary">İş süreçlerindeki aşamaları ve sıralamayı yönetin.</p>
                 </div>
                 <button
                     onClick={() => openModal()}
@@ -84,7 +84,7 @@ export default function StatusesTab() {
 
             <div className="space-y-2">
                 {statuses.length === 0 ? (
-                    <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#9097A6]" size={32} /></div>
+                    <div className="flex justify-center py-12"><Loader2 className="animate-spin theme-text-secondary" size={32} /></div>
                 ) : (
                     <>
                         {defaultStatus && (
@@ -107,8 +107,8 @@ export default function StatusesTab() {
             <Modal open={modal.open} onClose={() => setModal({ open: false, status: null })} title={modal.status ? 'Durumu Düzenle' : 'Durum Ekle'}>
                 <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-[#1A1A2E] dark:text-white mb-1">Adı *</label>
-                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required disabled={modal.status?.name === 'Varsayılan'} className="w-full px-3 py-2 border border-[#E5E9F0] dark:border-white/10 rounded-lg text-sm bg-white dark:bg-white/5 text-[#1A1A2E] dark:text-white focus:outline-none focus:border-[#905EFC] disabled:opacity-50" />
+                        <label className="block text-sm font-medium theme-text-primary mb-1">Adı *</label>
+                        <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required disabled={modal.status?.name === 'Varsayılan'} className="theme-input disabled:opacity-50" />
                     </div>
                     <div className="flex items-center gap-3">
                         <div>

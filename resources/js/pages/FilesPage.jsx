@@ -37,7 +37,7 @@ function AuthImage({ fileId, alt, className }) {
         staleTime: 30 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
     })
-    if (isLoading) return <div className="w-full h-full flex items-center justify-center"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
+    if (isLoading) return <div className="w-full h-full flex items-center justify-center"><Loader2 size={20} className="animate-spin theme-text-secondary" /></div>
     if (!blobUrl) return null
     return <img src={blobUrl} alt={alt} className={className} />
 }
@@ -265,14 +265,14 @@ export default function FilesPage() {
     const getFileIcon = (type) => {
         if (type?.includes('image')) return <Image className="text-blue-500" size={20} />
         if (type?.includes('pdf')) return <FileText className="text-red-500" size={20} />
-        return <File className="text-gray-500" size={20} />
+        return <File className="theme-text-secondary" size={20} />
     }
 
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 animate-pulse">
                 <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">Dosyalarınız yükleniyor...</p>
+                <p className="theme-text-secondary font-medium">Dosyalarınız yükleniyor...</p>
             </div>
         )
     }
@@ -288,26 +288,26 @@ export default function FilesPage() {
                 breadcrumbs={['Dosyalar']}
             >
                 <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1 border border-gray-200 dark:border-gray-700">
-                        <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-900 shadow-sm border border-gray-200/50 dark:border-gray-700' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}><List size={16} /></button>
-                        <button onClick={() => setViewMode('grid')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-900 shadow-sm border border-gray-200/50 dark:border-gray-700' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}><Grid size={16} /></button>
+                    <div className="hidden md:flex items-center theme-surface-alt rounded-xl p-1 gap-1 border theme-divider">
+                        <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'text-indigo-600 dark:text-indigo-400 theme-surface shadow-sm border theme-divider' : 'theme-text-secondary hover:text-indigo-500'}`}><List size={16} /></button>
+                        <button onClick={() => setViewMode('grid')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'text-indigo-600 dark:text-indigo-400 theme-surface shadow-sm border theme-divider' : 'theme-text-secondary hover:text-indigo-500'}`}><Grid size={16} /></button>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs font-medium theme-text-secondary theme-surface-alt px-3 py-1.5 rounded-lg">
                         <HardDrive size={16} /> {totalFiles} dosya • {totalSize}
                     </div>
                 </div>
             </PageHeader>
 
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                    <div className="flex items-center gap-1 theme-surface-alt p-1 rounded-xl">
                         <button
                             onClick={() => { setShowTrash(false); setActiveFolderId(null); }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!showTrash ? 'bg-white dark:bg-gray-700 text-indigo-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!showTrash ? 'theme-surface text-indigo-500 shadow-sm' : 'theme-text-secondary hover:text-indigo-500'}`}
                         >
                             <FolderOpen size={14} /> Dosyalar
                         </button>
                         <button
                             onClick={() => { setShowTrash(true); setActiveFolderId(null); }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showTrash ? 'bg-white dark:bg-gray-700 text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showTrash ? 'theme-surface text-red-500 shadow-sm' : 'theme-text-secondary hover:text-indigo-500'}`}
                         >
                             <Trash size={14} /> Çöp Kutusu
                         </button>
@@ -315,31 +315,31 @@ export default function FilesPage() {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                <div className="theme-surface border rounded-2xl p-4 flex items-center gap-4">
                     <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <HardDrive size={24} />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Toplam Boyut</div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">{totalSize}</div>
+                        <div className="text-xs theme-text-secondary uppercase tracking-wider font-semibold">Toplam Boyut</div>
+                        <div className="text-lg font-bold theme-text-primary">{totalSize}</div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                <div className="theme-surface border rounded-2xl p-4 flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <File size={24} />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Toplam Dosya</div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">{totalFiles} Adet</div>
+                        <div className="text-xs theme-text-secondary uppercase tracking-wider font-semibold">Toplam Dosya</div>
+                        <div className="text-lg font-bold theme-text-primary">{totalFiles} Adet</div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4">
+                <div className="theme-surface border rounded-2xl p-4 flex items-center gap-4">
                     <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <FolderOpen size={24} />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">İş Sayısı</div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">{jobsWithFiles.length} Klasör</div>
+                        <div className="text-xs theme-text-secondary uppercase tracking-wider font-semibold">İş Sayısı</div>
+                        <div className="text-lg font-bold theme-text-primary">{jobsWithFiles.length} Klasör</div>
                     </div>
                 </div>
             </div>
@@ -367,40 +367,40 @@ export default function FilesPage() {
                         </div>
 
                         {trashedFiles.length === 0 ? (
-                            <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800">
-                                <Trash className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-400">Çöp Kutusu Boş</h3>
+                            <div className="text-center py-20 theme-surface rounded-3xl border theme-divider">
+                                <Trash className="w-12 h-12 theme-text-secondary opacity-40 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium theme-text-secondary">Çöp Kutusu Boş</h3>
                             </div>
                         ) : (
-                            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                            <div className="theme-surface border rounded-2xl overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                        <tr className="theme-surface-alt theme-text-secondary border-b theme-divider">
                                             <th className="px-4 py-3 text-left font-semibold">Dosya Adı / Ait Olduğu İş</th>
                                             <th className="px-4 py-3 text-left font-semibold">Silinme Tarihi</th>
                                             <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tbody className="divide-y theme-divider">
                                         {trashedFiles.map(file => (
-                                            <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                            <tr key={file.id} className="hover:bg-[var(--theme-bg-surface-alt)] transition-colors">
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
                                                         {getFileIcon(file.file_type)}
                                                         <div>
-                                                            <div className="font-medium text-gray-900 dark:text-white">{file.file_name}</div>
-                                                            <div className="text-[10px] text-gray-400">İş: {file.job?.title}</div>
+                                                            <div className="font-medium theme-text-primary">{file.file_name}</div>
+                                                            <div className="text-[10px] theme-text-secondary">İş: {file.job?.title}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-500 text-xs">
+                                                <td className="px-4 py-3 theme-text-secondary text-xs">
                                                     {new Date(file.deleted_at).toLocaleString('tr-TR')}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => restoreMutation.mutate(file.id)}
-                                                            className="p-1.5 text-gray-400 hover:text-green-500 transition-colors"
+                                                            className="p-1.5 theme-text-secondary hover:text-green-500 transition-colors"
                                                             title="Geri Yükle"
                                                             disabled={restoreMutation.isLoading}
                                                         >
@@ -408,7 +408,7 @@ export default function FilesPage() {
                                                         </button>
                                                         <button
                                                             onClick={() => setDeleteConfirm({ fileId: file.id, fileName: file.file_name, isPermanent: true })}
-                                                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                            className="p-1.5 theme-text-secondary hover:text-red-500 transition-colors"
                                                             title="Kalıcı Olarak Sil"
                                                         >
                                                             <Trash size={16} />
@@ -423,10 +423,10 @@ export default function FilesPage() {
                         )}
                     </div>
                 ) : filteredJobs.length === 0 ? (
-                    <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
-                        <UploadCloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Dosya Bulunamadı</h3>
-                        <p className="text-gray-500 max-w-xs mx-auto">Henüz S3 üzerine yüklenmiş bir dosya bulunmuyor veya aramanızla eşleşen sonuç yok.</p>
+                    <div className="text-center py-20 theme-surface rounded-3xl border border-dashed theme-divider">
+                        <UploadCloud className="w-12 h-12 theme-text-secondary mx-auto mb-4" />
+                        <h3 className="text-lg font-medium theme-text-primary mb-1">Dosya Bulunamadı</h3>
+                        <p className="theme-text-secondary max-w-xs mx-auto">Henüz S3 üzerine yüklenmiş bir dosya bulunmuyor veya aramanızla eşleşen sonuç yok.</p>
                     </div>
                 ) : !activeFolderId ? (
                     <div className="space-y-4">
@@ -435,26 +435,26 @@ export default function FilesPage() {
                                 <button
                                     key={job.id}
                                     onClick={() => setActiveFolderId(job.id)}
-                                    className="flex flex-col text-left p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group"
+                                    className="flex flex-col text-left p-4 theme-surface border rounded-2xl hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group"
                                 >
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
                                             <FolderOpen className="text-indigo-500" size={24} />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={job.title}>
+                                            <h3 className="font-semibold theme-text-primary truncate" title={job.title}>
                                                 {job.title}
                                             </h3>
-                                            <p className="text-xs text-gray-500 truncate" title={job.customer?.name}>
+                                            <p className="text-xs theme-text-secondary truncate" title={job.customer?.name}>
                                                 {job.customer?.name || 'Müşterisiz'}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between mt-auto">
-                                        <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span className="text-xs font-medium theme-text-secondary theme-surface-alt px-2 py-1 rounded">
                                             {(job.matchedFiles || job.jobfile).length} Dosya
                                         </span>
-                                        <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                                        <ChevronRight size={16} className="theme-text-secondary group-hover:text-indigo-400 transition-colors" />
                                     </div>
                                 </button>
                             ))}
@@ -462,22 +462,22 @@ export default function FilesPage() {
 
                         {/* Pagination for Folders */}
                         {Math.ceil(filteredJobs.length / 10) > 1 && (
-                            <div className="flex items-center justify-between px-5 py-3 border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
-                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center justify-between px-5 py-3 border theme-divider rounded-2xl theme-surface">
+                                <span className="text-sm theme-text-secondary">
                                     Toplam <strong>{filteredJobs.length}</strong> klasörden <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, filteredJobs.length)}</strong> arası gösteriliyor
                                 </span>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                        className="p-1.5 rounded theme-surface-alt border theme-divider theme-text-secondary hover:bg-[var(--theme-bg-surface-alt)] disabled:opacity-50 transition-colors"
                                     >
                                         <ChevronLeft size={16} />
                                     </button>
                                     <button
                                         onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredJobs.length / 10), p + 1))}
                                         disabled={currentPage === Math.ceil(filteredJobs.length / 10)}
-                                        className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                        className="p-1.5 rounded theme-surface-alt border theme-divider theme-text-secondary hover:bg-[var(--theme-bg-surface-alt)] disabled:opacity-50 transition-colors"
                                     >
                                         <ChevronRight size={16} />
                                     </button>
@@ -518,20 +518,20 @@ export default function FilesPage() {
 
                         return (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex-wrap gap-4">
+                                <div className="flex items-center justify-between theme-surface border rounded-2xl p-4 flex-wrap gap-4">
                                     <div className="flex items-center gap-4">
                                         <button
                                             onClick={() => { setActiveFolderId(null); setSearch(''); }}
-                                            className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                            className="p-2 theme-surface-alt theme-text-secondary rounded-xl hover:bg-[var(--theme-bg-surface)] transition-colors"
                                         >
                                             <ArrowLeft size={18} />
                                         </button>
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <FolderOpen className="text-indigo-500" size={20} />
-                                                <h2 className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">{activeJob.title}</h2>
+                                                <h2 className="font-bold theme-text-primary uppercase tracking-wider">{activeJob.title}</h2>
                                             </div>
-                                            <p className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                                            <p className="text-xs theme-text-secondary flex items-center gap-2 mt-1">
                                                 <span>Müşteri: {activeJob.customer?.name || '-'}</span>
                                                 <span>•</span>
                                                 <Link to={`/jobs/${activeJob.id}`} className="text-indigo-500 hover:underline">İş Detayına Git</Link>
@@ -561,10 +561,10 @@ export default function FilesPage() {
                                         </button>
 
                                         {viewMode === 'grid' && files.length > 0 && (
-                                            <div className="flex items-center gap-2 pl-3 border-l border-gray-200 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 pl-3 border-l theme-divider">
                                                 <input
                                                     type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                    className="w-4 h-4 rounded theme-divider text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                                     checked={selectedFileIds.length === files.length}
                                                     onChange={(e) => {
                                                         if (e.target.checked) {
@@ -574,18 +574,18 @@ export default function FilesPage() {
                                                         }
                                                     }}
                                                 />
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Tümünü Seç</span>
+                                                <span className="text-[10px] font-bold theme-text-secondary uppercase">Tümünü Seç</span>
                                             </div>
                                         )}
 
-                                        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+                                        <div className="h-6 w-px theme-divider hidden sm:block"></div>
 
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-500 font-medium hidden sm:block">Sırala:</span>
+                                            <span className="text-xs theme-text-secondary font-medium hidden sm:block">Sırala:</span>
                                             <select
                                                 value={fileSortMode}
                                                 onChange={e => setFileSortMode(e.target.value)}
-                                                className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                                                className="px-3 py-1.5 theme-surface-alt border theme-divider rounded-lg text-sm theme-text-primary focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                                             >
                                                 <option value="name">Ad (A-Z)</option>
                                                 <option value="date">Tarih (En Yeni)</option>
@@ -601,12 +601,12 @@ export default function FilesPage() {
                                         {paginatedFiles.map(file => (
                                             <div
                                                 key={file.id}
-                                                className={`group bg-white dark:bg-gray-900 border ${selectedFileIds.includes(file.id) ? 'border-indigo-500 ring-1 ring-indigo-500 ring-inset shadow-lg shadow-indigo-500/5' : 'border-gray-200 dark:border-gray-800'} rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 transition-all cursor-default relative`}
+                                                className={`group theme-surface border ${selectedFileIds.includes(file.id) ? 'border-indigo-500 ring-1 ring-indigo-500 ring-inset shadow-lg shadow-indigo-500/5' : 'theme-divider'} rounded-2xl p-3 hover:shadow-lg hover:shadow-indigo-500/5 transition-all cursor-default relative`}
                                             >
                                                 <div className="absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={{ opacity: selectedFileIds.includes(file.id) ? 1 : undefined }}>
                                                     <input
                                                         type="checkbox"
-                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shadow-sm"
+                                                        className="w-4 h-4 rounded theme-divider text-indigo-600 focus:ring-indigo-500 cursor-pointer shadow-sm"
                                                         checked={selectedFileIds.includes(file.id)}
                                                         onChange={(e) => {
                                                             if (e.target.checked) {
@@ -618,7 +618,7 @@ export default function FilesPage() {
                                                     />
                                                 </div>
 
-                                                <div className="aspect-square bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
+                                                <div className="aspect-square theme-surface-alt rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
                                                     {(file.file_type || file.fileType || '').includes('image') ? (
                                                         <AuthImage
                                                             fileId={file.id}
@@ -626,7 +626,7 @@ export default function FilesPage() {
                                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                         />
                                                     ) : (
-                                                        <File size={32} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                                                        <File size={32} className="theme-text-secondary group-hover:text-indigo-400 transition-colors" />
                                                     )}
 
                                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
@@ -656,8 +656,8 @@ export default function FilesPage() {
                                                     </div>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate" title={file.file_name || file.fileName}>{file.file_name || file.fileName}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5 uppercase">
+                                                    <p className="text-xs font-medium theme-text-primary truncate" title={file.file_name || file.fileName}>{file.file_name || file.fileName}</p>
+                                                    <p className="text-[10px] theme-text-secondary mt-0.5 uppercase">
                                                         {(parseInt(file.file_size || file.file_size) / 1024).toFixed(1)} KB • {(file.file_type || file.fileType || '').split('/')[1]?.toUpperCase()}
                                                     </p>
                                                 </div>
@@ -665,14 +665,14 @@ export default function FilesPage() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                                    <div className="theme-surface border rounded-2xl overflow-hidden">
                                         <table className="w-full text-sm">
                                             <thead>
-                                                <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                                <tr className="theme-surface-alt theme-text-secondary border-b theme-divider">
                                                     <th className="px-4 py-3 w-10">
                                                         <input
                                                             type="checkbox"
-                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                            className="w-4 h-4 rounded theme-divider text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                                             checked={files.length > 0 && selectedFileIds.length === files.length}
                                                             onChange={(e) => {
                                                                 if (e.target.checked) {
@@ -690,13 +690,13 @@ export default function FilesPage() {
                                                     <th className="px-4 py-3 text-right font-semibold">İşlemler</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                            <tbody className="divide-y theme-divider">
                                                 {paginatedFiles.map(file => (
-                                                    <tr key={file.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors ${selectedFileIds.includes(file.id) ? 'bg-indigo-50/30 dark:bg-indigo-500/5' : ''}`}>
+                                                    <tr key={file.id} className={`hover:bg-[var(--theme-bg-surface-alt)] transition-colors ${selectedFileIds.includes(file.id) ? 'bg-indigo-50/30 dark:bg-indigo-500/5' : ''}`}>
                                                         <td className="px-4 py-3 w-10">
                                                             <input
                                                                 type="checkbox"
-                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                className="w-4 h-4 rounded theme-divider text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                                                 checked={selectedFileIds.includes(file.id)}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked) {
@@ -710,23 +710,23 @@ export default function FilesPage() {
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-3">
                                                                 {getFileIcon(file.file_type || file.fileType)}
-                                                                <span className="font-medium text-gray-900 dark:text-white">{file.file_name || file.fileName}</span>
+                                                                <span className="font-medium theme-text-primary">{file.file_name || file.fileName}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-gray-500 uppercase text-xs">{(file.file_type || file.fileType || '').split('/')[1]}</td>
-                                                        <td className="px-4 py-3 text-gray-500">{(parseInt(file.file_size || file.fileSize) / 1024).toFixed(1)} KB</td>
-                                                        <td className="px-4 py-3 text-gray-500 text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
+                                                        <td className="px-4 py-3 theme-text-secondary uppercase text-xs">{(file.file_type || file.fileType || '').split('/')[1]}</td>
+                                                        <td className="px-4 py-3 theme-text-secondary">{(parseInt(file.file_size || file.fileSize) / 1024).toFixed(1)} KB</td>
+                                                        <td className="px-4 py-3 theme-text-secondary text-xs">{file.uploaded_at || file.uploadedAt ? new Date(file.uploaded_at || file.uploadedAt).toLocaleString('tr-TR') : '-'}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 {(file.file_type || file.fileType || '').includes('image') || (file.file_type || file.fileType || '').includes('pdf') ? (
-                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="Önizle">
+                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewFile(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="Önizle">
                                                                         <Eye size={16} />
                                                                     </button>
                                                                 ) : null}
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 text-gray-400 hover:text-indigo-500 transition-colors" title="İndir">
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDownloadSingle(file); }} className="p-1.5 theme-text-secondary hover:text-indigo-500 transition-colors" title="İndir">
                                                                     <Download size={16} />
                                                                 </button>
-                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Sil">
+                                                                <button onClick={() => setDeleteConfirm({ jobId: activeJob.id, fileId: file.id, fileName: file.file_name || file.fileName })} className="p-1.5 theme-text-secondary hover:text-red-500 transition-colors" title="Sil">
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             </div>
@@ -740,22 +740,22 @@ export default function FilesPage() {
 
                                 {/* Pagination for Files */}
                                 {totalPages > 1 && (
-                                    <div className="flex items-center justify-between px-5 py-3 border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 mt-4">
-                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center justify-between px-5 py-3 border theme-divider rounded-2xl theme-surface mt-4">
+                                        <span className="text-sm theme-text-secondary">
                                             Toplam <strong>{files.length}</strong> dosyadan <strong>{(currentPage - 1) * 10 + 1}</strong>-<strong>{Math.min(currentPage * 10, files.length)}</strong> arası gösteriliyor
                                         </span>
                                         <div className="flex gap-1">
                                             <button
                                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                                 disabled={currentPage === 1}
-                                                className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                                className="p-1.5 rounded theme-surface-alt border theme-divider theme-text-secondary hover:bg-[var(--theme-bg-surface-alt)] disabled:opacity-50 transition-colors"
                                             >
                                                 <ChevronLeft size={16} />
                                             </button>
                                             <button
                                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                                 disabled={currentPage === totalPages}
-                                                className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                                className="p-1.5 rounded theme-surface-alt border theme-divider theme-text-secondary hover:bg-[var(--theme-bg-surface-alt)] disabled:opacity-50 transition-colors"
                                             >
                                                 <ChevronRight size={16} />
                                             </button>
@@ -775,24 +775,24 @@ export default function FilesPage() {
                         <Trash2 size={24} />
                     </div>
                     <div className="text-center">
-                        <p className="text-gray-900 dark:text-white font-medium mb-1">
+                        <p className="theme-text-primary font-medium mb-1">
                             {deleteConfirm?.isPermanent ? 'Kalıcı olarak silmek istediğinize emin misiniz?' : 'Dosyayı çöp kutusuna taşıyorsunuz'}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
-                            <span className="font-semibold text-gray-700 dark:text-gray-200">"{deleteConfirm?.fileName}"</span> isimli dosya {deleteConfirm?.isPermanent ? 'KALICI olarak silinecek ve kota iade edilecek.' : 'çöp kutusuna aktarılacak.'}
+                        <p className="text-sm theme-text-secondary px-4">
+                            <span className="font-semibold theme-text-primary">"{deleteConfirm?.fileName}"</span> isimli dosya {deleteConfirm?.isPermanent ? 'KALICI olarak silinecek ve kota iade edilecek.' : 'çöp kutusuna aktarılacak.'}
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                            className="flex-1 px-4 py-2 text-sm font-medium theme-text-primary theme-surface-alt hover:bg-[var(--theme-bg-surface)] rounded-xl transition-colors"
                         >
                             İptal
                         </button>
                         <button
                             onClick={() => deleteConfirm?.isPermanent ? forceDeleteMutation.mutate(deleteConfirm.fileId) : deleteMutation.mutate(deleteConfirm)}
                             disabled={deleteMutation.isLoading || forceDeleteMutation.isLoading}
-                            className={`flex-1 px-4 py-2 text-sm font-medium text-white ${deleteConfirm?.isPermanent ? 'bg-black hover:bg-gray-900' : 'bg-red-600 hover:bg-red-700'} rounded-xl shadow-lg transition-all disabled:opacity-50`}
+                            className={`flex-1 px-4 py-2 text-sm font-medium text-white ${deleteConfirm?.isPermanent ? 'bg-black hover:bg-black/90' : 'bg-red-600 hover:bg-red-700'} rounded-xl shadow-lg transition-all disabled:opacity-50`}
                         >
                             {deleteMutation.isLoading || forceDeleteMutation.isLoading ? 'Bekleyin...' : 'Onayla'}
                         </button>
@@ -807,17 +807,17 @@ export default function FilesPage() {
                         <Trash2 size={24} />
                     </div>
                     <div className="text-center">
-                        <p className="text-gray-900 dark:text-white font-medium mb-1">
+                        <p className="theme-text-primary font-medium mb-1">
                             Kalıcı olarak silmek istediğinize emin misiniz?
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
-                            Çöp kutusundaki <span className="font-bold text-red-500">{trashedFiles.length} adet</span> dosya <span className="font-semibold text-gray-700 dark:text-gray-200">KALICI</span> olarak silinecek ve kota iade edilecek. Bu işlem geri alınamaz.
+                        <p className="text-sm theme-text-secondary px-4">
+                            Çöp kutusundaki <span className="font-bold text-red-500">{trashedFiles.length} adet</span> dosya <span className="font-semibold theme-text-primary">KALICI</span> olarak silinecek ve kota iade edilecek. Bu işlem geri alınamaz.
                         </p>
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={() => setShowClearTrashConfirm(false)}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                            className="flex-1 px-4 py-2 text-sm font-medium theme-text-primary theme-surface-alt hover:bg-[var(--theme-bg-surface)] rounded-xl transition-colors"
                         >
                             İptal
                         </button>
@@ -838,13 +838,13 @@ export default function FilesPage() {
             {/* File Preview Modal */}
             <Modal open={preview.open} onClose={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }} title="Dosya Önizleme" size="xl">
                 <div className="flex flex-col h-[70vh]">
-                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
+                    <div className="flex-1 theme-surface-alt rounded-xl overflow-hidden flex items-center justify-center relative border theme-divider">
                         {preview.type?.includes('pdf') ? (
                             <iframe src={preview.url} className="w-full h-full border-none" title="PDF Preview" />
                         ) : preview.type?.includes('image') ? (
                             <img src={preview.url} className="max-w-full max-h-full object-contain shadow-2xl" alt="Preview" />
                         ) : (
-                            <div className="text-center p-12 text-gray-400">
+                            <div className="text-center p-12 theme-text-secondary">
                                 <FileText size={48} className="mx-auto mb-4 opacity-20" />
                                 <p>Bu dosya önizlenemiyor.</p>
                             </div>
@@ -853,7 +853,7 @@ export default function FilesPage() {
                     <div className="flex justify-between items-center mt-6">
                         <button
                             onClick={() => { window.URL.revokeObjectURL(preview.url); setPreview({ open: false, url: null, type: null, fileName: null }) }}
-                            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="px-6 py-2.5 border theme-divider  rounded-xl text-sm font-medium theme-text-primary hover:bg-[var(--theme-bg-surface-alt)] transition-colors"
                         >
                             Kapat
                         </button>
@@ -876,3 +876,6 @@ export default function FilesPage() {
         </div>
     )
 }
+
+
+

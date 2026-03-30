@@ -56,41 +56,41 @@ function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#12122A] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E9F0] dark:border-white/5">
-          <h2 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Gruba Üye Ekle</h2>
-          <button onClick={onClose} className="p-2 text-[#9097A6] hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+      <div className="theme-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border theme-divider">
+        <div className="flex items-center justify-between px-6 py-4 border-b theme-divider">
+          <h2 className="text-lg font-bold theme-text-primary">Gruba Üye Ekle</h2>
+          <button onClick={onClose} className="p-2 theme-text-secondary hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-6">
           <div className="relative mb-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9097A6]" size={18} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 theme-text-secondary" size={18} />
             <input
               type="text"
               placeholder="Kişi ara..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
+              className="theme-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm transition-all"
             />
           </div>
 
           <div className="h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
             {isLoading ? (
-              <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" /></div>
+              <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
             ) : filtered.length > 0 ? (
               filtered.map(u => (
                 <button
                   key={u.id}
                   onClick={() => toggleUser(u.id)}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${selected.includes(u.id)
-                      ? 'bg-[#905efc]/10 text-[#905efc]'
-                      : 'hover:bg-[#F4F5F7] dark:hover:bg-white/5 text-[#1A1A2E] dark:text-white'
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:theme-surface-alt theme-text-primary'
                     }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${selected.includes(u.id) ? 'bg-[#905efc] text-white' : 'bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6]'
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${selected.includes(u.id) ? 'theme-button-primary text-white' : 'theme-surface-alt theme-text-secondary border theme-divider'
                       }`}>
                       {u.name.charAt(0).toUpperCase()}
                     </div>
@@ -99,18 +99,18 @@ function AddMemberModal({ open, onClose, chat, onUpdateChat }) {
                       <div className="text-[10px] opacity-60 font-normal">{u.role}</div>
                     </div>
                   </div>
-                  {selected.includes(u.id) ? <Check size={18} /> : <div className="w-4 h-4 rounded-full border-2 border-[#E5E9F0] dark:border-white/10" />}
+                  {selected.includes(u.id) ? <Check size={18} /> : <div className="w-4 h-4 rounded-full border-2 theme-divider" />}
                 </button>
               ))
             ) : (
-              <div className="text-center py-4 text-xs text-[#9097A6]">Eklenecek yeni kullanıcı bulunamadı.</div>
+              <div className="text-center py-4 text-xs theme-text-secondary">Eklenecek yeni kullanıcı bulunamadı.</div>
             )}
           </div>
 
           <button
             onClick={() => mutate(selected)}
             disabled={isPending || selected.length === 0}
-            className="w-full mt-4 py-3 rounded-xl bg-[#905efc] text-white text-sm font-bold hover:bg-[#7c4ef0] active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="theme-button-primary w-full mt-4 py-3 rounded-xl text-white text-sm font-bold active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             {isPending ? 'Ekleniyor...' : `Seçili Kişileri Ekle (${selected.length})`}
           </button>
@@ -249,12 +249,12 @@ export default function ChatWindow({
 
   if (!chat) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#F4F5F7] dark:bg-[#080812]">
-        <div className="w-20 h-20 rounded-3xl bg-white dark:bg-white/5 shadow-xl flex items-center justify-center mb-6 border border-[#E5E9F0] dark:border-white/5">
-          <MessageCircle size={40} className="text-[#905efc]" />
+      <div className="theme-surface-alt flex-1 flex flex-col items-center justify-center p-12">
+        <div className="theme-surface w-20 h-20 rounded-3xl shadow-xl flex items-center justify-center mb-6 border theme-divider">
+          <MessageCircle size={40} className="text-primary" />
         </div>
-        <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white mb-2">Sohbet Seçin</h2>
-        <p className="text-sm text-[#9097A6] text-center max-w-xs leading-relaxed">
+        <h2 className="text-xl font-bold theme-text-primary mb-2">Sohbet Seçin</h2>
+        <p className="text-sm theme-text-secondary text-center max-w-xs leading-relaxed">
           Devam etmek için soldaki listeden bir sohbet seçin veya yeni sohbet başlatın.
         </p>
       </div>
@@ -266,18 +266,18 @@ export default function ChatWindow({
 
   return (
     <>
-      <div className="flex-1 flex h-full overflow-hidden bg-white dark:bg-[#0A0A18] relative">
+      <div className="theme-surface flex-1 flex h-full overflow-hidden relative">
         {/* Deleting Overlay */}
         {isDeleting && (
-          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 dark:bg-[#08081A]/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="flex flex-col items-center gap-6 p-10 rounded-[40px] bg-white dark:bg-[#12122A] shadow-2xl border border-[#905efc]/10">
+          <div className="absolute inset-0 z-100 flex flex-col items-center justify-center bg-[color-mix(in_srgb,var(--theme-bg-surface)_80%,transparent)] backdrop-blur-md animate-in fade-in duration-300">
+            <div className="theme-surface flex flex-col items-center gap-6 p-10 rounded-[40px] shadow-2xl border border-primary/10">
               <div className="relative">
-                <div className="w-20 h-20 border-4 border-[#905efc]/20 border-t-[#905efc] rounded-full animate-spin" />
-                <Trash2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#905efc] animate-pulse" size={28} />
+                <div className="w-20 h-20 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <Trash2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={28} />
               </div>
               <div className="text-center px-4">
-                <h3 className="text-xl font-black text-[#1A1A2E] dark:text-white mb-2">Sohbet Siliniyor</h3>
-                <p className="text-xs text-[#9097A6] max-w-[200px] leading-relaxed mx-auto">
+                <h3 className="text-xl font-black theme-text-primary mb-2">Sohbet Siliniyor</h3>
+                <p className="text-xs theme-text-secondary max-w-50 leading-relaxed mx-auto">
                   Dosyalar ve mesajlar güvenli bir şekilde temizleniyor. Lütfen bekleyin...
                 </p>
               </div>
@@ -289,17 +289,17 @@ export default function ChatWindow({
         <div className="flex-1 flex flex-col h-full overflow-hidden">
 
           {/* Chat Header */}
-          <header className="px-3 md:px-6 py-3 md:py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0A0A18] flex-shrink-0">
+          <header className="theme-surface px-3 md:px-6 py-3 md:py-4 border-b theme-divider flex items-center justify-between shrink-0">
             {!isSearching ? (
               <>
                 <div className="flex items-center gap-1 md:gap-3">
-                  <button onClick={onBack} className="md:hidden p-2 -ml-2 text-[#9097A6] hover:text-[#905efc] transition-colors focus:bg-gray-100 dark:focus:bg-white/5 rounded-full">
+                  <button onClick={onBack} className="md:hidden p-2 -ml-2 theme-text-secondary hover:text-primary transition-colors focus:theme-surface-alt rounded-full">
                     <ChevronLeft size={24} />
                   </button>
 
                   <div>
-                    <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white leading-tight">{chat.name}</h3>
-                    <p className="text-xs text-[#9097A6] mt-0.5">
+                    <h3 className="text-lg font-bold theme-text-primary leading-tight">{chat.name}</h3>
+                    <p className="text-xs theme-text-secondary mt-0.5">
                       {totalCount > 0
                         ? `${totalCount} üye${onlineCount > 0 ? `, ${onlineCount} çevrimiçi` : ''}`
                         : 'Sohbet'}
@@ -310,29 +310,29 @@ export default function ChatWindow({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsSearching(true)}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 transition-all"
                   >
                     <Search size={18} />
                   </button>
-                  <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
+                  <button className="w-9 h-9 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 transition-all">
                     <Phone size={18} />
                   </button>
                   <button
                     onClick={() => setShowInfo(!showInfo)}
                     className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${showInfo
-                        ? 'text-[#905efc] bg-[#905efc]/10'
-                        : 'text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8'
+                        ? 'text-primary bg-primary/10'
+                        : 'theme-text-secondary hover:text-primary hover:bg-primary/8'
                       }`}
                   >
                     <Info size={18} />
                   </button>
 
-                  <div className="w-px h-6 bg-[#E5E9F0] dark:bg-white/10 mx-1" />
+                  <div className="w-px h-6 theme-divider mx-1" />
 
                   <button
                     onClick={onBack}
                     title="Sohbeti Kapat"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                   >
                     <X size={20} />
                   </button>
@@ -341,19 +341,19 @@ export default function ChatWindow({
             ) : (
               <div className="flex items-center w-full gap-3 animate-in fade-in slide-in-from-right-4 duration-200">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9097A6]" size={16} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary" size={16} />
                   <input
                     type="text"
                     autoFocus
                     placeholder="Mesajlarda ara..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-[#F4F5F7] dark:bg-white/5 border border-transparent focus:border-[#905efc] rounded-xl text-sm outline-none text-[#1A1A2E] dark:text-white transition-all"
+                    className="theme-input w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm transition-all"
                   />
                 </div>
                 <button
                   onClick={() => setIsSearching(false)}
-                  className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                  className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                 >
                   <X size={20} />
                 </button>
@@ -368,25 +368,25 @@ export default function ChatWindow({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className="relative flex-1 overflow-y-auto px-2.5 md:px-6 py-3 md:py-5 bg-[#F4F5F7] dark:bg-[#08081A] space-y-1"
+            className="theme-surface-alt relative flex-1 overflow-y-auto px-2.5 md:px-6 py-3 md:py-5 space-y-1"
             style={{ scrollBehavior: 'smooth' }}
           >
             {/* Drag and Drop Overlay */}
             {isDragging && (
-              <div className="absolute inset-4 z-50 rounded-3xl border-2 border-dashed border-[#905efc] bg-[#905efc]/5 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-200 pointer-events-none">
-                <div className="w-20 h-20 rounded-3xl bg-[#905efc] text-white flex items-center justify-center shadow-xl shadow-[#905efc]/40 animate-bounce">
+              <div className="absolute inset-4 z-50 rounded-3xl border-2 border-dashed border-primary bg-primary/5 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-200 pointer-events-none">
+                <div className="w-20 h-20 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/40 animate-bounce">
                   <Download size={40} strokeWidth={2.5} />
                 </div>
                 <div className="text-center">
-                  <h4 className="text-xl font-black text-[#1A1A2E] dark:text-white mb-2">Dosyaları Buraya Bırakın</h4>
-                  <p className="text-sm font-semibold text-[#9097A6]">Yükleme otomatik olarak başlayacaktır</p>
+                  <h4 className="text-xl font-black theme-text-primary mb-2">Dosyaları Buraya Bırakın</h4>
+                  <p className="text-sm font-semibold theme-text-secondary">Yükleme otomatik olarak başlayacaktır</p>
                 </div>
               </div>
             )}
 
             {showUnreadAlert && (
               <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
-                <div className="bg-[#905efc] text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
+                <div className="bg-primary text-white px-8 py-4 rounded-3xl shadow-2xl scale-110 flex flex-col items-center gap-3 border border-white/20 backdrop-blur-md bg-opacity-90">
                   <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
                     <Bell size={24} className="animate-bounce" />
                   </div>
@@ -399,11 +399,11 @@ export default function ChatWindow({
             )}
             {/* Start marker */}
             <div className="flex flex-col items-center py-6 mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 shadow-md flex items-center justify-center mb-3 border border-[#E5E9F0] dark:border-white/5">
-                <MessageCircle size={24} className="text-[#905efc]" />
+              <div className="theme-surface w-12 h-12 rounded-2xl shadow-md flex items-center justify-center mb-3 border theme-divider">
+                <MessageCircle size={24} className="text-primary" />
               </div>
-              <p className="text-xs font-semibold text-[#9097A6] mb-1">Sohbet Başladı</p>
-              <p className="text-[11px] text-[#9097A6]/70 text-center max-w-[200px] leading-relaxed">
+              <p className="text-xs font-semibold theme-text-secondary mb-1">Sohbet Başladı</p>
+              <p className="text-[11px] theme-text-secondary opacity-70 text-center max-w-50 leading-relaxed">
                 Uçtan uca şifrelenmiş, güvenli mesajlaşma
               </p>
             </div>
@@ -431,7 +431,7 @@ export default function ChatWindow({
 
             {isLoading && (
               <div className="flex justify-center p-4">
-                <div className="w-6 h-6 border-2 border-[#905efc]/30 border-t-[#905efc] rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -447,12 +447,12 @@ export default function ChatWindow({
 
         {/* Chat Info Panel */}
         {showInfo && (
-          <aside className="w-72 flex-shrink-0 border-l border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex flex-col overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#E5E9F0] dark:border-white/5 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Sohbet Bilgisi</h3>
+          <aside className="theme-surface w-72 shrink-0 border-l theme-divider flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b theme-divider flex items-center justify-between">
+              <h3 className="text-sm font-bold theme-text-primary">Sohbet Bilgisi</h3>
               <button
                 onClick={() => setShowInfo(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9097A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center theme-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
               </button>
@@ -461,12 +461,12 @@ export default function ChatWindow({
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {/* Chat Avatar + Name */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-[#905efc]/10 text-[#905efc] flex items-center justify-center text-2xl font-bold mb-3">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold mb-3">
                   {chat.name?.charAt(0).toUpperCase() || <Hash size={28} />}
                 </div>
-                <h4 className="text-base font-bold text-[#1A1A2E] dark:text-white">{chat.name}</h4>
+                <h4 className="text-base font-bold theme-text-primary">{chat.name}</h4>
                 {chat.description && (
-                  <p className="text-xs text-[#9097A6] mt-1 leading-relaxed">{chat.description}</p>
+                  <p className="text-xs theme-text-secondary mt-1 leading-relaxed">{chat.description}</p>
                 )}
               </div>
 
@@ -474,11 +474,11 @@ export default function ChatWindow({
               {chat.participants?.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-xs font-bold text-[#9097A6] uppercase tracking-wider">
+                    <h5 className="text-xs font-bold theme-text-secondary uppercase tracking-wider">
                       Üyeler ({chat.participants.length})
                     </h5>
                     {isOwnerOrAdmin && chat.chateable_type === 'Group' && (
-                      <button onClick={() => setShowAddMember(true)} className="text-[#905efc] hover:opacity-70 transition-opacity">
+                      <button onClick={() => setShowAddMember(true)} className="text-primary hover:opacity-70 transition-opacity">
                         <UserPlus size={14} />
                       </button>
                     )}
@@ -486,15 +486,15 @@ export default function ChatWindow({
                   <div className="space-y-2">
                     {chat.participants.map(p => (
                       <div key={p.user_id} className="flex items-center gap-2.5 group/member">
-                        <div className="w-8 h-8 rounded-xl bg-[#F4F5F7] dark:bg-white/5 flex items-center justify-center text-xs font-bold text-[#1A1A2E] dark:text-white border border-[#E5E9F0] dark:border-white/10">
+                        <div className="theme-surface-alt w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold theme-text-primary border theme-divider">
                           {p.user?.name?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-[#1A1A2E] dark:text-white truncate flex items-center gap-1">
+                          <div className="text-xs font-semibold theme-text-primary truncate flex items-center gap-1">
                             {p.user?.name}
-                            {p.role === 'owner' && <Shield size={10} className="text-[#905efc]" />}
+                            {p.role === 'owner' && <Shield size={10} className="text-primary" />}
                           </div>
-                          <div className="text-[10px] text-[#9097A6]">{p.role === 'owner' ? 'Sahip' : 'Üye'}</div>
+                          <div className="text-[10px] theme-text-secondary">{p.role === 'owner' ? 'Sahip' : 'Üye'}</div>
                         </div>
 
                         {isOwnerOrAdmin && chat.chateable_type === 'Group' && p.user_id !== currentUser?.id && (
@@ -512,7 +512,7 @@ export default function ChatWindow({
                         )}
 
                         {(!isOwnerOrAdmin || chat.chateable_type !== 'Group' || p.user_id === currentUser?.id) && (
-                          <div className="w-2 h-2 rounded-full bg-[#1ED2A7] shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
+                          <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_6px_rgba(30,210,167,0.5)]" />
                         )}
                       </div>
                     ))}
@@ -521,8 +521,8 @@ export default function ChatWindow({
               )}
 
               {/* Actions */}
-              <div className="pt-2 border-t border-[#E5E9F0] dark:border-white/5 space-y-2">
-                <button className="w-full py-2.5 px-3 rounded-xl bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] text-xs font-semibold flex items-center justify-between hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-all">
+              <div className="pt-2 border-t theme-divider space-y-2">
+                <button className="theme-button-secondary w-full py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-all">
                   Sessize Al <BellOff size={14} />
                 </button>
               </div>

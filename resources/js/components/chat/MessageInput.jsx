@@ -40,21 +40,21 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
   const canSend = content.trim() || isUploading
 
   return (
-    <div className="px-3 md:px-5 py-3 md:py-4 pb-[calc(12px+env(safe-area-inset-bottom))] border-t border-[#E5E9F0] dark:border-white/5 bg-white dark:bg-[#0A0A18] flex-shrink-0">
+    <div className="theme-surface px-3 md:px-5 py-3 md:py-4 pb-[calc(12px+env(safe-area-inset-bottom))] border-t theme-divider shrink-0">
       {/* Upload progress bar */}
       {isUploading && (
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-[#905efc] uppercase tracking-wider animate-pulse">Dosyalar Yükleniyor...</span>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-wider animate-pulse">Dosyalar Yükleniyor...</span>
             {uploadProgress?.total > 0 && (
-              <span className="text-[10px] font-bold text-[#9097A6] bg-[#F4F5F7] dark:bg-white/5 px-2 py-0.5 rounded-full transition-all duration-300">
+              <span className="theme-muted-badge text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300">
                 {uploadProgress.current} / {uploadProgress.total}
               </span>
             )}
           </div>
-          <div className="h-1 bg-[#E5E9F0] dark:bg-white/10 rounded-full overflow-hidden">
+          <div className="theme-progress-track h-1 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-[#905efc] transition-all duration-500 ease-out rounded-full shadow-[0_0_8px_rgba(144,94,252,0.4)]" 
+              className="h-full bg-primary transition-all duration-500 ease-out rounded-full shadow-[0_0_8px_rgba(144,94,252,0.4)]" 
               style={{ width: `${uploadProgress?.total > 0 ? (uploadProgress.current / uploadProgress.total) * 100 : 50}%` }}
             />
           </div>
@@ -63,7 +63,7 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
 
       <div className="flex items-end gap-3">
         {/* Attach Button */}
-        <label className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 cursor-pointer transition-all">
+        <label className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 cursor-pointer transition-all">
           <Plus size={20} />
           <input
             type="file"
@@ -80,7 +80,7 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
         </label>
 
         {/* Input */}
-        <div className="flex-1 flex items-end bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 rounded-2xl px-4 py-2.5 gap-2 focus-within:border-[#905efc]/40 focus-within:bg-white dark:focus-within:bg-white/8 transition-all">
+        <div className="theme-surface-alt flex-1 flex items-end border theme-divider rounded-2xl px-4 py-2.5 gap-2 focus-within:border-primary transition-all">
           <textarea
             ref={textareaRef}
             value={content}
@@ -88,9 +88,9 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
             onKeyDown={handleKeyDown}
             placeholder="Mesajınızı yazın..."
             rows={1}
-            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm resize-none max-h-40 text-[#1A1A2E] dark:text-white placeholder:text-[#9097A6] leading-relaxed py-0"
+            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm resize-none max-h-40 theme-text-primary placeholder:theme-text-secondary leading-relaxed py-0"
           />
-          <button className="flex-shrink-0 text-[#9097A6] hover:text-amber-400 transition-colors pb-0.5">
+          <button className="shrink-0 theme-text-secondary hover:text-amber-400 transition-colors pb-0.5">
             <Smile size={18} />
           </button>
         </div>
@@ -100,12 +100,12 @@ export default function MessageInput({ onSendMessage, onFileUpload, isUploading,
           <button
             onClick={handleSend}
             disabled={isUploading}
-            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-[#905efc] text-white shadow-lg shadow-[#905efc]/25 hover:bg-[#7c4ef0] active:scale-90 transition-all"
+            className="theme-button-primary shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
           >
             {isUploading ? <LoaderIcon /> : <Send size={18} className="translate-x-px" />}
           </button>
         ) : (
-          <button className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[#9097A6] hover:text-[#905efc] hover:bg-[#905efc]/8 transition-all">
+          <button className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center theme-text-secondary hover:text-primary hover:bg-primary/8 transition-all">
             <Mic size={18} />
           </button>
         )}
