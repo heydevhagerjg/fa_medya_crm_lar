@@ -416,6 +416,9 @@ export default function ChatPage() {
     }, [])
 
     const attachRemoteStream = useCallback((remoteUserId, stream) => {
+        console.log('[WebRTC] attachRemoteStream for user', remoteUserId,
+            'tracks:', stream.getAudioTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState, label: t.label })))
+
         let audioElement = remoteAudioRef.current.get(remoteUserId)
         if (!audioElement) {
             audioElement = document.createElement('audio')
@@ -428,9 +431,11 @@ export default function ChatPage() {
         }
 
         audioElement.srcObject = stream
-        audioElement.play().catch(() => {
-            // Browser may block autoplay until user interaction.
-        })
+        audioElement.volume = 1.0
+        audioElement.muted = false
+        audioElement.play()
+            .then(() => console.log('[WebRTC] Remote audio playing for user', remoteUserId))
+            .catch((err) => console.warn('[WebRTC] Autoplay blocked for user', remoteUserId, err))
     }, [])
 
     const sendSignal = useCallback(async (chatId, callId, signalType, payload, targetUserId = null) => {
@@ -447,15 +452,22 @@ export default function ChatPage() {
         }
 
         const localStream = await ensureLocalStream()
+        const audioTracks = localStream.getAudioTracks()
+        console.log('[WebRTC] Local audio tracks:', audioTracks.map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })))
+        if (audioTracks.length === 0) {
+            throw new Error('Mikrofon erişimi sağlanamadı, ses gönderilemiyor.')
+        }
+
         const peerConnection = new RTCPeerConnection({
             iceServers: iceServersRef.current,
         })
 
-        localStream.getTracks().forEach(track => {
+        audioTracks.forEach(track => {
             peerConnection.addTrack(track, localStream)
         })
 
         peerConnection.ontrack = (event) => {
+            console.log('[WebRTC] ontrack fired:', event.track.kind, 'enabled:', event.track.enabled, 'readyState:', event.track.readyState)
             const stream = (event.streams && event.streams.length > 0)
                 ? event.streams[0]
                 : (() => {
@@ -473,11 +485,16 @@ export default function ChatPage() {
         }
 
         peerConnection.onconnectionstatechange = () => {
+            console.log('[WebRTC] connectionState for', remoteUserId, ':', peerConnection.connectionState)
             const terminalStates = ['failed', 'closed', 'disconnected']
             if (terminalStates.includes(peerConnection.connectionState)) {
                 peerConnection.close()
                 peerConnectionsRef.current.delete(remoteUserId)
             }
+        }
+
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log('[WebRTC] iceConnectionState for', remoteUserId, ':', peerConnection.iceConnectionState)
         }
 
         peerConnectionsRef.current.set(remoteUserId, peerConnection)
@@ -846,6 +863,9 @@ export default function ChatPage() {
 
         setIsCallActionPending(true)
         try {
+            // Mikrofon erişimini arama başlamadan önce al (race condition önlenir)
+            await ensureLocalStream()
+
             const response = await api.post(`/chats/${selectedChat.id}/calls`, { type: 'audio' })
             const call = response.data?.data
             if (!call) return
@@ -853,7 +873,6 @@ export default function ChatPage() {
             setActiveCall(call)
             setIncomingCall(null)
             startRingbackTone()
-            await ensureLocalStream()
             setIsInCall(true)
             toast.success('Arama başlatıldı.')
         } catch (error) {
@@ -882,6 +901,9 @@ export default function ChatPage() {
                 setSearchParams({ open: String(incomingCall.chat_id) }, { replace: true })
             }
 
+            // Mikrofon erişimini kabul etmeden önce al (race condition önlenir)
+            await ensureLocalStream()
+
             const response = await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/accept`)
             const call = response.data?.data
             if (!call) return
@@ -889,7 +911,6 @@ export default function ChatPage() {
             stopCallSounds()
             setActiveCall(call)
             setIncomingCall(null)
-            await ensureLocalStream()
             setIsInCall(true)
             toast.success('Arama kabul edildi.')
         } catch (error) {
