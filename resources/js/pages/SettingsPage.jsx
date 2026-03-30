@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { 
     Settings, Layers, ListTodo, ClipboardList, Wallet, FolderOpen, 
     CalendarCheck, Activity, Users, Shield, Key, Database, ShieldAlert, Plus,
-    CreditCard
+    CreditCard, Palette
 } from 'lucide-react'
 import { useAuthStore } from '../stores/index.js'
 import PageHeader from '../components/layout/PageHeader.jsx'
@@ -21,6 +21,7 @@ import WorkflowsTab from './Settings/WorkflowsTab.jsx'
 import UsersTab from './Settings/UsersTab.jsx'
 import RolesTab from './Settings/RolesTab.jsx'
 import ApiKeysTab from './Settings/ApiKeysTab.jsx'
+import ThemeTab from './Settings/ThemeTab.jsx'
 import BackupTab from './Settings/BackupTab.jsx'
 import AuditLogTab from './Settings/AuditLogTab.jsx'
 import SubscriptionTab from './Settings/SubscriptionTab.jsx'
@@ -55,6 +56,7 @@ export default function SettingsPage() {
         { id: 'users', label: 'Personel Yönetimi', icon: Users, to: '/settings?tab=users' },
         { id: 'roles', label: 'Yetki Grupları (Roller)', icon: Shield, to: '/settings?tab=roles' },
         { id: 'api-keys', label: 'API / Entegrasyon', icon: Key, to: '/settings?tab=api-keys' },
+        { id: 'theme', label: 'Tema', icon: Palette, to: '/settings?tab=theme' },
         { id: 'backups', label: 'Veri Yedekleme', icon: Database, to: '/settings?tab=backups' },
         { id: 'logs', label: 'Denetim Kayıtları', icon: ShieldAlert, to: '/settings?tab=logs' },
         { id: 'subscription', label: 'Abonelik & Ödeme', icon: CreditCard, to: '/settings?tab=subscription' },
@@ -74,6 +76,7 @@ export default function SettingsPage() {
         'users': 'Personel Yönetimi',
         'roles': 'Yetki Grupları (Roller)',
         'api-keys': 'API / Entegrasyon',
+        'theme': 'Tema',
         'backups': 'Veri Yedekleme',
         'logs': 'Denetim Kayıtları',
         'subscription': 'Abonelik & Ödeme',
@@ -94,6 +97,7 @@ export default function SettingsPage() {
             case 'users': return <UsersTab />
             case 'roles': return <RolesTab />
             case 'api-keys': return <ApiKeysTab />
+            case 'theme': return <ThemeTab />
             case 'backups': return <BackupTab />
             case 'logs': return <AuditLogTab />
             case 'subscription': return <SubscriptionTab />

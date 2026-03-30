@@ -22,13 +22,16 @@ const queryClient = new QueryClient({
         try {
             const stored = JSON.parse(localStorage.getItem('crm-theme') || '{}')
             const theme = stored?.state?.theme || 'dark'
+            const palette = stored?.state?.palette || 'violet'
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark')
             } else {
                 document.documentElement.classList.remove('dark')
             }
+            document.documentElement.dataset.palette = palette
         } catch {
             document.documentElement.classList.add('dark')
+            document.documentElement.dataset.palette = 'violet'
         }
     })()
 

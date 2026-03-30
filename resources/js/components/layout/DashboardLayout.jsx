@@ -164,6 +164,7 @@ const settingsMenuGroups = [
             { id: "api-keys", label: "API / Entegrasyon", icon: Key },
             { id: "backups", label: "Veri Yedekleme", icon: Database },
             { id: "logs", label: "Denetim Kayıtları", icon: ShieldAlert },
+            { id: "theme", label: "Tema", icon: ShieldAlert },
         ],
     },
     {

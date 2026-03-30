@@ -52,14 +52,21 @@ export const useThemeStore = create(
     persist(
         (set, get) => ({
             theme: 'dark',
+            palette: 'violet',
+            availablePalettes: ['violet', 'ocean', 'graphite'],
             toggleTheme: () => {
                 const newTheme = get().theme === 'dark' ? 'light' : 'dark';
                 set({ theme: newTheme });
                 document.documentElement.classList.toggle('dark', newTheme === 'dark');
             },
+            setPalette: (palette) => {
+                set({ palette });
+                document.documentElement.dataset.palette = palette;
+            },
             initTheme: () => {
-                const theme = get().theme;
+                const { theme, palette } = get();
                 document.documentElement.classList.toggle('dark', theme === 'dark');
+                document.documentElement.dataset.palette = palette || 'violet';
             },
         }),
         {
