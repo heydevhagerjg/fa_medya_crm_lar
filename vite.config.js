@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+    build: {
+        sourcemap: true,
+    },
     plugins: [
         laravel({
             input: ['resources/js/main.jsx'],

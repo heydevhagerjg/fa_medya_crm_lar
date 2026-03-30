@@ -41,6 +41,7 @@ import {
     Calendar,
     Clock,
     FolderOpen,
+    Lock,
 } from "lucide-react";
 
 const navItems = [

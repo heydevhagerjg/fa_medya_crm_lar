@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, X, Zap, ShieldCheck, Globe, Activity, ChevronRight } from 'lucide-react'
 import api from '../lib/api'
