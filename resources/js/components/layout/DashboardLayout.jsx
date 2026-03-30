@@ -656,12 +656,12 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                 <div className="flex flex-col h-full overflow-hidden">
                     <div className="theme-divider flex h-17.5 shrink-0 items-center border-b px-5">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#905EFC] to-[#6B3FD4] text-base font-black text-white shadow-lg shadow-[#905EFC]/30 select-none">
-                                V
-                            </div>
-                            <span className="theme-text-primary text-base font-black tracking-widest uppercase">
-                                Vistore
-                            </span>
+                            <img
+                            src={theme === 'dark' ? "/logo/big-logo.png" : "/logo/big-logo-dark.png"}
+                            alt="Logo"
+                            style={{ width: 'auto', height: 40 }}
+                            className="rounded-full"
+                        />
                         </div>
                     </div>
                     <nav className="flex-1 flex flex-col gap-0.5 py-3 px-3 overflow-y-auto">

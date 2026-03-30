@@ -9,68 +9,94 @@ export default function PageHeader({
     search,
     children,
     breadcrumbs = [],
+    childrenPlacement = 'below', // 'below' | 'actions'
 }) {
+    const trail = ['Anasayfa', ...breadcrumbs.filter(Boolean)]
+    const hasBreadcrumbs = trail.length > 1
+
     return (
-        <div className="space-y-5">
-            {/* Breadcrumb with Actions Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                {/* Breadcrumb on Left */}
-                {breadcrumbs.length > 0 && (
-                    <div className="theme-text-secondary flex items-center gap-2 text-sm">
-                        <span className="theme-text-primary font-medium">Anasayfa</span>
-                        {breadcrumbs.map((breadcrumb, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                                <ChevronRight size={16} />
-                                <span className="theme-text-primary font-medium">{breadcrumb}</span>
-                            </div>
-                        ))}
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+                {hasBreadcrumbs ? (
+                    <div className="min-w-0 flex-1">
+                        <ol className="theme-text-secondary flex items-center gap-1.5 text-xs font-semibold sm:hidden">
+                            <li className="max-w-30 truncate">{trail[0]}</li>
+                            {trail.length > 2 && (
+                                <>
+                                    <li className="opacity-60">
+                                        <ChevronRight size={14} />
+                                    </li>
+                                    <li className="theme-text-secondary">...</li>
+                                </>
+                            )}
+                            <li className="opacity-60">
+                                <ChevronRight size={14} />
+                            </li>
+                            <li className="theme-text-primary max-w-42.5 truncate">{trail[trail.length - 1]}</li>
+                        </ol>
+
+                        <ol className="theme-text-secondary hidden items-center gap-1.5 text-sm font-semibold sm:flex">
+                            {trail.map((item, idx) => {
+                                const isLast = idx === trail.length - 1
+                                return (
+                                    <li key={`${item}-${idx}`} className="flex min-w-0 items-center gap-1.5">
+                                        {idx > 0 && <ChevronRight size={14} className="opacity-60" />}
+                                        <span
+                                            className={`max-w-55 truncate ${isLast ? 'theme-text-primary' : 'opacity-85'}`}
+                                            title={item}
+                                        >
+                                            {item}
+                                        </span>
+                                    </li>
+                                )
+                            })}
+                        </ol>
                     </div>
+                ) : (
+                    <div className="flex-1" />
                 )}
 
-                {/* Action Buttons on Right */}
                 {actions.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+                    <div className="relative flex shrink-0 items-center justify-end gap-2">
                         {actions.map((action, idx) => {
                             const ActionIcon = action.icon
                             return (
                                 <button
                                     key={idx}
+                                    type="button"
                                     onClick={action.onClick}
-                                    className={`
-                                        flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap
-                                        ${action.variant === 'secondary'
-                                            ? 'theme-button-secondary'
-                                            : action.variant === 'outline'
-                                            ? 'theme-button-outline border'
-                                            : 'theme-button-primary shadow-lg shadow-[#905EFC]/25'
-                                        }
-                                    `}
+                                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${action.variant === 'secondary'
+                                        ? 'theme-button-secondary'
+                                        : action.variant === 'outline'
+                                        ? 'theme-button-outline border'
+                                        : 'theme-button-primary shadow-lg shadow-[#905EFC]/20'
+                                        }`}
                                 >
-                                    {ActionIcon && <ActionIcon size={18} />}
+                                    {ActionIcon && <ActionIcon size={16} />}
                                     {action.label}
                                 </button>
                             )
                         })}
+
+                        {children && childrenPlacement === 'actions' && children}
                     </div>
                 )}
             </div>
 
-            {/* Title Section */}
-            <div className="flex items-start gap-3">
-                {Icon && (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-(--theme-accent-soft)">
-                        <Icon size={20} className={iconColor} />
-                    </div>
-                )}
-                <div className="flex-1">
-                    <h1 className="theme-text-primary text-2xl font-bold">{title}</h1>
-                    {subtitle && (
-                        <p className="theme-text-secondary mt-1 text-sm">{subtitle}</p>
+            {!hasBreadcrumbs && (
+                <div className="flex items-start gap-2.5">
+                    {Icon && (
+                        <div className="bg-(--theme-accent-soft) flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9">
+                            <Icon size={18} className={iconColor} />
+                        </div>
                     )}
+                    <div className="min-w-0 flex-1">
+                        <h1 className="theme-text-primary truncate text-xl font-bold leading-tight sm:text-2xl">{title}</h1>
+                        {subtitle && <p className="theme-text-secondary mt-1 line-clamp-2 text-sm">{subtitle}</p>}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* Search Bar */}
             {search && (
                 <div className="relative">
                     <search.icon size={16} className="theme-text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -84,8 +110,7 @@ export default function PageHeader({
                 </div>
             )}
 
-            {/* Additional Content (filters, badges, etc) */}
-            {children && <div>{children}</div>}
+            {children && childrenPlacement !== 'actions' && <div className="relative">{children}</div>}
         </div>
     )
 }

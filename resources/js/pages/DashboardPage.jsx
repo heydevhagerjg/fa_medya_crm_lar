@@ -61,9 +61,10 @@ export default function DashboardPage() {
                     { label: 'Hızlı İşlem', onClick: () => setDropdownOpen(!dropdownOpen), icon: Plus, variant: 'primary' }
                 ]}
                 breadcrumbs={['İstatistikler']}
+                childrenPlacement="actions"
             >
                 {dropdownOpen && (
-                    <div className="theme-surface absolute right-0 mt-3 w-56 rounded-xl shadow-xl border theme-divider py-2 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                    <div className="theme-surface absolute right-0 top-full mt-2 w-56 rounded-xl shadow-xl border theme-divider py-2 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
                         <Link to="/customers?new=1" className="theme-text-primary flex items-center gap-3 px-4 py-3 text-sm hover:theme-surface-alt transition-colors">
                             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                                 <UserPlus size={16} className="text-blue-500" />
