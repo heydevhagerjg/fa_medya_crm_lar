@@ -228,9 +228,11 @@ function NewChatModal({ open, onClose, currentUser, onCreated }) {
 function parseIceServers() {
     try {
         const parsed = JSON.parse(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '[]')
-        return Array.isArray(parsed) ? parsed : []
+        return Array.isArray(parsed) && parsed.length > 0
+            ? parsed
+            : [{ urls: 'stun:stun.l.google.com:19302' }]
     } catch {
-        return []
+        return [{ urls: 'stun:stun.l.google.com:19302' }]
     }
 }
 
@@ -293,6 +295,9 @@ export default function ChatPage() {
     const localStreamRef = useRef(null)
     const iceServersRef = useRef(parseIceServers())
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
+    const iceCandidateBufferRef = useRef(new Map())
+    const handleIncomingSignalRef = useRef(null)
+    const applyCallUpdateRef = useRef(null)
 
     const [selectedChat, setSelectedChat] = useState(null)
     const [messages, setMessages] = useState([])
@@ -329,6 +334,7 @@ export default function ChatPage() {
             peerConnection.close()
         }
         peerConnectionsRef.current.clear()
+        iceCandidateBufferRef.current.clear()
     }, [])
 
     const cleanupLocalStream = useCallback(() => {
@@ -526,6 +532,11 @@ export default function ChatPage() {
             if (signalType === 'offer') {
                 const peerConnection = await getOrCreatePeerConnection(activeCall.chat_id, activeCall.id, remoteUserId)
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer))
+                const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
+                iceCandidateBufferRef.current.delete(remoteUserId)
+                for (const c of buffered) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
+                }
                 const answer = await peerConnection.createAnswer()
                 await peerConnection.setLocalDescription(answer)
                 await sendSignal(activeCall.chat_id, activeCall.id, 'answer', { answer: peerConnection.localDescription }, remoteUserId)
@@ -536,18 +547,32 @@ export default function ChatPage() {
                 const peerConnection = peerConnectionsRef.current.get(remoteUserId)
                 if (!peerConnection) return
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer))
+                const buffered = iceCandidateBufferRef.current.get(remoteUserId) || []
+                iceCandidateBufferRef.current.delete(remoteUserId)
+                for (const c of buffered) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
+                }
                 return
             }
 
             if (signalType === 'ice-candidate') {
                 const peerConnection = peerConnectionsRef.current.get(remoteUserId)
                 if (!peerConnection || !payload.candidate) return
+                if (!peerConnection.remoteDescription) {
+                    const buf = iceCandidateBufferRef.current.get(remoteUserId) || []
+                    buf.push(payload.candidate)
+                    iceCandidateBufferRef.current.set(remoteUserId, buf)
+                    return
+                }
                 await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate))
             }
         } catch (error) {
             console.error('Signal handling error:', error)
         }
     }, [activeCall, currentUser?.id, getOrCreatePeerConnection, sendSignal])
+
+    useEffect(() => { handleIncomingSignalRef.current = handleIncomingSignal }, [handleIncomingSignal])
+    useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
@@ -747,13 +772,13 @@ export default function ChatPage() {
                 queryClient.invalidateQueries(['chats'])
             })
             .listen('.chat.call.updated', (e) => {
-                applyCallUpdate(e)
+                applyCallUpdateRef.current?.(e)
             })
             .listen('.chat.call.signal', (e) => {
-                handleIncomingSignal(e)
+                handleIncomingSignalRef.current?.(e)
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
-    }, [selectedChat, currentUser, queryClient, markAsRead, applyCallUpdate, handleIncomingSignal])
+    }, [selectedChat, currentUser, queryClient, markAsRead])
 
     const handleSendMessage = async (content) => {
         if (!selectedChat?.id) return
