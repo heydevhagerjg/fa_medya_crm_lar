@@ -30,6 +30,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  /*
+    Theme tokens
+    --------------------------------------------------------------------------
+    Bu blok tenant panelinin ana renk sistemidir.
+
+    En sık güncelleyeceğiniz alanlar:
+    - --theme-accent: ana vurgu rengi
+    - --theme-bg-app: uygulama arka planı
+    - --theme-bg-surface: kart / panel yüzeyi
+    - --theme-border-subtle: standart border rengi
+    - --theme-text-primary: ana metin rengi
+    - --theme-text-secondary: ikincil metin rengi
+
+    İsimlendirme mantığı:
+    - bg-*       : yüzey / zemin
+    - text-*     : yazı renkleri
+    - border-*   : çizgi / ayraç renkleri
+    - nav-*      : sidebar / menü durumları
+    - accent-*   : ana marka rengi ve varyantları
+  */
   :root {
     --primary: 144 94 252; /* #905EFC */
     --primary-foreground: 255 255 255;
@@ -39,6 +59,66 @@
     --border: 229 233 240; /* #E5E9F0 */
     --sidebar-width: 80px;
     --sidebar-collapsed-width: 80px;
+
+    /* Brand */
+    --theme-accent: #905efc;
+    --theme-accent-hover: #7b4fd4;
+    --theme-accent-soft: rgba(144, 94, 252, 0.10);
+
+    /* Layout surfaces */
+    --theme-bg-app: #f4f5f7;
+    --theme-bg-surface: #ffffff;
+    --theme-bg-surface-alt: #f4f5f7;
+    --theme-bg-elevated: #ffffff;
+
+    /* Text */
+    --theme-text-primary: #1a1a2e;
+    --theme-text-secondary: #9097a6;
+    --theme-text-inverse: #ffffff;
+
+    /* Borders */
+    --theme-border-subtle: #e5e9f0;
+    --theme-border-strong: #d6dbe4;
+
+    /* Navigation */
+    --theme-nav-hover-bg: #e5e9f0;
+    --theme-nav-hover-text: #1a1a2e;
+    --theme-nav-active-bg: #1a1a2e;
+    --theme-nav-active-text: #ffffff;
+
+    /* States */
+    --theme-danger-soft: #fef2f2;
+  }
+
+  html.dark {
+    /* Brand */
+    --theme-accent: #a78bfa;
+    --theme-accent-hover: #c4b5fd;
+    --theme-accent-soft: rgba(255, 255, 255, 0.10);
+
+    /* Layout surfaces */
+    --theme-bg-app: #0a0a0a;
+    --theme-bg-surface: #111111;
+    --theme-bg-surface-alt: rgba(255, 255, 255, 0.05);
+    --theme-bg-elevated: #161616;
+
+    /* Text */
+    --theme-text-primary: #f4f5f7;
+    --theme-text-secondary: #9ca3af;
+    --theme-text-inverse: #1a1a2e;
+
+    /* Borders */
+    --theme-border-subtle: rgba(255, 255, 255, 0.08);
+    --theme-border-strong: rgba(255, 255, 255, 0.12);
+
+    /* Navigation */
+    --theme-nav-hover-bg: rgba(255, 255, 255, 0.10);
+    --theme-nav-hover-text: #ffffff;
+    --theme-nav-active-bg: #ffffff;
+    --theme-nav-active-text: #1a1a2e;
+
+    /* States */
+    --theme-danger-soft: rgba(239, 68, 68, 0.12);
   }
 
   * {
@@ -93,6 +173,145 @@
 
 /* Card utility */
 @layer utilities {
+  /*
+    Semantic theme utilities
+    --------------------------------------------------------------------------
+    Bu sınıflar tenant panelde tekrar eden yüzey/metin düzenlerini tek isme taşır.
+    Yeni bileşen yazarken doğrudan hex veya uzun dark: zinciri yerine bunları tercih edin.
+  */
+
+  .theme-app-shell {
+    background-color: var(--theme-bg-app);
+    color: var(--theme-text-primary);
+  }
+
+  .theme-surface {
+    background-color: var(--theme-bg-surface);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-surface-alt {
+    background-color: var(--theme-bg-surface-alt);
+  }
+
+  .theme-elevated {
+    background-color: var(--theme-bg-elevated);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-sidebar-surface {
+    background-color: var(--theme-bg-surface);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-header-surface {
+    background-color: var(--theme-bg-surface);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-divider {
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-text-primary {
+    color: var(--theme-text-primary);
+  }
+
+  .theme-text-secondary {
+    color: var(--theme-text-secondary);
+  }
+
+  .theme-text-inverse {
+    color: var(--theme-text-inverse);
+  }
+
+  .theme-icon-button {
+    background-color: var(--theme-bg-surface-alt);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-icon-button:hover {
+    background-color: var(--theme-nav-hover-bg);
+    color: var(--theme-nav-hover-text);
+  }
+
+  .theme-nav-item {
+    color: var(--theme-text-secondary);
+  }
+
+  .theme-nav-item:hover {
+    background-color: var(--theme-nav-hover-bg);
+    color: var(--theme-nav-hover-text);
+  }
+
+  .theme-nav-item-active {
+    background-color: var(--theme-nav-active-bg);
+    color: var(--theme-nav-active-text);
+    box-shadow: 0 4px 14px rgba(26, 26, 46, 0.10);
+  }
+
+  .theme-nav-label {
+    color: var(--theme-text-primary);
+  }
+
+  .theme-nav-label-active {
+    color: var(--theme-nav-active-text);
+  }
+
+  .theme-input {
+    background-color: var(--theme-bg-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+  }
+
+  .theme-input::placeholder {
+    color: var(--theme-text-secondary);
+  }
+
+  .theme-input:focus {
+    outline: none;
+    border-color: var(--theme-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  }
+
+  .theme-button-primary {
+    background-color: var(--theme-accent);
+    color: #ffffff;
+  }
+
+  .theme-button-primary:hover {
+    background-color: var(--theme-accent-hover);
+  }
+
+  .theme-button-secondary {
+    background-color: var(--theme-bg-surface-alt);
+    color: var(--theme-text-primary);
+  }
+
+  .theme-button-secondary:hover {
+    background-color: var(--theme-nav-hover-bg);
+  }
+
+  .theme-button-outline {
+    background-color: transparent;
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+  }
+
+  .theme-button-outline:hover {
+    background-color: var(--theme-bg-surface-alt);
+  }
+
+  .theme-progress-track {
+    background-color: var(--theme-bg-surface-alt);
+  }
+
+  .theme-muted-badge {
+    background-color: var(--theme-bg-surface-alt);
+    color: var(--theme-text-secondary);
+  }
+
   .card {
     background-color: #ffffff;
     border-radius: 1.25rem;

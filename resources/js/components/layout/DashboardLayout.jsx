@@ -322,7 +322,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
         <div className="flex flex-col h-full">
             {/* Logo + toggle */}
             <div
-                className={`h-[70px] flex items-center shrink-0 border-b border-[#E5E9F0] dark:border-white/5 ${expanded ? "px-5 justify-between" : "justify-center px-0"}`}
+                className={`theme-divider flex h-17.5 shrink-0 items-center border-b ${expanded ? "px-5 justify-between" : "justify-center px-0"}`}
             >
                 <div
                     className={`flex items-center gap-3 min-w-0 ${expanded ? "" : "justify-center w-full"}`}
@@ -348,7 +348,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                 {expanded && !isMobile && (
                     <button
                         onClick={toggleExpanded}
-                        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white hover:bg-[#E5E9F0] transition-all"
+                        className="theme-icon-button flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all"
                         title="Daralt"
                     >
                         <ChevronLeft size={14} />
@@ -378,8 +378,8 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                     relative group flex items-center gap-3 transition-all duration-200 shrink-0 rounded-xl
                                     ${expanded ? "px-3 py-2.5" : "w-11 h-11 mx-auto justify-center"}
                                     ${isActive && !isRestoring
-                                        ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md"
-                                        : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"
+                                        ? "theme-nav-item-active shadow-md"
+                                        : "theme-nav-item"
                                     }
                                     ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}
                                 `}
@@ -392,19 +392,16 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                 />
                                 {expanded && (
                                     <span
-                                        className={`text-sm font-semibold truncate ${isActive && !isRestoring ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
+                                        className={`truncate text-sm font-semibold ${isActive && !isRestoring ? "theme-nav-label-active" : "theme-nav-label"}`}
                                     >
                                         {item.label}
                                     </span>
                                 )}
                                 {isDisabled && (
                                     <span
-                                        className={`${expanded ? "ml-auto" : "absolute -top-0.5 -right-0.5"} w-3.5 h-3.5 rounded-full bg-[#E5E9F0] dark:bg-[#222] flex items-center justify-center shrink-0`}
+                                        className={`${expanded ? "ml-auto" : "absolute -top-0.5 -right-0.5"} theme-muted-badge flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full`}
                                     >
-                                        <Lock
-                                            size={8}
-                                            className="text-[#9097A6]"
-                                        />
+                                        <Lock size={8} className="theme-text-secondary" />
                                     </span>
                                 )}
                                 {!expanded && (
@@ -438,7 +435,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
 
             {/* Bottom section */}
             <div
-                className={`flex flex-col gap-0.5 pb-4 px-3 border-t border-[#E5E9F0] dark:border-white/5 pt-3 ${expanded ? "" : "items-center"}`}
+                className={`theme-divider flex flex-col gap-0.5 border-t px-3 pb-4 pt-3 ${expanded ? "" : "items-center"}`}
             >
                 {/* Storage indicator */}
                 {user?.tenant?.storage_limit > 0 &&
@@ -463,10 +460,10 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                         return expanded ? (
                             <div
                                 onClick={handleRecalculateStorage}
-                                className={`px-3 py-2.5 mb-1 cursor-pointer hover:bg-[#F4F5F7] dark:hover:bg-white/5 rounded-xl transition-all group/storage ${isRecalculating ? 'opacity-50 pointer-events-none' : ''}`}
+                                className={`theme-nav-item mb-1 cursor-pointer rounded-xl px-3 py-2.5 transition-all group/storage ${isRecalculating ? 'opacity-50 pointer-events-none' : ''}`}
                                 title="Depolama alanını yeniden hesaplamak için tıklayın"
                             >
-                                <div className="flex justify-between text-[10px] font-bold text-[#9097A6] mb-1.5 uppercase tracking-wider">
+                                <div className="theme-text-secondary mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-wider">
                                     <div className="flex items-center gap-1.5">
                                         <span>Depolama</span>
                                         {isRecalculating && <Activity size={10} className="animate-pulse text-[#905EFC]" />}
@@ -476,7 +473,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                         MB
                                     </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-[#E5E9F0] dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+                                <div className="theme-progress-track h-1.5 w-full overflow-hidden rounded-full shadow-inner">
                                     <div
                                         className={`h-full rounded-full transition-all duration-700 ease-out ${isRecalculating ? 'animate-pulse' : ''}`}
                                         style={{
@@ -490,7 +487,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                         ) : (
                             <div
                                 onClick={handleRecalculateStorage}
-                                className={`relative group w-11 h-11 flex items-center justify-center cursor-pointer mb-1 hover:bg-[#E5E9F0] dark:hover:bg-white/10 rounded-xl transition-all ${isRecalculating ? 'animate-spin-slow' : ''}`}
+                                className={`theme-nav-item relative group mb-1 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl transition-all ${isRecalculating ? 'animate-spin-slow' : ''}`}
                             >
                                 <svg
                                     width="44"
@@ -503,7 +500,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                         cy="22"
                                         r="18"
                                         fill="none"
-                                        stroke="#E5E9F0"
+                                        stroke="var(--theme-border-subtle)"
                                         strokeWidth="3"
                                     />
                                     <circle
@@ -518,7 +515,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                         strokeLinecap="round"
                                     />
                                 </svg>
-                                <span className="absolute text-[8px] font-black text-[#9097A6]">
+                                <span className="theme-text-secondary absolute text-[8px] font-black">
                                     {Math.round(pct)}%
                                 </span>
                                 <span className="nav-tooltip">
@@ -621,7 +618,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
     );
 
     return (
-        <div className="flex h-screen bg-[#F4F5F7] dark:bg-[#0A0A0A] overflow-hidden">
+        <div className="theme-app-shell flex h-screen overflow-hidden">
             {/* Mobile overlay */}
             {mobileOpen && (
                 <div
@@ -632,7 +629,7 @@ export default function DashboardLayout({ children, isRestoring = false }) {
 
             {/* Sidebar — Desktop */}
             <aside
-                className="hidden lg:flex shrink-0 flex-col bg-white dark:bg-[#111111] border-r border-[#E5E9F0] dark:border-white/5 overflow-visible z-30 transition-all duration-300"
+                className="theme-sidebar-surface hidden shrink-0 flex-col overflow-visible border-r z-30 transition-all duration-300 lg:flex"
                 style={{ width: expanded ? "240px" : "80px" }}
             >
                 {buildSidebarContent(false)}
@@ -642,25 +639,25 @@ export default function DashboardLayout({ children, isRestoring = false }) {
             <aside
                 className={`
                 lg:hidden fixed inset-y-0 left-0 z-50 flex flex-col w-60
-                bg-white dark:bg-[#111111] border-r border-[#E5E9F0] dark:border-white/5
+                theme-sidebar-surface border-r
                 transform transition-transform duration-300 ease-in-out
                 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
             `}
             >
                 <button
                     onClick={() => setMobileOpen(false)}
-                    className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-[#F4F5F7] dark:bg-white/10 text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white transition-all z-10"
+                    className="theme-icon-button absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all"
                 >
                     <X size={14} />
                 </button>
                 {/* Mobile sidebar always shows expanded layout */}
                 <div className="flex flex-col h-full overflow-hidden">
-                    <div className="h-[70px] flex items-center shrink-0 border-b border-[#E5E9F0] dark:border-white/5 px-5">
+                    <div className="theme-divider flex h-17.5 shrink-0 items-center border-b px-5">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#905EFC] to-[#6B3FD4] flex items-center justify-center text-white font-black text-base shadow-lg shadow-[#905EFC]/30 select-none">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#905EFC] to-[#6B3FD4] text-base font-black text-white shadow-lg shadow-[#905EFC]/30 select-none">
                                 V
                             </div>
-                            <span className="text-base font-black text-[#1A1A2E] dark:text-white tracking-widest uppercase">
+                            <span className="theme-text-primary text-base font-black tracking-widest uppercase">
                                 Vistore
                             </span>
                         </div>
@@ -679,58 +676,56 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                                         key={item.to}
                                         {...(!isRestoring ? { to: item.to } : {})}
                                         onClick={() => !isRestoring && setMobileOpen(false)}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive && !isRestoring ? "bg-[#1A1A2E] dark:bg-white text-white dark:text-[#1A1A2E] shadow-md" : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"} ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}`}
+                                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${isActive && !isRestoring ? "theme-nav-item-active shadow-md" : "theme-nav-item"} ${isRestoring ? "cursor-not-allowed opacity-70 pointer-events-none" : ""}`}
                                     >
                                         <IconComp
                                             size={18}
                                             strokeWidth={isActive && !isRestoring ? 2.5 : 1.8}
                                             className="shrink-0"
                                         />
-                                        <span
-                                            className={`text-sm font-semibold ${isActive && !isRestoring ? "text-white dark:text-[#1A1A2E]" : "text-[#1A1A2E] dark:text-white"}`}
-                                        >
+                                        <span className={`text-sm font-semibold ${isActive && !isRestoring ? "theme-nav-label-active" : "theme-nav-label"}`}>
                                             {item.label}
                                         </span>
                                     </LinkComponent>
                                 );
                             })}
                     </nav>
-                    <div className="flex flex-col gap-0.5 pb-4 px-3 border-t border-[#E5E9F0] dark:border-white/5 pt-3">
+                    <div className="theme-divider flex flex-col gap-0.5 border-t px-3 pb-4 pt-3">
                         <button
                             onClick={toggleTheme}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white transition-all"
+                            className="theme-nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all"
                         >
                             {theme === "dark" ? (
                                 <Sun size={18} strokeWidth={1.8} />
                             ) : (
                                 <Moon size={18} strokeWidth={1.8} />
                             )}
-                            <span className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
+                            <span className="theme-nav-label text-sm font-semibold">
                                 {theme === "dark" ? "Açık Tema" : "Koyu Tema"}
                             </span>
                         </button>
                         <NavLink
                             to="/profile"
                             onClick={() => setMobileOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${location.pathname === "/profile" ? "bg-[#1A1A2E] dark:bg-white text-white" : "text-[#9097A6] hover:bg-[#E5E9F0] dark:hover:bg-white/10 hover:text-[#1A1A2E] dark:hover:text-white"}`}
+                            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${location.pathname === "/profile" ? "theme-nav-item-active" : "theme-nav-item"}`}
                         >
                             <User size={18} strokeWidth={1.8} />
-                            <span className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
+                            <span className={`text-sm font-semibold ${location.pathname === "/profile" ? "theme-nav-label-active" : "theme-nav-label"}`}>
                                 Profilim
                             </span>
                         </NavLink>
                         <button
                             onClick={handleLogout}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#9097A6] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all"
+                            className="theme-nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500"
                         >
-                            <div className="w-7 h-7 rounded-full bg-[#E5E9F0] dark:bg-white/10 flex items-center justify-center text-xs font-black text-[#1A1A2E] dark:text-white">
+                            <div className="theme-muted-badge theme-text-primary flex h-7 w-7 items-center justify-center rounded-full text-xs font-black">
                                 {user?.name?.charAt(0)?.toUpperCase()}
                             </div>
                             <div className="flex-1 text-left">
-                                <div className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
+                                <div className="theme-text-primary text-sm font-semibold">
                                     {user?.name}
                                 </div>
-                                <div className="text-[10px] text-[#9097A6]">
+                                <div className="theme-text-secondary text-[10px]">
                                     Çıkış Yap
                                 </div>
                             </div>
@@ -742,11 +737,11 @@ export default function DashboardLayout({ children, isRestoring = false }) {
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Topbar */}
-                <header className="h-[70px] shrink-0 flex items-center gap-4 px-5 lg:px-7 bg-white dark:bg-[#111111] border-b border-[#E5E9F0] dark:border-white/5 sticky top-0 z-30">
+                <header className="theme-header-surface theme-divider sticky top-0 z-30 flex h-17.5 shrink-0 items-center gap-4 border-b px-5 lg:px-7">
                     {/* Mobile hamburger */}
                     <button
                         onClick={() => setMobileOpen(true)}
-                        className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-[#F4F5F7] dark:bg-white/5 text-[#9097A6] hover:text-[#1A1A2E] dark:hover:text-white transition-all shrink-0"
+                        className="theme-icon-button lg:hidden flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all"
                     >
                         <Menu size={18} />
                     </button>
@@ -760,28 +755,28 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                     <div className="flex-1" />
 
                     {/* Date */}
-                    <span className="text-sm font-semibold text-[#9097A6] select-none">
+                    <span className="theme-text-secondary select-none text-sm font-semibold">
                         {todayStr}
                     </span>
 
                     {/* Bell */}
-                    <button className="w-9 h-9 rounded-full bg-[#F4F5F7] dark:bg-white/5 border border-[#E5E9F0] dark:border-white/10 flex items-center justify-center text-[#9097A6] hover:text-[#905EFC] hover:border-[#905EFC]/30 transition-all relative">
+                    <button className="theme-icon-button theme-divider relative flex h-9 w-9 items-center justify-center rounded-full border transition-all hover:text-[#905EFC] hover:border-[#905EFC]/30">
                         <Bell size={16} strokeWidth={1.8} />
                     </button>
 
                     {/* User info */}
-                    <div className="flex items-center gap-2.5 pl-3 border-l border-[#E5E9F0] dark:border-white/10">
+                    <div className="theme-divider flex items-center gap-2.5 border-l pl-3">
                         <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold text-[#1A1A2E] dark:text-white leading-tight">
+                            <div className="theme-text-primary text-sm font-bold leading-tight">
                                 {user?.name}
                             </div>
-                            <div className="text-[11px] text-[#9097A6] font-medium">
+                            <div className="theme-text-secondary text-[11px] font-medium">
                                 {user?.role === "ADMIN"
                                     ? "Yönetici"
                                     : "Kullanıcı"}
                             </div>
                         </div>
-                        <div className="w-9 h-9 rounded-full bg-[#1A1A2E] dark:bg-white flex items-center justify-center text-white dark:text-[#1A1A2E] font-black text-sm select-none shadow-sm">
+                        <div className="theme-nav-item-active flex h-9 w-9 items-center justify-center rounded-full text-sm font-black select-none shadow-sm">
                             {user?.name?.charAt(0)?.toUpperCase()}
                         </div>
                     </div>

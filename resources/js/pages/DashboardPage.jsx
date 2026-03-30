@@ -54,7 +54,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <PageHeader
                 title="İstatistikler"
-                subtitle="Vistore CRM Dashboard • Canlı Veri Akışı"
+                subtitle="Canlı Veri Akışı"
                 icon={BarChart3}
                 iconColor="text-indigo-500"
                 actions={[

@@ -70,7 +70,7 @@ export default function PublicSiteShell({ children, activePage = 'landing', cont
                 <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-4 py-10 sm:flex-row sm:items-center sm:px-6 lg:px-8">
                     <div>
                         <p className="text-lg font-black text-[#0f172a]">{appName}</p>
-                        <p className="text-sm font-medium text-[#64748b]">Isletmeler icin saha, ekip ve finans operasyon platformu.</p>
+                        <p className="text-sm font-medium text-[#64748b]">İşletmeler için saha, ekip ve finans operasyon platformu.</p>
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-[#475569]">
                         {FOOTER_LINKS.map((item) => (
