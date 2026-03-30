@@ -306,6 +306,7 @@ export default function ChatPage() {
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
     const iceCandidateBufferRef = useRef(new Map())
     const processedSignalsRef = useRef(new Set())
+    const pcPromisesRef = useRef(new Map()) // Prevent duplicate PC creation
     const handleIncomingSignalRef = useRef(null)
     const applyCallUpdateRef = useRef(null)
 
@@ -423,6 +424,11 @@ export default function ChatPage() {
             video: false,
         })
         localStreamRef.current = stream
+        // Debug: tarayıcı konsolundan erişim için
+        window.__webrtcDebug = window.__webrtcDebug || {}
+        window.__webrtcDebug.localStream = stream
+        window.__webrtcDebug.peerConnections = peerConnectionsRef.current
+        window.__webrtcDebug.remoteAudios = remoteAudioRef.current
         return stream
     }, [])
 
@@ -441,12 +447,17 @@ export default function ChatPage() {
             remoteAudioRef.current.set(remoteUserId, audioElement)
         }
 
-        audioElement.srcObject = stream
-        audioElement.volume = 1.0
-        audioElement.muted = false
-        audioElement.play()
-            .then(() => console.log('[WebRTC] Remote audio playing for user', remoteUserId))
-            .catch((err) => console.warn('[WebRTC] Autoplay blocked for user', remoteUserId, err))
+        if (audioElement.srcObject !== stream) {
+            audioElement.srcObject = stream
+            audioElement.volume = 1.0
+            audioElement.muted = false
+            audioElement.play()
+                .then(() => console.log('[WebRTC] Remote audio playing for user', remoteUserId))
+                .catch((err) => {
+                    console.warn('[WebRTC] Autoplay blocked for user', remoteUserId, err)
+                    // If blocked, we might need a UI interaction like "Click to unmute"
+                })
+        }
     }, [])
 
     const sendSignal = useCallback(async (chatId, callId, signalType, payload, targetUserId = null) => {
@@ -462,54 +473,73 @@ export default function ChatPage() {
             return peerConnectionsRef.current.get(remoteUserId)
         }
 
-        const localStream = await ensureLocalStream()
-        const audioTracks = localStream.getAudioTracks()
-        console.log('[WebRTC] Local audio tracks:', audioTracks.map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })))
-        if (audioTracks.length === 0) {
-            throw new Error('Mikrofon erişimi sağlanamadı, ses gönderilemiyor.')
+        // If creation is already in progress, wait for it
+        if (pcPromisesRef.current.has(remoteUserId)) {
+            return await pcPromisesRef.current.get(remoteUserId)
         }
 
-        const peerConnection = new RTCPeerConnection({
-            iceServers: iceServersRef.current,
-        })
+        const createPromise = (async () => {
+            try {
+                const localStream = await ensureLocalStream()
+                const audioTracks = localStream.getAudioTracks()
+                console.log('[WebRTC] Local audio tracks:', audioTracks.map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })))
+                if (audioTracks.length === 0) {
+                    throw new Error('Mikrofon erişimi sağlanamadı, ses gönderilemiyor.')
+                }
 
-        audioTracks.forEach(track => {
-            peerConnection.addTrack(track, localStream)
-        })
+                const peerConnection = new RTCPeerConnection({
+                    iceServers: iceServersRef.current,
+                })
 
-        peerConnection.ontrack = (event) => {
-            console.log('[WebRTC] ontrack fired:', event.track.kind, 'enabled:', event.track.enabled, 'readyState:', event.track.readyState)
-            const stream = (event.streams && event.streams.length > 0)
-                ? event.streams[0]
-                : (() => {
-                    const ms = new MediaStream()
-                    ms.addTrack(event.track)
-                    return ms
-                })()
-            attachRemoteStream(remoteUserId, stream)
-        }
+                audioTracks.forEach(track => {
+                    peerConnection.addTrack(track, localStream)
+                })
 
-        peerConnection.onicecandidate = (event) => {
-            if (!event.candidate) return
-            sendSignal(chatId, callId, 'ice-candidate', { candidate: event.candidate }, remoteUserId)
-                .catch(() => {})
-        }
+                peerConnection.ontrack = (event) => {
+                    console.log('[WebRTC] ontrack fired:', event.track.kind, 'enabled:', event.track.enabled, 'readyState:', event.track.readyState)
+                    const stream = (event.streams && event.streams.length > 0)
+                        ? event.streams[0]
+                        : (() => {
+                            const ms = new MediaStream()
+                            ms.addTrack(event.track)
+                            return ms
+                        })()
+                    attachRemoteStream(remoteUserId, stream)
+                }
 
-        peerConnection.onconnectionstatechange = () => {
-            console.log('[WebRTC] connectionState for', remoteUserId, ':', peerConnection.connectionState)
-            const terminalStates = ['failed', 'closed', 'disconnected']
-            if (terminalStates.includes(peerConnection.connectionState)) {
-                peerConnection.close()
-                peerConnectionsRef.current.delete(remoteUserId)
+                peerConnection.onicecandidate = (event) => {
+                    if (!event.candidate) return
+                    sendSignal(chatId, callId, 'ice-candidate', { candidate: event.candidate }, remoteUserId)
+                        .catch(() => { })
+                }
+
+                peerConnection.onconnectionstatechange = () => {
+                    console.log('[WebRTC] connectionState for', remoteUserId, ':', peerConnection.connectionState)
+                    const terminalStates = ['failed', 'closed', 'disconnected']
+                    if (terminalStates.includes(peerConnection.connectionState)) {
+                        peerConnection.close()
+                        peerConnectionsRef.current.delete(remoteUserId)
+                        pcPromisesRef.current.delete(remoteUserId)
+                    }
+                }
+
+                peerConnection.oniceconnectionstatechange = () => {
+                    console.log('[WebRTC] iceConnectionState for', remoteUserId, ':', peerConnection.iceConnectionState)
+                }
+
+                peerConnectionsRef.current.set(remoteUserId, peerConnection)
+                return peerConnection
+            } finally {
+                // Do NOT delete the promise before peerConnectionsRef is set if successful
+                // We delete it after it has served its purpose of "locking" the creation
+                if (pcPromisesRef.current.get(remoteUserId) === createPromise) {
+                    pcPromisesRef.current.delete(remoteUserId)
+                }
             }
-        }
+        })()
 
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log('[WebRTC] iceConnectionState for', remoteUserId, ':', peerConnection.iceConnectionState)
-        }
-
-        peerConnectionsRef.current.set(remoteUserId, peerConnection)
-        return peerConnection
+        pcPromisesRef.current.set(remoteUserId, createPromise)
+        return await createPromise
     }, [attachRemoteStream, ensureLocalStream, sendSignal])
 
     const createOfferForPeer = useCallback(async (callPayload, remoteUserId) => {
@@ -612,15 +642,21 @@ export default function ChatPage() {
             }
 
             if (signalType === 'ice-candidate') {
+                if (!payload.candidate) return
                 const peerConnection = peerConnectionsRef.current.get(remoteUserId)
-                if (!peerConnection || !payload.candidate) return
-                if (!peerConnection.remoteDescription) {
+
+                // PC yoksa veya henüz remoteDescription set edilmemişse arabelleğe al
+                if (!peerConnection || !peerConnection.remoteDescription) {
+                    console.log('[WebRTC] Buffering ice-candidate for', remoteUserId)
                     const buf = iceCandidateBufferRef.current.get(remoteUserId) || []
                     buf.push(payload.candidate)
                     iceCandidateBufferRef.current.set(remoteUserId, buf)
                     return
                 }
-                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(() => {})
+
+                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(e => {
+                    console.warn('[WebRTC] Error adding ice-candidate:', e)
+                })
             }
         } catch (error) {
             console.error('[WebRTC] Signal handling error:', signalType, error)
