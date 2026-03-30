@@ -292,6 +292,7 @@ export default function ChatPage() {
     const remoteAudioRef = useRef(new Map())
     const localStreamRef = useRef(null)
     const iceServersRef = useRef(parseIceServers())
+    const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
 
     const [selectedChat, setSelectedChat] = useState(null)
     const [messages, setMessages] = useState([])
@@ -336,11 +337,59 @@ export default function ChatPage() {
         localStreamRef.current = null
     }, [])
 
+    const stopCallSounds = useCallback(() => {
+        const s = callSoundRef.current
+        s.stopped = true
+        if (s.timerId) { clearTimeout(s.timerId); s.timerId = null }
+        s.nodes.forEach(n => { try { n.stop() } catch (_) {} })
+        s.nodes = []
+        if (s.ctx) { try { s.ctx.close() } catch (_) {} ; s.ctx = null }
+    }, [])
+
+    const playTonePattern = useCallback((onMs, offMs) => {
+        stopCallSounds()
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        if (!AudioCtx) return
+        const ctx = new AudioCtx()
+        const s = callSoundRef.current
+        s.stopped = false
+        s.ctx = ctx
+        const tick = () => {
+            if (s.stopped) return
+            const osc1 = ctx.createOscillator()
+            const osc2 = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc1.frequency.value = 440
+            osc2.frequency.value = 480
+            gain.gain.value = 0.25
+            osc1.connect(gain)
+            osc2.connect(gain)
+            gain.connect(ctx.destination)
+            s.nodes = [osc1, osc2]
+            osc1.start()
+            osc2.start()
+            s.timerId = setTimeout(() => {
+                s.nodes.forEach(n => { try { n.stop() } catch (_) {} })
+                s.nodes = []
+                if (!s.stopped) {
+                    s.timerId = setTimeout(tick, offMs)
+                }
+            }, onMs)
+        }
+        tick()
+    }, [stopCallSounds])
+
+    // Arayana: çağrı sesi (1s çalar, 3s sessiz)
+    const startRingbackTone = useCallback(() => playTonePattern(1000, 3000), [playTonePattern])
+    // Aranana: telefon çalma sesi (2s çalar, 4s sessiz)
+    const startRingTone = useCallback(() => playTonePattern(2000, 4000), [playTonePattern])
+
     const teardownCallMedia = useCallback(() => {
+        stopCallSounds()
         cleanupPeerConnections()
         cleanupRemoteAudios()
         cleanupLocalStream()
-    }, [cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
+    }, [stopCallSounds, cleanupPeerConnections, cleanupRemoteAudios, cleanupLocalStream])
 
     const ensureLocalStream = useCallback(async () => {
         if (localStreamRef.current) return localStreamRef.current
@@ -451,6 +500,10 @@ export default function ChatPage() {
         const joined = myParticipant?.status === 'joined'
         setIsInCall(joined)
 
+        if (payload.status === 'active') {
+            stopCallSounds()
+        }
+
         if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
             teardownCallMedia()
             setIsInCall(false)
@@ -458,7 +511,7 @@ export default function ChatPage() {
             setIncomingCall(null)
             setActiveCall(prev => String(prev?.id) === String(payload.id) ? null : prev)
         }
-    }, [currentUser?.id, incomingCall, teardownCallMedia])
+    }, [currentUser?.id, incomingCall, stopCallSounds, teardownCallMedia])
 
     const handleIncomingSignal = useCallback(async (signal) => {
         if (!activeCall || String(signal.call_id) !== String(activeCall.id)) return
@@ -552,6 +605,7 @@ export default function ChatPage() {
             .listen('.chat.call.incoming', (event) => {
                 setIncomingCall(event)
                 setActiveCall(event)
+                startRingTone()
                 toast((event.caller_name || 'Bir kişi') + ' sizi arıyor')
             })
             .listen('.chat.call.updated', (event) => {
@@ -561,7 +615,7 @@ export default function ChatPage() {
         return () => {
             window.Echo.leave(`user.chats.${currentUser.id}`)
         }
-    }, [currentUser?.id, applyCallUpdate])
+    }, [currentUser?.id, applyCallUpdate, startRingTone])
 
     useEffect(() => {
         if (!activeCall?.id || !isInCall || activeCall.status !== 'active') {
@@ -766,6 +820,7 @@ export default function ChatPage() {
 
             setActiveCall(call)
             setIncomingCall(null)
+            startRingbackTone()
             await ensureLocalStream()
             setIsInCall(true)
             toast.success('Arama başlatıldı.')
@@ -799,6 +854,7 @@ export default function ChatPage() {
             const call = response.data?.data
             if (!call) return
 
+            stopCallSounds()
             setActiveCall(call)
             setIncomingCall(null)
             await ensureLocalStream()
@@ -821,6 +877,7 @@ export default function ChatPage() {
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Arama reddedilemedi.')
         } finally {
+            stopCallSounds()
             setIncomingCall(null)
             setIsCallActionPending(false)
         }
