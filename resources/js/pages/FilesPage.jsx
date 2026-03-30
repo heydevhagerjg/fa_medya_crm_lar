@@ -26,6 +26,22 @@ import PageHeader from '../components/layout/PageHeader.jsx'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 
+// Loads image through the auth-protected download endpoint (works for both private AWS S3 and public R2)
+function AuthImage({ fileId, alt, className }) {
+    const { data: blobUrl, isLoading } = useQuery({
+        queryKey: ['file-blob', fileId],
+        queryFn: async () => {
+            const response = await api.get(`/files/${fileId}/download`, { responseType: 'blob' })
+            return window.URL.createObjectURL(response.data)
+        },
+        staleTime: 30 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+    })
+    if (isLoading) return <div className="w-full h-full flex items-center justify-center"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
+    if (!blobUrl) return null
+    return <img src={blobUrl} alt={alt} className={className} />
+}
+
 export default function FilesPage() {
     const qc = useQueryClient()
     const [search, setSearch] = useState('')
@@ -604,8 +620,8 @@ export default function FilesPage() {
 
                                                 <div className="aspect-square bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden">
                                                     {(file.file_type || file.fileType || '').includes('image') ? (
-                                                        <img
-                                                            src={file.file_path || file.filePath}
+                                                        <AuthImage
+                                                            fileId={file.id}
                                                             alt={file.file_name || file.fileName}
                                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                         />

@@ -15,6 +15,7 @@ class S3Config extends Model
         'aws_region',
         'aws_bucket_name',
         'aws_endpoint',
+        'public_url',
         'use_path_style_endpoint',
         'is_active',
     ];

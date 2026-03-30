@@ -24,6 +24,29 @@ class JobFileController extends Controller
     private static $globalS3Disk = null;
 
     /**
+     * Normalize stored file path/URL into an S3 object key.
+     */
+    private function normalizeS3ObjectKey(string $storedPath): string
+    {
+        $path = $storedPath;
+
+        // Accept full URLs even when they contain spaces/parentheses.
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $parsed = parse_url($path);
+            $path = ltrim($parsed['path'] ?? '', '/');
+            $path = urldecode($path);
+
+            // Path-style endpoints may include bucket name in the URL path.
+            $bucket = Config::get('filesystems.disks.s3_global.bucket');
+            if ($bucket && str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+        }
+
+        return $path;
+    }
+
+    /**
      * Display a listing of files for the tenant
      */
     public function index(Request $request): JsonResponse
@@ -267,13 +290,7 @@ class JobFileController extends Controller
         $job = $jobFile->job;
 
         if (true) { // disk configured via middleware
-            $path = $jobFile->file_path;
-
-            if (filter_var($path, FILTER_VALIDATE_URL)) {
-                $parsed = parse_url($path);
-                $path = ltrim($parsed['path'] ?? '', '/');
-                $path = urldecode($path);
-            }
+            $path = $this->normalizeS3ObjectKey($jobFile->file_path);
 
             try {
                 Storage::disk('s3_global')->delete($path);
@@ -319,12 +336,7 @@ class JobFileController extends Controller
         if (true) { // disk configured via middleware
             $s3 = Storage::disk('s3_global');
             foreach ($files as $file) {
-                $path = $file->file_path;
-                if (filter_var($path, FILTER_VALIDATE_URL)) {
-                    $parsed = parse_url($path);
-                    $path = ltrim($parsed['path'] ?? '', '/');
-                    $path = urldecode($path);
-                }
+                $path = $this->normalizeS3ObjectKey($file->file_path);
                 try {
                     $s3->delete($path);
                 } catch (\Exception $e) {
@@ -365,13 +377,7 @@ class JobFileController extends Controller
         })->findOrFail($fileId);
 
         $s3 = Storage::disk('s3_global');
-        $path = $jobFile->file_path;
-
-        if (filter_var($path, FILTER_VALIDATE_URL)) {
-            $parsed = parse_url($path);
-            $path = ltrim($parsed['path'] ?? '', '/');
-            $path = urldecode($path);
-        }
+        $path = $this->normalizeS3ObjectKey($jobFile->file_path);
 
         if (!$s3->exists($path)) {
             Log::warning("File not found on S3: {$path}");

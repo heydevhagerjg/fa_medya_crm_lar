@@ -47,6 +47,7 @@
 
   html {
     scroll-behavior: smooth;
+    height: 100%;
   }
 
   body {
@@ -54,11 +55,21 @@
     color: #1A1A2E;
     font-family: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+  }
+
+  #root {
+    min-height: 100vh;
+    background-color: rgb(var(--background));
   }
 
   html.dark body {
     background-color: #0A0A0A;
     color: #F4F5F7;
+  }
+
+  html.dark #root {
+    background-color: #0A0A0A;
   }
 
   ::-webkit-scrollbar {

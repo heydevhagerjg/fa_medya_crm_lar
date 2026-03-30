@@ -16,6 +16,7 @@ export default function AdminSettingsPage() {
         aws_region: '',
         aws_bucket_name: '',
         aws_endpoint: '',
+        public_url: '',
         use_path_style_endpoint: false,
         is_active: true
     });
@@ -35,7 +36,7 @@ export default function AdminSettingsPage() {
             toast.success('Konfigürasyon kaydedildi.');
             setModal(false);
             setEditingState(null);
-            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', is_active: true });
+            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', aws_endpoint: '', public_url: '', use_path_style_endpoint: false, is_active: true });
         },
         onError: (err) => toast.error(err.response?.data?.message || 'Hata oluştu.'),
     });
@@ -95,12 +96,13 @@ export default function AdminSettingsPage() {
                 aws_region: config.aws_region,
                 aws_bucket_name: config.aws_bucket_name,
                 aws_endpoint: config.aws_endpoint || '',
+                public_url: config.public_url || '',
                 use_path_style_endpoint: !!config.use_path_style_endpoint,
                 is_active: config.is_active
             });
         } else {
             setEditingState(null);
-            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', aws_endpoint: '', use_path_style_endpoint: false, is_active: true });
+            setForm({ name: '', aws_access_key_id: '', aws_secret_access_key: '', aws_region: '', aws_bucket_name: '', aws_endpoint: '', public_url: '', use_path_style_endpoint: false, is_active: true });
         }
         setModal(true);
     };
@@ -265,6 +267,19 @@ export default function AdminSettingsPage() {
                             placeholder="https://s3.idrivee2-7.com"
                         />
                         <p className="text-[10px] text-gray-400 mt-1">Hetzner, IDrive vb. kullanıyorsanız giriniz. AWS için boş bırakın.</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                            <Server size={14} className="text-gray-400" /> Public URL (Opsiyonel)
+                        </label>
+                        <input
+                            type="text"
+                            value={form.public_url || ''}
+                            onChange={e => setForm({ ...form, public_url: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                            placeholder="https://pub-xxxx.r2.dev veya https://cdn.sirketiniz.com"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">Cloudflare R2 için zorunlu. R2 dashboard'dan "Public Access" açıp verilen URL'i buraya girin. Bu olmadan yüklenen dosyalar görüntülenemez.</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">

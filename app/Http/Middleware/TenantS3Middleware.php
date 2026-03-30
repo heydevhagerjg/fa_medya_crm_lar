@@ -32,6 +32,7 @@ class TenantS3Middleware
                     'secret' => trim($s3->aws_secret_access_key),
                     'region' => trim($s3->aws_region),
                     'bucket' => trim($s3->aws_bucket_name),
+                    'url' => $s3->public_url ? rtrim(trim($s3->public_url), '/') : null,
                     'endpoint' => $s3->aws_endpoint ? trim($s3->aws_endpoint) : null,
                     'use_path_style_endpoint' => (bool)($s3->use_path_style_endpoint ?? false),
                     'throw' => false,

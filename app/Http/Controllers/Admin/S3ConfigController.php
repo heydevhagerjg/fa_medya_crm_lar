@@ -24,6 +24,7 @@ class S3ConfigController extends Controller
             'aws_region'                => 'required|string|max:255',
             'aws_bucket_name'           => 'required|string|max:255',
             'aws_endpoint'              => 'nullable|string|max:255',
+            'public_url'                => 'nullable|url|max:255',
             'use_path_style_endpoint'   => 'nullable|boolean',
             'is_active'                 => 'boolean',
         ]);
@@ -48,6 +49,7 @@ class S3ConfigController extends Controller
             'aws_region'                => 'sometimes|string|max:255',
             'aws_bucket_name'           => 'sometimes|string|max:255',
             'aws_endpoint'              => 'nullable|string|max:255',
+            'public_url'                => 'nullable|url|max:255',
             'use_path_style_endpoint'   => 'nullable|boolean',
             'is_active'                 => 'boolean',
         ]);
@@ -143,7 +145,14 @@ class S3ConfigController extends Controller
 
             return response()->json(['success' => true, 'message' => 'CORS yapılandırması başarıyla tamamlandı. Artık tarayıcıdan doğrudan dosya yüklenebilir.']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'CORS hatası: ' . $e->getMessage()], 400);
+            $message = $e->getMessage();
+            $isR2 = str_contains(strtolower((string) $config->aws_endpoint), 'r2.cloudflarestorage.com');
+
+            if ($isR2 && str_contains($message, 'AccessDenied')) {
+                $message = 'Cloudflare R2 AccessDenied: Bu anahtar object upload/download icin yeterli olabilir ama bucket CORS degisikligi (PutBucketCors) yetkisi yok. R2 panelinden bucket CORS ayarini manuel yapin veya bucket-level yonetim yetkili bir R2 API anahtari kullanin.';
+            }
+
+            return response()->json(['success' => false, 'message' => 'CORS hatasi: ' . $message], 400);
         }
     }
 }
