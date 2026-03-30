@@ -679,15 +679,53 @@ export default function ChatPage() {
     useEffect(() => { handleIncomingSignalRef.current = handleIncomingSignal }, [handleIncomingSignal])
     useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
 
-    // isInCall true olduğunda bekleyen sinyalleri işle
+    // isInCall true olduğunda: önce bekleyen sinyalleri sırayla işle, sonra offer gönder
     useEffect(() => {
-        if (!isInCall || !activeCall?.id) return
-        const pending = pendingSignalsRef.current.splice(0)
-        if (pending.length > 0) {
-            console.log('[WebRTC] Flushing', pending.length, 'buffered signals')
-            pending.forEach(sig => handleIncomingSignalRef.current?.(sig))
-        }
-    }, [isInCall, activeCall?.id])
+        if (!activeCall?.id || !isInCall || activeCall.status !== 'active' || !currentUser?.id) return
+
+        let cancelled = false
+
+        ;(async () => {
+            // 1. Önce bekleyen sinyalleri SIRAYLA işle
+            const pending = pendingSignalsRef.current.splice(0)
+            if (pending.length > 0) {
+                console.log('[WebRTC] Flushing', pending.length, 'buffered signals')
+                for (const sig of pending) {
+                    if (cancelled) return
+                    try {
+                        await handleIncomingSignalRef.current?.(sig)
+                    } catch (e) {
+                        console.error('[WebRTC] Error processing buffered signal:', e)
+                    }
+                }
+                console.log('[WebRTC] Flush complete')
+            }
+
+            if (cancelled) return
+
+            // 2. Sonra gerekirse offer gönder (flush'ın bitip PC oluşturmasını bekledik)
+            const joinedParticipants = (activeCall.participants || [])
+                .filter(p => p.status === 'joined' && String(p.user_id) !== String(currentUser.id))
+
+            for (const participant of joinedParticipants) {
+                if (cancelled) return
+                const remoteUserId = String(participant.user_id)
+                const shouldInitiate = String(currentUser.id) < remoteUserId
+                if (!shouldInitiate) continue
+                if (peerConnectionsRef.current.has(remoteUserId)) continue
+
+                try {
+                    console.log('[WebRTC] Creating offer for', remoteUserId)
+                    await createOfferForPeer(activeCall, remoteUserId)
+                    console.log('[WebRTC] Offer sent to', remoteUserId)
+                } catch (error) {
+                    console.error('[WebRTC] Offer create error:', error)
+                }
+            }
+        })()
+
+        return () => { cancelled = true }
+    }, [activeCall, isInCall, currentUser?.id, createOfferForPeer])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
@@ -695,19 +733,17 @@ export default function ChatPage() {
             const chatToOpen = chats.find(c => String(c.id) === openChatId)
             if (chatToOpen && (!selectedChat || selectedChat.id !== chatToOpen.id)) {
                 setSelectedChat(chatToOpen)
-                // Remove the param without reloading the page
                 searchParams.delete('open')
                 setSearchParams(searchParams, { replace: true })
             }
         }
     }, [openChatId, chats, selectedChat, searchParams, setSearchParams])
 
-    // Keep selected chat synced if group info/participants change in background 
+    // Keep selected chat synced if group info/participants change in background
     useEffect(() => {
         if (selectedChat && chats.length > 0) {
             const current = chats.find(c => c.id === selectedChat.id)
             if (current && JSON.stringify(current.participants) !== JSON.stringify(selectedChat.participants)) {
-                // Data changed (like participants added/removed), sync it
                 setSelectedChat(current)
             }
         }
@@ -733,9 +769,7 @@ export default function ChatPage() {
                 }
             })
 
-        return () => {
-            cancelled = true
-        }
+        return () => { cancelled = true }
     }, [selectedChat?.id, currentUser?.id])
 
     useEffect(() => {
@@ -779,24 +813,6 @@ export default function ChatPage() {
         const timer = setInterval(tick, 1000)
         return () => clearInterval(timer)
     }, [activeCall?.id, activeCall?.answered_at, activeCall?.started_at, activeCall?.status, isInCall])
-
-    useEffect(() => {
-        if (!activeCall?.id || !isInCall || activeCall.status !== 'active' || !currentUser?.id) return
-
-        const joinedParticipants = (activeCall.participants || [])
-            .filter(p => p.status === 'joined' && String(p.user_id) !== String(currentUser.id))
-
-        joinedParticipants.forEach((participant) => {
-            const remoteUserId = String(participant.user_id)
-            const shouldInitiate = String(currentUser.id) < remoteUserId
-            if (!shouldInitiate) return
-            if (peerConnectionsRef.current.has(remoteUserId)) return
-
-            createOfferForPeer(activeCall, remoteUserId).catch((error) => {
-                console.error('Offer create error:', error)
-            })
-        })
-    }, [activeCall, isInCall, currentUser?.id, createOfferForPeer])
 
     useEffect(() => {
         return () => {
