@@ -105,13 +105,22 @@ class FileService
         // Use manual build since it might be a background job or admin action
         $disk = $chat ? Tenant::getS3DiskForTenant($chat->tenant_id) : \Illuminate\Support\Facades\Storage::disk('s3_global');
 
-        if ($disk && $disk->exists($attachment->s3_path)) {
-            $disk->delete($attachment->s3_path);
-            
-            // Delete preview if exists
-            $previewPath = str_replace('attachments/', 'attachments/previews/', $attachment->s3_path);
-            if ($disk->exists($previewPath)) {
-                $disk->delete($previewPath);
+        if ($disk) {
+            try {
+                if ($disk->exists($attachment->s3_path)) {
+                    $disk->delete($attachment->s3_path);
+
+                    // Delete preview if exists
+                    $previewPath = str_replace('attachments/', 'attachments/previews/', $attachment->s3_path);
+                    if ($disk->exists($previewPath)) {
+                        $disk->delete($previewPath);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("S3 dosya silme başarısız: {$attachment->s3_path}", [
+                    'error' => $e->getMessage(),
+                    'attachment_id' => $attachment->id,
+                ]);
             }
         }
 
