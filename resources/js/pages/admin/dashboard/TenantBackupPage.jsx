@@ -175,7 +175,7 @@ export default function TenantBackupPage() {
                                                     )}
                                                     {bk.status === 'completed' ? 'TAMAMLANDI' :
                                                      bk.status === 'failed' ? 'HATA' :
-                                                     bk.status === 'processing' ? `İÅLENİYOR (${bk.progress}%)` : 'BEKLENİYOR'}
+                                                     bk.status === 'processing' ? `İŞLENİYOR (${bk.progress}%)` : 'BEKLENİYOR'}
                                                 </span>
                                                 {(bk.status === 'processing' || (bk.status === 'pending' && bk.progress > 0)) && (
                                                     <div className="space-y-1">
@@ -239,4 +239,3 @@ export default function TenantBackupPage() {
         </div>
     )
 }
-

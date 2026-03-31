@@ -678,8 +678,8 @@ export default function TenantsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <FeatureToggle label="Adım Åablonları" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({ ...limitForm, plan_step_templates_feature: v })} />
-                            {limitForm.plan_step_templates_feature && <LimitInput label="Åablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({ ...limitForm, plan_step_template_limit: v })} />}
+                            <FeatureToggle label="Adım Şablonları" checked={limitForm.plan_step_templates_feature} onChange={v => setLimitForm({ ...limitForm, plan_step_templates_feature: v })} />
+                            {limitForm.plan_step_templates_feature && <LimitInput label="Şablon Limiti" value={limitForm.plan_step_template_limit} onChange={v => setLimitForm({ ...limitForm, plan_step_template_limit: v })} />}
                         </div>
 
                         <div className="space-y-4">
@@ -1322,7 +1322,7 @@ function TenantBackupsModal({ open, tenant, onClose }) {
                                                 }`}>
                                                 {backup.status === 'completed' ? 'TAMAMLANDI' :
                                                     backup.status === 'failed' ? 'HATA' :
-                                                        backup.status === 'processing' ? `İÅLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
+                                                        backup.status === 'processing' ? `İŞLENİYOR (${backup.progress}%)` : 'BEKLENİYOR'}
                                             </span>
                                         </div>
                                         <div className="text-[11px] text-gray-500 dark:text-gray-400">

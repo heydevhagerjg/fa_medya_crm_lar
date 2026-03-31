@@ -100,7 +100,7 @@ export default function SystemBackupPage() {
                         ) : (
                             <Plus size={18} />
                         )}
-                        <span>Åimdi Yedek Al</span>
+                        <span>Şimdi Yedek Al</span>
                     </button>
                 </div>
             </div>
@@ -108,7 +108,7 @@ export default function SystemBackupPage() {
             <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-4 flex gap-3 text-blue-700 dark:text-blue-400">
                 <Info className="shrink-0" size={20} />
                 <div className="text-sm leading-relaxed">
-                    <strong>Bilgi:</strong> "Åimdi Yedek Al" butonu işlemi arka planda başlatır. 
+                    <strong>Bilgi:</strong> "Şimdi Yedek Al" butonu işlemi arka planda başlatır. 
                     Veritabanı boyutuna göre işlemin tamamlanması birkaç dakika sürebilir. 
                     Yedekler hem yerel sunucuya hem de bulut (S3) üzerine kaydedilir.
                 </div>
@@ -214,4 +214,3 @@ export default function SystemBackupPage() {
         </div>
     )
 }
-
