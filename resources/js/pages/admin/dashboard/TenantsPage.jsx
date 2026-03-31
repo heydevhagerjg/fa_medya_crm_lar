@@ -688,6 +688,7 @@ export default function TenantsPage() {
                                 <>
                                     <LimitInput label="Sohbet Limiti" value={limitForm.plan_chat_limit} onChange={v => setLimitForm({ ...limitForm, plan_chat_limit: v })} />
                                     <LimitInput label="Grup Limiti" value={limitForm.plan_group_chat_limit} onChange={v => setLimitForm({ ...limitForm, plan_group_chat_limit: v })} />
+                                    <LimitInput label="Aylık Görüşme Dk" value={limitForm.plan_call_minutes_limit} onChange={v => setLimitForm({ ...limitForm, plan_call_minutes_limit: v })} />
                                 </>
                             )}
                         </div>

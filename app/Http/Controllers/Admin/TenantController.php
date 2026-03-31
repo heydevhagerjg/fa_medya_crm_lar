@@ -159,6 +159,7 @@ class TenantController extends Controller
             'plan_chat_feature' => $package->chat_feature,
             'plan_chat_limit' => $package->chat_limit,
             'plan_group_chat_limit' => $package->group_chat_limit,
+            'plan_call_minutes_limit' => $package->call_minutes_limit,
         ]);
 
         // 2. Create Initial Admin User
@@ -224,6 +225,7 @@ class TenantController extends Controller
             'plan_chat_feature' => 'required|boolean',
             'plan_chat_limit' => 'required|integer|min:0',
             'plan_group_chat_limit' => 'required|integer|min:0',
+            'plan_call_minutes_limit' => 'required|integer|min:0',
         ]);
 
         $tenant->update($validated);

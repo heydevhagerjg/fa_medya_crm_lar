@@ -25,6 +25,7 @@ class ChatCallSession extends Model
         'answered_at',
         'ended_at',
         'ended_by',
+        'duration_seconds',
         'metadata',
     ];
 
@@ -33,6 +34,7 @@ class ChatCallSession extends Model
         'started_at' => 'datetime',
         'answered_at' => 'datetime',
         'ended_at' => 'datetime',
+        'duration_seconds' => 'integer',
     ];
 
     public function chat(): BelongsTo

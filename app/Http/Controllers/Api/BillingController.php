@@ -58,6 +58,7 @@ class BillingController extends Controller
                 'cash_register' => ['label' => 'Kasa', 'limit' => $tenant->plan_cash_register_limit, 'used' => $tenant->getResourceCount('cash_register')],
                 'proposal' => ['label' => 'Teklif', 'limit' => $tenant->plan_proposal_limit, 'used' => $tenant->getResourceCount('proposal')],
                 'disk_usage' => ['label' => 'Disk Kullanımı (MB)', 'limit' => $tenant->plan_disk_usage_limit . ' MB', 'used' => round(($tenant->storage_used ?? 0) / (1024 * 1024), 2) . ' MB'],
+                'call_minutes' => ['label' => 'Aylık Görüşme (dk)', 'limit' => $tenant->plan_call_minutes_limit, 'used' => $tenant->getResourceCount('call_minutes')],
             ]
         ]);
     }

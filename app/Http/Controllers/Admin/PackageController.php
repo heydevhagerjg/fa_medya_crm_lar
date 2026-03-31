@@ -45,6 +45,7 @@ class PackageController extends Controller
             'chat_feature' => 'required|boolean',
             'chat_limit' => 'required|integer|min:0',
             'group_chat_limit' => 'required|integer|min:0',
+            'call_minutes_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
             'is_popular' => 'nullable|boolean',
         ]);
@@ -92,6 +93,7 @@ class PackageController extends Controller
             'chat_feature' => 'required|boolean',
             'chat_limit' => 'required|integer|min:0',
             'group_chat_limit' => 'required|integer|min:0',
+            'call_minutes_limit' => 'required|integer|min:0',
             'is_active' => 'required|boolean',
             'is_popular' => 'nullable|boolean',
         ]);

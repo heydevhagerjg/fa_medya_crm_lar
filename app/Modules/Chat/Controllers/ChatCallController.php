@@ -39,6 +39,17 @@ class ChatCallController extends Controller
             'type' => 'sometimes|in:audio',
         ]);
 
+        // Aylık görüşme dakikası limiti kontrolü
+        $tenant = \App\Models\Tenant::find($chat->tenant_id);
+        if ($tenant && $tenant->plan_call_minutes_limit > 0) {
+            $usedMinutes = $tenant->getResourceCount('call_minutes');
+            if ($usedMinutes >= $tenant->plan_call_minutes_limit) {
+                return response()->json([
+                    'message' => 'Aylık görüşme dakikası limitinize ulaştınız (' . $tenant->plan_call_minutes_limit . ' dk). Paketinizi yükselterek daha fazla görüşme yapabilirsiniz.',
+                ], 403);
+            }
+        }
+
         $existing = ChatCallSession::where('chat_id', $chat->id)
             ->whereIn('status', ['ringing', 'active'])
             ->first();
@@ -199,10 +210,19 @@ class ChatCallController extends Controller
                         'left_at' => now(),
                     ]);
 
+                // Görüşme süresini hesapla (saniye cinsinden)
+                $endedAt = now();
+                $durationSeconds = null;
+                $baseTime = $call->answered_at ?? $call->started_at;
+                if ($baseTime) {
+                    $durationSeconds = max(0, $endedAt->diffInSeconds($baseTime));
+                }
+
                 $call->update([
                     'status' => 'ended',
-                    'ended_at' => now(),
+                    'ended_at' => $endedAt,
                     'ended_by' => $user->id,
+                    'duration_seconds' => $durationSeconds,
                 ]);
             }
         });

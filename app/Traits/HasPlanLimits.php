@@ -66,6 +66,7 @@ trait HasPlanLimits
             'service', 'services' => 'plan_service_limit',
             'chat' => 'plan_chat_limit',
             'group_chat' => 'plan_group_chat_limit',
+            'call_minutes' => 'plan_call_minutes_limit',
             default => 'plan_' . $resource . '_limit',
         };
     }
@@ -89,6 +90,15 @@ trait HasPlanLimits
             'service_tracking_category' => DB::table('service_tracking_categories')->where('tenant_id', $this->id)->count(),
             'chat' => DB::table('chats')->where('tenant_id', $this->id)->where('chateable_type', 'User')->count(),
             'group_chat' => DB::table('chats')->where('tenant_id', $this->id)->where('chateable_type', 'Group')->count(),
+            'call_minutes' => (int) ceil(
+                (DB::table('chat_call_sessions')
+                    ->where('tenant_id', $this->id)
+                    ->where('status', 'ended')
+                    ->whereNotNull('duration_seconds')
+                    ->whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->sum('duration_seconds') ?? 0) / 60
+            ),
             default => 0,
         };
     }
@@ -136,6 +146,7 @@ trait HasPlanLimits
             'service_tracking_category' => 'Hizmet Takip Kategorisi',
             'chat' => 'Sohbet',
             'group_chat' => 'Grup Sohbeti',
+            'call_minutes' => 'Aylık Görüşme (dk)',
             default => $feature,
         };
     }

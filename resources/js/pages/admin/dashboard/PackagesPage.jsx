@@ -36,6 +36,7 @@ const emptyPackage = {
     chat_feature: false,
     chat_limit: 0,
     group_chat_limit: 0,
+    call_minutes_limit: 0,
     is_active: true,
     is_popular: false
 }
@@ -346,7 +347,7 @@ export default function PackagesPage() {
                                     { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
                                     { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
                                     { key: 'step_templates', label: 'Adım Åablonları', icon: Layers, color: 'pink' },
-                                    { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' } }
+                                    { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' }, extra2: { key: 'call_minutes_limit', label: 'Görüşme Dk Limiti' } }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
                                     const limitKey = mod.key === 'services_section' ? 'service_limit' : 
@@ -372,6 +373,12 @@ export default function PackagesPage() {
                                                         <div className="flex-1">
                                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{mod.extra.label}</label>
                                                             <input type="number" value={form[mod.extra.key]} onChange={e => setForm({ ...form, [mod.extra.key]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
+                                                        </div>
+                                                    )}
+                                                    {mod.extra2 && (
+                                                        <div className="flex-1">
+                                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{mod.extra2.label}</label>
+                                                            <input type="number" value={form[mod.extra2.key]} onChange={e => setForm({ ...form, [mod.extra2.key]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm" />
                                                         </div>
                                                     )}
                                                 </div>

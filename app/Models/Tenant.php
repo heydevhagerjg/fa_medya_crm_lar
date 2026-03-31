@@ -118,6 +118,7 @@ class Tenant extends Model
         'plan_step_templates_feature', 'plan_step_template_limit',
         'plan_cash_register_limit', 'plan_api_key_feature', 'plan_disk_usage_limit', 'plan_single_file_limit',
         'plan_chat_feature', 'plan_chat_limit', 'plan_group_chat_limit',
+        'plan_call_minutes_limit',
         'email', 'phone', 'address', 'website'
     ];
 
@@ -138,6 +139,7 @@ class Tenant extends Model
         'plan_single_file_limit' => 'integer',
         'plan_chat_limit' => 'integer',
         'plan_group_chat_limit' => 'integer',
+        'plan_call_minutes_limit' => 'integer',
         'storage_used' => 'integer',
         'trial_ends_at' => 'datetime',
         'is_gifted' => 'boolean',
@@ -178,6 +180,7 @@ class Tenant extends Model
             'plan_chat_feature' => $package->chat_feature,
             'plan_chat_limit' => $package->chat_limit,
             'plan_group_chat_limit' => $package->group_chat_limit,
+            'plan_call_minutes_limit' => $package->call_minutes_limit,
         ]);
     }
 

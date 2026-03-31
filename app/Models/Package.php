@@ -37,6 +37,7 @@ class Package extends Model
         'chat_feature',
         'chat_limit',
         'group_chat_limit',
+        'call_minutes_limit',
         'is_active',
         'is_popular',
     ];
@@ -57,6 +58,7 @@ class Package extends Model
         'single_file_limit' => 'integer',
         'chat_limit' => 'integer',
         'group_chat_limit' => 'integer',
+        'call_minutes_limit' => 'integer',
     ];
 
     public function tenants(): HasMany
