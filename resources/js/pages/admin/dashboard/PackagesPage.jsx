@@ -268,7 +268,7 @@ export default function PackagesPage() {
                                     <div className="flex items-center justify-between bg-amber-50/50 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-100/50 dark:border-amber-500/20">
                                         <div className="flex items-center gap-2">
                                             <Star size={16} className="text-amber-500" />
-                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Popüler Åerit Göster</span>
+                                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Popüler Şerit Göster</span>
                                         </div>
                                         <Switch checked={form.is_popular} onChange={v => setForm({ ...form, is_popular: v })} />
                                     </div>
@@ -346,7 +346,7 @@ export default function PackagesPage() {
                                     { key: 'proposal', label: 'Teklif Modülü', icon: FileText, color: 'orange' },
                                     { key: 'backup', label: 'Yedekleme Sistemi', icon: Database, color: 'red' },
                                     { key: 'services_section', label: 'Hizmetler (Liste)', icon: Layers, color: 'indigo' },
-                                    { key: 'step_templates', label: 'Adım Åablonları', icon: Layers, color: 'pink' },
+                                    { key: 'step_templates', label: 'Adım Şablonları', icon: Layers, color: 'pink' },
                                     { key: 'chat', label: 'Sohbet Modülü', icon: MessageSquare, color: 'purple', extra: { key: 'group_chat_limit', label: 'Grup Limiti' }, extra2: { key: 'call_minutes_limit', label: 'Görüşme Dk Limiti' } }
                                 ].map(mod => {
                                     const featureKey = `${mod.key}_feature`;
