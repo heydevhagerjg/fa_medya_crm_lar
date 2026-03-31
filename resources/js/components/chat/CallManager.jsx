@@ -128,16 +128,20 @@ export default function CallManager() {
     }, [])
 
     const leaveAgoraChannel = useCallback(async () => {
+        // Grab refs synchronously and null them to prevent concurrent calls
+        const track = localAudioTrackRef.current
+        const client = agoraClientRef.current
+        localAudioTrackRef.current = null
+        agoraClientRef.current = null
         isAgoraJoinedRef.current = false
-        if (localAudioTrackRef.current) {
-            localAudioTrackRef.current.stop()
-            localAudioTrackRef.current.close()
-            localAudioTrackRef.current = null
+
+        if (track) {
+            try { track.stop() } catch (_) {}
+            try { track.close() } catch (_) {}
         }
-        if (agoraClientRef.current) {
-            agoraClientRef.current.removeAllListeners()
-            await agoraClientRef.current.leave().catch(() => {})
-            agoraClientRef.current = null
+        if (client) {
+            client.removeAllListeners()
+            await client.leave().catch(() => {})
         }
     }, [])
 
@@ -197,16 +201,26 @@ export default function CallManager() {
     const handleCallUpdateEvent = useCallback((payload) => {
         if (!payload?.id) return
 
+        const currentActiveCall = useCallStore.getState().activeCall
+        const isCurrentCall = !currentActiveCall || String(currentActiveCall.id) === String(payload.id)
+
         const myParticipant = payload.participants?.find(p => String(p.user_id) === String(currentUser?.id))
         const joined = myParticipant?.status === 'joined'
 
-        applyCallUpdate(payload)
-        setIsInCall(joined)
+        console.log('[CallManager] call.updated →', payload.id?.slice(-8), 'status:', payload.status,
+            'isCurrentCall:', isCurrentCall, 'myStatus:', myParticipant?.status)
 
-        if (payload.status === 'active') {
+        applyCallUpdate(payload)
+
+        // Only update isInCall if this event is for the current active call
+        if (isCurrentCall) {
+            setIsInCall(joined)
+        }
+
+        if (payload.status === 'active' && isCurrentCall) {
             stopCallSounds()
-            // Caller receives this when receiver accepts — join Agora immediately
             if (joined && !isAgoraJoinedRef.current) {
+                console.log('[CallManager] Joining Agora channel for call', payload.id?.slice(-8))
                 joinAgoraChannel(payload.id, payload.chat_id).catch(err => {
                     console.error('[Agora] Join on call-active event error:', err)
                     toast.error('Ses kanalına bağlanılamadı.')
@@ -215,7 +229,13 @@ export default function CallManager() {
         }
 
         if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
-            teardownCallMedia()
+            // Only teardown Agora if this terminal event matches our active call
+            if (isCurrentCall) {
+                console.log('[CallManager] Tearing down media — call ended:', payload.id?.slice(-8))
+                teardownCallMedia()
+            } else {
+                console.log('[CallManager] Ignoring terminal event for different call:', payload.id?.slice(-8))
+            }
         }
     }, [currentUser?.id, applyCallUpdate, setIsInCall, stopCallSounds, teardownCallMedia, joinAgoraChannel])
 
@@ -226,18 +246,17 @@ export default function CallManager() {
     useEffect(() => {
         if (!activeCall?.id || !isInCall || activeCall.status !== 'active') return
 
-        // If already joined via imperative call, just register cleanup
         if (!isAgoraJoinedRef.current) {
+            console.log('[CallManager] Auto-join effect triggering for call', activeCall.id?.slice(-8))
             joinAgoraChannel(activeCall.id, activeCall.chat_id).catch(err => {
                 console.error('[Agora] Auto-join error:', err)
                 toast.error('Ses kanalına bağlanılamadı.')
             })
         }
 
-        return () => {
-            leaveAgoraChannel()
-        }
-    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel, leaveAgoraChannel])
+        // No cleanup here — teardown is handled imperatively by handleCallUpdateEvent / handleEndCall.
+        // The unmount cleanup effect below handles component unmount.
+    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel])
 
     // ─── Call Duration Timer ──────────────────────────────────────────────────
 
@@ -265,6 +284,7 @@ export default function CallManager() {
 
         window.Echo.private(`user.chats.${currentUser.id}`)
             .listen('.chat.call.incoming', (event) => {
+                console.log('[CallManager] Incoming call from', event.caller_name, 'call:', event.id?.slice(-8))
                 setIncomingCall(event)
                 setActiveCall(event)
                 startRingTone()

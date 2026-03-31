@@ -25,11 +25,13 @@ export const useCallStore = create((set, get) => ({
         if (!payload?.id) return
         const { activeCall, incomingCall } = get()
 
-        // Update activeCall
+        const matchesActive = activeCall && String(activeCall.id) === String(payload.id)
+
+        // Update activeCall only if it matches or there's no active call
         let nextActive = activeCall
         if (!activeCall) {
             nextActive = payload
-        } else if (String(activeCall.id) === String(payload.id)) {
+        } else if (matchesActive) {
             nextActive = payload
         }
 
@@ -43,18 +45,14 @@ export const useCallStore = create((set, get) => ({
 
         set({ activeCall: nextActive, incomingCall: nextIncoming })
 
-        if (payload.status === 'active') {
-            // Stop sounds handled externally via callback
-        }
-
         if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
-            set({
-                isInCall: false,
-                callDuration: 0,
-                incomingCall: null,
-            })
-            // If the ended call matches active, clear it
-            if (String(nextActive?.id) === String(payload.id)) {
+            // Only clear call state if the terminal event is for the CURRENT active call
+            if (matchesActive || !activeCall) {
+                set({
+                    isInCall: false,
+                    callDuration: 0,
+                    incomingCall: null,
+                })
                 set({ activeCall: null })
             }
         }
