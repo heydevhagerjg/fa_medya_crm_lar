@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import AgoraRTC from 'agora-rtc-sdk-ng'
@@ -7,7 +7,7 @@ import api from '../../lib/api.js'
 import { useAuthStore } from '../../stores/index.js'
 import { useCallStore } from '../../stores/callStore.js'
 import FloatingCallWidget from './FloatingCallWidget.jsx'
-import { Phone, PhoneOff } from 'lucide-react'
+import { Phone, PhoneOff, Volume2 } from 'lucide-react'
 
 function formatDuration(seconds) {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
@@ -77,8 +77,30 @@ export default function CallManager() {
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
     const handleCallUpdateRef = useRef(null)
     const locationRef = useRef(location)
+    const pendingAudioTracksRef = useRef([])
+    const [autoplayBlocked, setAutoplayBlocked] = useState(false)
 
     useEffect(() => { locationRef.current = location }, [location])
+
+    // ─── Mobil autoplay kilidini açma ─────────────────────────────────────────
+
+    const resumeAutoplay = useCallback(() => {
+        const tracks = pendingAudioTracksRef.current
+        pendingAudioTracksRef.current = []
+        setAutoplayBlocked(false)
+        tracks.forEach(track => {
+            try { track.play() } catch (_) {}
+        })
+    }, [])
+
+    // Agora'nın kendi autoplay failed callback'i
+    useEffect(() => {
+        AgoraRTC.onAutoplayFailed = () => {
+            console.warn('[CallManager] AgoraRTC.onAutoplayFailed triggered')
+            setAutoplayBlocked(true)
+        }
+        return () => { AgoraRTC.onAutoplayFailed = undefined }
+    }, [])
 
     // ─── Agora ────────────────────────────────────────────────────────────────
 
@@ -107,7 +129,16 @@ export default function CallManager() {
 
             client.on('user-published', async (user, mediaType) => {
                 await client.subscribe(user, mediaType)
-                if (mediaType === 'audio') user.audioTrack.play()
+                if (mediaType === 'audio') {
+                    try {
+                        user.audioTrack.play()
+                    } catch (_) {
+                        // Autoplay engellendi — track'i kaydet, kullanıcı dokunuşuyla çal
+                        console.warn('[CallManager] Autoplay blocked for remote audio, waiting for user gesture')
+                        pendingAudioTracksRef.current.push(user.audioTrack)
+                        setAutoplayBlocked(true)
+                    }
+                }
             })
 
             client.on('user-unpublished', (user, mediaType) => {
@@ -134,6 +165,8 @@ export default function CallManager() {
         localAudioTrackRef.current = null
         agoraClientRef.current = null
         isAgoraJoinedRef.current = false
+        pendingAudioTracksRef.current = []
+        setAutoplayBlocked(false)
 
         if (track) {
             try { track.stop() } catch (_) {}
@@ -460,9 +493,10 @@ export default function CallManager() {
             handleAcceptIncomingCall,
             handleRejectIncomingCall,
             handleRejoinCall,
+            resumeAutoplay,
         }
         return () => { delete window.__callManager }
-    }, [handleStartCall, handleEndCall, handleAcceptIncomingCall, handleRejectIncomingCall, handleRejoinCall])
+    }, [handleStartCall, handleEndCall, handleAcceptIncomingCall, handleRejectIncomingCall, handleRejoinCall, resumeAutoplay])
 
     return (
         <>
@@ -480,6 +514,19 @@ export default function CallManager() {
                 onEndCall={handleEndCall}
                 isCallActionPending={isCallActionPending}
             />
+
+            {/* Mobil autoplay engeli — kullanıcı dokunuşu gerekli */}
+            {autoplayBlocked && isInCall && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[130] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                        onClick={resumeAutoplay}
+                        className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-white font-semibold text-sm shadow-2xl hover:bg-emerald-600 active:scale-95 transition-all"
+                    >
+                        <Volume2 size={18} />
+                        Sesi Aç
+                    </button>
+                </div>
+            )}
         </>
     )
 }
