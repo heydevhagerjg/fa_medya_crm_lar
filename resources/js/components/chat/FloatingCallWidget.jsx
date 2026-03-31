@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Phone, PhoneOff, MessageSquare, Users } from 'lucide-react'
+import { Phone, PhoneOff, MessageSquare, Users, GripVertical } from 'lucide-react'
 
 function formatDuration(seconds) {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
@@ -9,11 +9,68 @@ function formatDuration(seconds) {
     return `${mm}:${ss}`
 }
 
+function clamp(val, min, max) {
+    return Math.min(Math.max(val, min), max)
+}
+
 export default function FloatingCallWidget({ activeCall, isInCall, callDuration, onEndCall, isCallActionPending }) {
     const navigate = useNavigate()
     const location = useLocation()
 
-    // Chat sayfasındayken gösterme
+    const [pos, setPos] = useState({ x: 24, y: 24 })
+    const dragging = useRef(false)
+    const dragStart = useRef({ mx: 0, my: 0, sx: 0, sy: 0 })
+    const widgetRef = useRef(null)
+    const hasMoved = useRef(false)
+
+    const onPointerDown = useCallback((e) => {
+        // Butonlara tıklamayı engellememek için sadece grip alanından sürükleme
+        dragging.current = true
+        hasMoved.current = false
+        dragStart.current = { mx: e.clientX, my: e.clientY, sx: pos.x, sy: pos.y }
+        e.currentTarget.setPointerCapture(e.pointerId)
+    }, [pos])
+
+    const onPointerMove = useCallback((e) => {
+        if (!dragging.current) return
+        hasMoved.current = true
+        const dx = e.clientX - dragStart.current.mx
+        const dy = e.clientY - dragStart.current.my
+
+        const el = widgetRef.current
+        const w = el?.offsetWidth || 280
+        const h = el?.offsetHeight || 60
+        const maxX = window.innerWidth - w - 8
+        const maxY = window.innerHeight - h - 8
+
+        setPos({
+            x: clamp(dragStart.current.sx + dx, 8, maxX),
+            y: clamp(dragStart.current.sy - dy, 8, maxY),
+        })
+    }, [])
+
+    const onPointerUp = useCallback((e) => {
+        dragging.current = false
+        e.currentTarget.releasePointerCapture(e.pointerId)
+    }, [])
+
+    // Pencere boyutu değiştiğinde sınırları aşmayı engelle
+    useEffect(() => {
+        const onResize = () => {
+            setPos(prev => {
+                const el = widgetRef.current
+                const w = el?.offsetWidth || 280
+                const h = el?.offsetHeight || 60
+                return {
+                    x: clamp(prev.x, 8, window.innerWidth - w - 8),
+                    y: clamp(prev.y, 8, window.innerHeight - h - 8),
+                }
+            })
+        }
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
+
     if (location.pathname.startsWith('/chats')) return null
     if (!activeCall || !isInCall) return null
 
@@ -22,8 +79,23 @@ export default function FloatingCallWidget({ activeCall, isInCall, callDuration,
     const callerName = activeCall.caller_name || 'Görüşme'
 
     return (
-        <div className="fixed bottom-6 left-6 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div
+            ref={widgetRef}
+            className="fixed z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 select-none"
+            style={{ left: pos.x, bottom: pos.y }}
+        >
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl theme-surface border theme-divider shadow-2xl backdrop-blur-xl min-w-[280px]">
+                {/* Drag handle */}
+                <div
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    className="shrink-0 cursor-grab active:cursor-grabbing touch-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors -ml-1"
+                    title="Taşımak için sürükle"
+                >
+                    <GripVertical size={16} />
+                </div>
+
                 {/* Pulse indicator */}
                 <div className="relative shrink-0">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
