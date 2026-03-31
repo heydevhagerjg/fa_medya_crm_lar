@@ -1,0 +1,10 @@
+feat: sesli sohbet kalıcılık & grup çağrı iyileştirmeleri
+
+- Sesli görüşme artık sayfa değiştirilince kesilmiyor (Agora global CallManager'a taşındı)
+- Chat dışındaki sayfalarda sol alt köşede floating widget ile çağrı bilgileri gösteriliyor
+- Grup çağrılarında 1 kişi ayrılınca çağrı kapanmıyor, ≤1 kişi kalana kadar devam ediyor
+- Gruptan ayrılan kullanıcılar aktif çağrıya "Tekrar Katıl" ile dönebiliyor
+- Gelen arama modalı tüm sayfalarda gösteriliyor
+- Echo kanal yönetimi tek noktadan (CallManager) yapılıyor
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

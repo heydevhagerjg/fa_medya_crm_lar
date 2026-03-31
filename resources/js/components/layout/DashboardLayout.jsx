@@ -6,6 +6,7 @@ import api from "../../lib/api.js";
 import toast from "react-hot-toast";
 import DropdownMenu from "./DropdownMenu.jsx";
 import GlobalSearch from "./GlobalSearch.jsx";
+import CallManager from "../chat/CallManager.jsx";
 import {
     LayoutDashboard,
     Users,
@@ -186,52 +187,8 @@ export default function DashboardLayout({ children, isRestoring = false }) {
     }, []);
 
     // ─── Global Chat Notifications ───────────────────────────────────────────
-    useEffect(() => {
-        if (!user?.id || !window.Echo) return;
-
-        const channel = window.Echo.private(`user.chats.${user.id}`)
-            .listen(".chat.created", (e) => {
-                queryClient.invalidateQueries(["chats"]);
-                if (!location.pathname.startsWith("/chats")) {
-                    toast("💬 Yeni bir sohbet başlatıldı", {
-                        duration: 4000,
-                        style: { cursor: "pointer" },
-                        onClick: () =>
-                            navigate(
-                                `/chats?open=${e?.chat?.id || e?.id || ""}`,
-                            ),
-                    });
-                }
-            })
-            .listen(".message.created", (e) => {
-                queryClient.invalidateQueries(["chats"]);
-                if (!location.pathname.startsWith("/chats") && e.user?.name) {
-                    toast(
-                        (t) => (
-                            <span
-                                style={{ cursor: "pointer" }}
-                                onClick={() => {
-                                    toast.dismiss(t.id);
-                                    navigate(`/chats?open=${e.chat_id}`);
-                                }}
-                            >
-                                <strong>{e.user.name}</strong>:{" "}
-                                {e.content?.slice(0, 60) || "Yeni mesaj"}
-                            </span>
-                        ),
-                        {
-                            icon: "💬",
-                            duration: 5000,
-                            id: `chat-msg-${e.chat_id}`, // prevent duplicate toasts per chat
-                        },
-                    );
-                }
-            });
-
-        return () => {
-            window.Echo.leave(`user.chats.${user.id}`);
-        };
-    }, [user?.id, location.pathname, navigate, queryClient]);
+    // Chat notification listeners are handled by CallManager to avoid
+    // duplicate Echo channel subscriptions on user.chats.{userId}
 
     // Auto-expand sidebar and settings dropdown when on settings page
     useEffect(() => {
@@ -850,6 +807,9 @@ export default function DashboardLayout({ children, isRestoring = false }) {
                     </div>
                 </main>
             </div>
+
+            {/* Global Call Manager — handles Agora, incoming calls, floating widget */}
+            {!isRestoring && <CallManager />}
         </div>
     );
 }

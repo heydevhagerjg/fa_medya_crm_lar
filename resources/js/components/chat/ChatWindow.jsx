@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 import MessageInput from './MessageInput'
 import GalleryLightbox from './GalleryLightbox'
-import { Info, Phone, PhoneOff, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2, Download } from 'lucide-react'
+import { Info, Phone, PhoneOff, PhoneIncoming, Search, ChevronLeft, UserPlus, Hash, Shield, BellOff, Bell, MessageCircle, X, Check, User, Trash2, Download } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api.js'
 import { toast } from 'react-hot-toast'
@@ -136,6 +136,7 @@ export default function ChatWindow({
   callState,
   onStartCall,
   onEndCall,
+  onRejoinCall,
   isCallActionPending
 }) {
   const scrollRef = useRef(null)
@@ -268,6 +269,7 @@ export default function ChatWindow({
   const onlineCount = chat.participants?.filter(p => p.is_online)?.length || 0
   const totalCount = chat.participants?.length || 0
   const inCall = !!callState?.isInCall
+  const canRejoin = !!callState?.canRejoin
   const callStatusText = callState?.call?.status === 'ringing'
     ? 'Arama çalıyor...'
     : callState?.call?.status === 'active'
@@ -328,10 +330,19 @@ export default function ChatWindow({
                     <button
                       onClick={onEndCall}
                       disabled={isCallActionPending}
-                      title="Görüşmeyi Bitir"
+                      title="Görüşmeden Ayrıl"
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
                     >
                       <PhoneOff size={18} />
+                    </button>
+                  ) : canRejoin ? (
+                    <button
+                      onClick={onRejoinCall}
+                      disabled={isCallActionPending}
+                      title="Görüşmeye Tekrar Katıl"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all disabled:opacity-50 animate-pulse"
+                    >
+                      <PhoneIncoming size={18} />
                     </button>
                   ) : (
                     <button
@@ -387,12 +398,23 @@ export default function ChatWindow({
             )}
           </header>
 
-          {callStatusText && (
-            <div className={`px-4 md:px-6 py-2.5 border-b theme-divider text-xs font-semibold flex items-center justify-between ${inCall ? 'bg-emerald-50/70 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : 'bg-amber-50/70 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'}`}>
-              <span>{callStatusText}</span>
-              {callState?.participantSummary && (
-                <span className="text-[11px] opacity-90">{callState.participantSummary}</span>
-              )}
+          {(callStatusText || canRejoin) && (
+            <div className={`px-4 md:px-6 py-2.5 border-b theme-divider text-xs font-semibold flex items-center justify-between ${inCall ? 'bg-emerald-50/70 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : canRejoin ? 'bg-blue-50/70 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300' : 'bg-amber-50/70 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'}`}>
+              <span>{callStatusText || (canRejoin ? 'Aktif görüşme devam ediyor — tekrar katılabilirsiniz' : '')}</span>
+              <div className="flex items-center gap-2">
+                {callState?.participantSummary && (
+                  <span className="text-[11px] opacity-90">{callState.participantSummary}</span>
+                )}
+                {canRejoin && (
+                  <button
+                    onClick={onRejoinCall}
+                    disabled={isCallActionPending}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[11px] font-bold hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    Tekrar Katıl
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

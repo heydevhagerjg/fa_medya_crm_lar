@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import AgoraRTC from 'agora-rtc-sdk-ng'
 import api from '../lib/api.js'
 import ChatSidebar from '../components/chat/ChatSidebar'
 import ChatWindow from '../components/chat/ChatWindow'
 import { useAuthStore } from '../stores/index.js'
+import { useCallStore } from '../stores/callStore.js'
 import { Toaster, toast } from 'react-hot-toast'
-import { Search as SearchIcon, Users, User, Check, X, Phone, PhoneOff } from 'lucide-react'
+import { Search as SearchIcon, Users, User, Check, X } from 'lucide-react'
 
 // ─── New Chat Modal ────────────────────────────────────────────────────────────
 function NewChatModal({ open, onClose, currentUser, onCreated }) {
@@ -233,68 +233,22 @@ function formatDuration(seconds) {
     return `${mm}:${ss}`
 }
 
-function IncomingCallModal({ call, pending, onAccept, onReject }) {
-    if (!call) return null
-
-    const participantCount = Array.isArray(call.participants) ? call.participants.length : 0
-    const callerName = call.caller_name || 'Bir kişi'
-
-    return (
-        <div className="fixed inset-0 z-120 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
-            <div className="relative w-full max-w-sm rounded-3xl theme-surface border theme-divider shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="px-6 pt-7 pb-4 text-center">
-                    <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                        <Phone size={30} />
-                    </div>
-                    <h3 className="text-lg font-black theme-text-primary">{callerName} sizi arıyor</h3>
-                    <p className="text-xs theme-text-secondary mt-1">
-                        {participantCount > 2
-                            ? `Grup sesli araması • ${participantCount} kişi`
-                            : 'Birebir sesli arama'}
-                    </p>
-                </div>
-
-                <div className="px-6 pb-6 grid grid-cols-2 gap-3">
-                    <button
-                        onClick={onReject}
-                        disabled={pending}
-                        className="h-11 rounded-2xl bg-red-500/90 text-white font-semibold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        <PhoneOff size={16} /> Reddet
-                    </button>
-                    <button
-                        onClick={onAccept}
-                        disabled={pending}
-                        className="h-11 rounded-2xl bg-emerald-500/90 text-white font-semibold text-sm hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        <Phone size={16} /> Kabul Et
-                    </button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
 // ─── ChatPage ─────────────────────────────────────────────────────────────────
 export default function ChatPage() {
     const { user: currentUser } = useAuthStore()
     const queryClient = useQueryClient()
-    const agoraClientRef = useRef(null)
-    const localAudioTrackRef = useRef(null)
-    const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
-    const applyCallUpdateRef = useRef(null)
+
+    // Global call state from store (managed by CallManager)
+    const {
+        activeCall, isInCall, callDuration, isCallActionPending,
+        setActiveCall, setIsInCall,
+    } = useCallStore()
 
     const [selectedChat, setSelectedChat] = useState(null)
     const [messages, setMessages] = useState([])
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false)
-    const [incomingCall, setIncomingCall] = useState(null)
-    const [activeCall, setActiveCall] = useState(null)
-    const [isInCall, setIsInCall] = useState(false)
-    const [isCallActionPending, setIsCallActionPending] = useState(false)
-    const [callDuration, setCallDuration] = useState(0)
     const [searchParams, setSearchParams] = useSearchParams()
     const openChatId = searchParams.get('open')
 
@@ -305,179 +259,6 @@ export default function ChatPage() {
             return Array.isArray(raw) ? raw : Object.values(raw)
         }),
     })
-
-    // ─── Agora Ses Yönetimi ──────────────────────────────────────────────────────
-
-    const joinAgoraChannel = useCallback(async (callId) => {
-        // 1. Fetch token from backend (secure — App Certificate never exposed)
-        const chatId = activeCall?.chat_id
-        if (!chatId) throw new Error('Chat ID not available')
-
-        const tokenRes = await api.get(`/chats/${chatId}/calls/${callId}/token`)
-        const { token, channel, uid, app_id: appId } = tokenRes.data?.data || {}
-
-        if (!appId || !token) {
-            toast.error('Ses bağlantısı için gerekli bilgiler alınamadı.')
-            throw new Error('Missing Agora token or appId from backend')
-        }
-
-        // 2. Create Agora client (reuse if exists)
-        if (!agoraClientRef.current) {
-            agoraClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
-        }
-        const client = agoraClientRef.current
-
-        // 3. Event listeners for remote audio
-        client.on('user-published', async (user, mediaType) => {
-            await client.subscribe(user, mediaType)
-            if (mediaType === 'audio') {
-                console.log('[Agora] Remote user published audio:', user.uid)
-                user.audioTrack.play()
-            }
-        })
-
-        client.on('user-unpublished', (user, mediaType) => {
-            if (mediaType === 'audio') {
-                console.log('[Agora] Remote user unpublished audio:', user.uid)
-                user.audioTrack?.stop()
-            }
-        })
-
-        // 4. Join channel with server-side token
-        await client.join(appId, channel, token, uid)
-        console.log('[Agora] Joined channel:', channel)
-
-        // 5. Create and publish local audio
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            AEC: true,
-            ANS: true,
-            AGC: true,
-        })
-        localAudioTrackRef.current = audioTrack
-        await client.publish([audioTrack])
-        console.log('[Agora] Audio track published')
-    }, [activeCall?.chat_id])
-
-    const leaveAgoraChannel = useCallback(async () => {
-        if (localAudioTrackRef.current) {
-            localAudioTrackRef.current.stop()
-            localAudioTrackRef.current.close()
-            localAudioTrackRef.current = null
-        }
-        if (agoraClientRef.current) {
-            agoraClientRef.current.removeAllListeners()
-            await agoraClientRef.current.leave().catch(() => {})
-            agoraClientRef.current = null
-            console.log('[Agora] Left channel')
-        }
-    }, [])
-
-    // ─── Çalma Sesi ───────────────────────────────────────────────────────────────
-
-    const stopCallSounds = useCallback(() => {
-        const s = callSoundRef.current
-        s.stopped = true
-        if (s.timerId) { clearTimeout(s.timerId); s.timerId = null }
-        s.nodes.forEach(n => { try { n.stop() } catch (_) {} })
-        s.nodes = []
-        if (s.ctx) { try { s.ctx.close() } catch (_) {} ; s.ctx = null }
-    }, [])
-
-    const playTonePattern = useCallback((onMs, offMs) => {
-        stopCallSounds()
-        const AudioCtx = window.AudioContext || window.webkitAudioContext
-        if (!AudioCtx) return
-        const ctx = new AudioCtx()
-        if (ctx.state === 'suspended') { ctx.resume().catch(() => {}) }
-        const s = callSoundRef.current
-        s.stopped = false
-        s.ctx = ctx
-        const tick = () => {
-            if (s.stopped) return
-            const osc1 = ctx.createOscillator()
-            const osc2 = ctx.createOscillator()
-            const gain = ctx.createGain()
-            osc1.frequency.value = 440
-            osc2.frequency.value = 480
-            gain.gain.value = 0.25
-            osc1.connect(gain)
-            osc2.connect(gain)
-            gain.connect(ctx.destination)
-            s.nodes = [osc1, osc2]
-            osc1.start()
-            osc2.start()
-            s.timerId = setTimeout(() => {
-                s.nodes.forEach(n => { try { n.stop() } catch (_) {} })
-                s.nodes = []
-                if (!s.stopped) { s.timerId = setTimeout(tick, offMs) }
-            }, onMs)
-        }
-        tick()
-    }, [stopCallSounds])
-
-    const startRingbackTone = useCallback(() => playTonePattern(1000, 3000), [playTonePattern])
-    const startRingTone = useCallback(() => playTonePattern(2000, 4000), [playTonePattern])
-
-    const teardownCallMedia = useCallback(async () => {
-        stopCallSounds()
-        await leaveAgoraChannel()
-    }, [stopCallSounds, leaveAgoraChannel])
-
-    // ─── Call State Yönetimi ──────────────────────────────────────────────────────
-
-    const applyCallUpdate = useCallback((payload) => {
-        if (!payload?.id) return
-
-        setActiveCall(previous => {
-            if (!previous) return payload
-            if (String(previous.id) !== String(payload.id)) return previous
-            return payload
-        })
-
-        if (incomingCall && String(incomingCall.id) === String(payload.id)) {
-            if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
-                setIncomingCall(null)
-            }
-        }
-
-        const myParticipant = payload.participants?.find(p => String(p.user_id) === String(currentUser?.id))
-        const joined = myParticipant?.status === 'joined'
-        setIsInCall(joined)
-
-        if (payload.status === 'active') {
-            stopCallSounds()
-        }
-
-        if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
-            teardownCallMedia()
-            setIsInCall(false)
-            setCallDuration(0)
-            setIncomingCall(null)
-            setActiveCall(prev => String(prev?.id) === String(payload.id) ? null : prev)
-        }
-    }, [currentUser?.id, incomingCall, stopCallSounds, teardownCallMedia])
-
-    useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
-
-    // Arama active olduğunda Agora kanalına katıl
-    useEffect(() => {
-        if (!activeCall?.id || !isInCall || activeCall.status !== 'active') return
-
-        let cancelled = false
-        joinAgoraChannel(activeCall.id).then(() => {
-            if (!cancelled) console.log('[Agora] Connected to call', activeCall.id)
-        }).catch(err => {
-            if (!cancelled) {
-                console.error('[Agora] Join error:', err)
-                toast.error('Ses kanalına bağlanılamadı.')
-            }
-        })
-
-        return () => {
-            cancelled = true
-            leaveAgoraChannel()
-        }
-    }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel, leaveAgoraChannel])
 
     // Auto-select chat from ?open query parameter
     useEffect(() => {
@@ -501,6 +282,7 @@ export default function ChatPage() {
         }
     }, [chats, selectedChat])
 
+    // Fetch active call for selected chat
     useEffect(() => {
         if (!selectedChat?.id) return
 
@@ -522,52 +304,7 @@ export default function ChatPage() {
             })
 
         return () => { cancelled = true }
-    }, [selectedChat?.id, currentUser?.id])
-
-    useEffect(() => {
-        if (!window.Echo || !currentUser?.id) return
-
-        window.Echo.private(`user.chats.${currentUser.id}`)
-            .listen('.chat.call.incoming', (event) => {
-                setIncomingCall(event)
-                setActiveCall(event)
-                startRingTone()
-                toast((event.caller_name || 'Bir kişi') + ' sizi arıyor')
-            })
-            .listen('.chat.call.updated', (event) => {
-                applyCallUpdateRef.current?.(event)
-            })
-
-        return () => {
-            window.Echo.leave(`user.chats.${currentUser.id}`)
-        }
-    }, [currentUser?.id, startRingTone])
-
-    useEffect(() => {
-        if (!activeCall?.id || !isInCall || activeCall.status !== 'active') {
-            setCallDuration(0)
-            return
-        }
-
-        const baseTime = activeCall.answered_at || activeCall.started_at
-        if (!baseTime) return
-
-        const startedAtMs = new Date(baseTime).getTime()
-        const tick = () => {
-            const elapsed = Math.floor((Date.now() - startedAtMs) / 1000)
-            setCallDuration(Math.max(elapsed, 0))
-        }
-
-        tick()
-        const timer = setInterval(tick, 1000)
-        return () => clearInterval(timer)
-    }, [activeCall?.id, activeCall?.answered_at, activeCall?.started_at, activeCall?.status, isInCall])
-
-    useEffect(() => {
-        return () => {
-            teardownCallMedia()
-        }
-    }, [teardownCallMedia])
+    }, [selectedChat?.id, currentUser?.id, setActiveCall, setIsInCall])
 
     const deleteChatMutation = useMutation({
         mutationFn: (chatId) => api.delete(`/chats/${chatId}`),
@@ -655,7 +392,12 @@ export default function ChatPage() {
                 queryClient.invalidateQueries(['chats'])
             })
             .listen('.chat.call.updated', (e) => {
-                applyCallUpdateRef.current?.(e)
+                // Call update is handled by global CallManager via user.chats channel
+                // but also sync local view when on chat-specific channel
+                const store = useCallStore.getState()
+                const myP = e.participants?.find(p => String(p.user_id) === String(currentUser?.id))
+                store.applyCallUpdate(e)
+                store.setIsInCall(myP?.status === 'joined')
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
     }, [selectedChat, currentUser, queryClient, markAsRead])
@@ -714,95 +456,26 @@ export default function ChatPage() {
         setIsNewChatModalOpen(false)
     }
 
-    const handleStartCall = async () => {
+    // Call actions delegate to global CallManager
+    const handleStartCall = useCallback(() => {
         if (!selectedChat?.id) return
+        window.__callManager?.handleStartCall(selectedChat.id)
+    }, [selectedChat?.id])
 
-        setIsCallActionPending(true)
-        try {
-            const response = await api.post(`/chats/${selectedChat.id}/calls`, { type: 'audio' })
-            const call = response.data?.data
-            if (!call) return
+    const handleEndCall = useCallback(() => {
+        window.__callManager?.handleEndCall()
+    }, [])
 
-            setActiveCall(call)
-            setIncomingCall(null)
-            startRingbackTone()
-            setIsInCall(true)
-            toast.success('Arama başlatıldı.')
-        } catch (error) {
-            const status = error?.response?.status
-            if (status === 409 && error?.response?.data?.data) {
-                const existing = error.response.data.data
-                setActiveCall(existing)
-                toast('Bu sohbette zaten aktif bir görüşme var.')
-            } else {
-                toast.error(error?.response?.data?.message || 'Arama başlatılamadı.')
-            }
-        } finally {
-            setIsCallActionPending(false)
-        }
-    }
+    const handleRejoinCall = useCallback(() => {
+        window.__callManager?.handleRejoinCall()
+    }, [])
 
-    const handleAcceptIncomingCall = async () => {
-        if (!incomingCall?.id || !incomingCall?.chat_id) return
-
-        setIsCallActionPending(true)
-        try {
-            const relatedChat = chats.find(c => String(c.id) === String(incomingCall.chat_id))
-            if (relatedChat) {
-                setSelectedChat(relatedChat)
-            } else {
-                setSearchParams({ open: String(incomingCall.chat_id) }, { replace: true })
-            }
-
-            const response = await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/accept`)
-            const call = response.data?.data
-            if (!call) return
-
-            stopCallSounds()
-            setActiveCall(call)
-            setIncomingCall(null)
-            setIsInCall(true)
-            toast.success('Arama kabul edildi.')
-        } catch (error) {
-            toast.error(error?.response?.data?.message || 'Arama kabul edilemedi.')
-        } finally {
-            setIsCallActionPending(false)
-        }
-    }
-
-    const handleRejectIncomingCall = async () => {
-        if (!incomingCall?.id || !incomingCall?.chat_id) return
-
-        setIsCallActionPending(true)
-        try {
-            await api.post(`/chats/${incomingCall.chat_id}/calls/${incomingCall.id}/reject`)
-            toast('Arama reddedildi.')
-        } catch (error) {
-            toast.error(error?.response?.data?.message || 'Arama reddedilemedi.')
-        } finally {
-            stopCallSounds()
-            setIncomingCall(null)
-            setIsCallActionPending(false)
-        }
-    }
-
-    const handleEndCall = async () => {
-        if (!activeCall?.id || !activeCall?.chat_id) return
-
-        setIsCallActionPending(true)
-        try {
-            await api.post(`/chats/${activeCall.chat_id}/calls/${activeCall.id}/end`)
-            toast('Görüşme sonlandırıldı.')
-        } catch (error) {
-            toast.error(error?.response?.data?.message || 'Görüşme sonlandırılamadı.')
-        } finally {
-            teardownCallMedia()
-            setActiveCall(null)
-            setIsInCall(false)
-            setCallDuration(0)
-            setIsCallActionPending(false)
-        }
-    }
+    const canRejoin = useMemo(() => {
+        if (!activeCall || isInCall) return false
+        if (!['ringing', 'active'].includes(activeCall.status)) return false
+        const myP = activeCall.participants?.find(p => String(p.user_id) === String(currentUser?.id))
+        return myP?.status === 'left'
+    }, [activeCall, isInCall, currentUser?.id])
 
     const callState = useMemo(() => {
         const joinedCount = activeCall?.participants?.filter(p => p.status === 'joined')?.length || 0
@@ -813,8 +486,9 @@ export default function ChatPage() {
             isInCall,
             durationLabel: formatDuration(callDuration),
             participantSummary: activeCall ? `${joinedCount}/${totalCount} kişi` : null,
+            canRejoin,
         }
-    }, [activeCall, isInCall, callDuration])
+    }, [activeCall, isInCall, callDuration, canRejoin])
 
     return (
         <div className="-m-5 lg:-m-8 h-[calc(100dvh-70px)] flex overflow-hidden theme-app-shell animate-in fade-in zoom-in-95 duration-500">
@@ -848,6 +522,7 @@ export default function ChatPage() {
                     callState={callState}
                     onStartCall={handleStartCall}
                     onEndCall={handleEndCall}
+                    onRejoinCall={handleRejoinCall}
                     isCallActionPending={isCallActionPending}
                 />
             </div>
@@ -857,13 +532,6 @@ export default function ChatPage() {
                 onClose={() => setIsNewChatModalOpen(false)}
                 currentUser={currentUser}
                 onCreated={handleChatCreated}
-            />
-
-            <IncomingCallModal
-                call={incomingCall}
-                pending={isCallActionPending}
-                onAccept={handleAcceptIncomingCall}
-                onReject={handleRejectIncomingCall}
             />
         </div>
     )

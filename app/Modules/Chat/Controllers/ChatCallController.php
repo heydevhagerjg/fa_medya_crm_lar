@@ -102,10 +102,12 @@ class ChatCallController extends Controller
         DB::transaction(function () use ($call, $user) {
             $call->participants()
                 ->where('user_id', $user->id)
+                ->whereIn('status', ['invited', 'left'])
                 ->update([
                     'status' => 'joined',
                     'responded_at' => now(),
                     'joined_at' => now(),
+                    'left_at' => null,
                 ]);
 
             if ($call->status === 'ringing') {
@@ -173,6 +175,7 @@ class ChatCallController extends Controller
         }
 
         DB::transaction(function () use ($call, $user) {
+            // Kullanıcıyı görüşmeden çıkar
             $call->participants()
                 ->where('user_id', $user->id)
                 ->whereIn('status', ['joined', 'invited'])
@@ -182,11 +185,26 @@ class ChatCallController extends Controller
                     'left_at' => now(),
                 ]);
 
-            $call->update([
-                'status' => 'ended',
-                'ended_at' => now(),
-                'ended_by' => $user->id,
-            ]);
+            // Kalan aktif katılımcı sayısını kontrol et
+            $remainingJoined = $call->participants()->where('status', 'joined')->count();
+            $remainingInvited = $call->participants()->where('status', 'invited')->count();
+
+            // 1 veya daha az kişi kaldıysa çağrıyı sonlandır
+            if ($remainingJoined <= 1 && $remainingInvited === 0) {
+                // Kalan son kişiyi de 'left' olarak işaretle
+                $call->participants()
+                    ->where('status', 'joined')
+                    ->update([
+                        'status' => 'left',
+                        'left_at' => now(),
+                    ]);
+
+                $call->update([
+                    'status' => 'ended',
+                    'ended_at' => now(),
+                    'ended_by' => $user->id,
+                ]);
+            }
         });
 
         $call->refresh()->load(['starter', 'participants.user']);
