@@ -479,11 +479,17 @@ export default function CallManager() {
                 })
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Görüşmeye katılınamadı.')
+            if (error?.response?.status === 409) {
+                teardownCallMedia()
+                clearCallState()
+                toast.error('Görüşmede kimse kalmadığı için görüşme sonlandırıldı.')
+            } else {
+                toast.error(error?.response?.data?.message || 'Görüşmeye katılınamadı.')
+            }
         } finally {
             setIsCallActionPending(false)
         }
-    }, [setActiveCall, setIsInCall, setIsCallActionPending, joinAgoraChannel])
+    }, [setActiveCall, setIsInCall, setIsCallActionPending, joinAgoraChannel, teardownCallMedia, clearCallState])
 
     // Expose handlers via ref on window for ChatPage to access
     useEffect(() => {

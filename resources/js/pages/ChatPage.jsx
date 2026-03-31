@@ -480,6 +480,9 @@ export default function ChatPage() {
     const canRejoin = useMemo(() => {
         if (!activeCall || isInCall) return false
         if (!['ringing', 'active'].includes(activeCall.status)) return false
+        // Görüşmede hiç kimse yoksa tekrar katılma gösterme
+        const joinedCount = activeCall.participants?.filter(p => p.status === 'joined')?.length || 0
+        if (joinedCount === 0) return false
         const myP = activeCall.participants?.find(p => String(p.user_id) === String(currentUser?.id))
         return myP?.status === 'left'
     }, [activeCall, isInCall, currentUser?.id])

@@ -605,14 +605,14 @@ export default function TenantsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Åifre *</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yönetici Şifre *</label>
                                 <input
                                     type="password"
                                     value={form.admin_password}
                                     onChange={e => setForm({ ...form, admin_password: e.target.value })}
                                     required
                                     className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                    placeholder="Yönetici Şifresi"
                                 />
                             </div>
                         </div>
@@ -780,7 +780,7 @@ export default function TenantsPage() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
-                            <Key size={14} className="text-gray-400" /> Åifre
+                            <Key size={14} className="text-gray-400" /> Şifre
                         </label>
                         <input
                             type="text"
@@ -1015,7 +1015,7 @@ export default function TenantsPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Åifre *</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Şifre *</label>
                                     <input
                                         type="password"
                                         value={importForm.admin_password}
@@ -1023,7 +1023,7 @@ export default function TenantsPage() {
                                         required
                                         disabled={importMutation.isPending}
                                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                        placeholder="Yönetici Şifresi"
                                     />
                                 </div>
                              </div>

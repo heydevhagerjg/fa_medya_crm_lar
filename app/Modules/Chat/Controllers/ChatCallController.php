@@ -111,6 +111,32 @@ class ChatCallController extends Controller
         }
 
         DB::transaction(function () use ($call, $user) {
+            // Satır kilidi ile race condition önle
+            $call = ChatCallSession::lockForUpdate()->find($call->id);
+
+            if (in_array($call->status, ['ended', 'cancelled', 'rejected'], true)) {
+                return;
+            }
+
+            // Tekrar katılım: Kimse kalmamışsa görüşmeyi sonlandır
+            $myParticipant = $call->participants()->where('user_id', $user->id)->first();
+            if ($myParticipant && $myParticipant->status === 'left') {
+                $remainingJoined = $call->participants()->where('status', 'joined')->count();
+                if ($remainingJoined === 0) {
+                    $endedAt = now();
+                    $baseTime = $call->answered_at ?? $call->started_at;
+                    $durationSeconds = $baseTime ? max(0, $endedAt->diffInSeconds($baseTime)) : null;
+
+                    $call->update([
+                        'status' => 'ended',
+                        'ended_at' => $endedAt,
+                        'ended_by' => $user->id,
+                        'duration_seconds' => $durationSeconds,
+                    ]);
+                    return;
+                }
+            }
+
             $call->participants()
                 ->where('user_id', $user->id)
                 ->whereIn('status', ['invited', 'left'])
@@ -131,6 +157,14 @@ class ChatCallController extends Controller
 
         $call->refresh()->load(['starter', 'participants.user']);
         event(new ChatCallUpdated($call));
+
+        // Görüşme bu sırada sonlandırıldıysa bilgi döndür
+        if (in_array($call->status, ['ended', 'cancelled', 'rejected'], true)) {
+            return response()->json([
+                'message' => 'Görüşmede kimse kalmadığı için görüşme sonlandırıldı.',
+                'data' => $this->serializeCall($call),
+            ], 409);
+        }
 
         return response()->json([
             'success' => true,
@@ -186,6 +220,13 @@ class ChatCallController extends Controller
         }
 
         DB::transaction(function () use ($call, $user) {
+            // Satır kilidi ile race condition önle
+            $call = ChatCallSession::lockForUpdate()->find($call->id);
+
+            if (in_array($call->status, ['ended', 'cancelled', 'rejected'], true)) {
+                return;
+            }
+
             // Kullanıcıyı görüşmeden çıkar
             $call->participants()
                 ->where('user_id', $user->id)
