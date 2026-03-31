@@ -73,53 +73,62 @@ export default function CallManager() {
 
     const agoraClientRef = useRef(null)
     const localAudioTrackRef = useRef(null)
+    const isAgoraJoinedRef = useRef(false)
     const callSoundRef = useRef({ ctx: null, nodes: [], timerId: null, stopped: false })
-    const applyCallUpdateRef = useRef(applyCallUpdate)
+    const handleCallUpdateRef = useRef(null)
     const locationRef = useRef(location)
 
-    useEffect(() => { applyCallUpdateRef.current = applyCallUpdate }, [applyCallUpdate])
     useEffect(() => { locationRef.current = location }, [location])
 
     // ─── Agora ────────────────────────────────────────────────────────────────
 
-    const joinAgoraChannel = useCallback(async (callId) => {
-        const chatId = useCallStore.getState().activeCall?.chat_id
-        if (!chatId) throw new Error('Chat ID not available')
+    const joinAgoraChannel = useCallback(async (callId, chatId) => {
+        if (isAgoraJoinedRef.current) return
+        isAgoraJoinedRef.current = true
 
-        const tokenRes = await api.get(`/chats/${chatId}/calls/${callId}/token`)
-        const { token, channel, uid, app_id: appId } = tokenRes.data?.data || {}
+        try {
+            const resolvedChatId = chatId || useCallStore.getState().activeCall?.chat_id
+            if (!resolvedChatId) throw new Error('Chat ID not available')
 
-        if (!appId || !token) {
-            toast.error('Ses bağlantısı için gerekli bilgiler alınamadı.')
-            throw new Error('Missing Agora token or appId from backend')
+            const tokenRes = await api.get(`/chats/${resolvedChatId}/calls/${callId}/token`)
+            const { token, channel, uid, app_id: appId } = tokenRes.data?.data || {}
+
+            if (!appId || !token) {
+                toast.error('Ses bağlantısı için gerekli bilgiler alınamadı.')
+                throw new Error('Missing Agora token or appId from backend')
+            }
+
+            if (!agoraClientRef.current) {
+                agoraClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
+            }
+            const client = agoraClientRef.current
+
+            client.removeAllListeners()
+
+            client.on('user-published', async (user, mediaType) => {
+                await client.subscribe(user, mediaType)
+                if (mediaType === 'audio') user.audioTrack.play()
+            })
+
+            client.on('user-unpublished', (user, mediaType) => {
+                if (mediaType === 'audio') user.audioTrack?.stop()
+            })
+
+            await client.join(appId, channel, token, uid)
+
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+                AEC: true, ANS: true, AGC: true,
+            })
+            localAudioTrackRef.current = audioTrack
+            await client.publish([audioTrack])
+        } catch (err) {
+            isAgoraJoinedRef.current = false
+            throw err
         }
-
-        if (!agoraClientRef.current) {
-            agoraClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
-        }
-        const client = agoraClientRef.current
-
-        client.removeAllListeners()
-
-        client.on('user-published', async (user, mediaType) => {
-            await client.subscribe(user, mediaType)
-            if (mediaType === 'audio') user.audioTrack.play()
-        })
-
-        client.on('user-unpublished', (user, mediaType) => {
-            if (mediaType === 'audio') user.audioTrack?.stop()
-        })
-
-        await client.join(appId, channel, token, uid)
-
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            AEC: true, ANS: true, AGC: true,
-        })
-        localAudioTrackRef.current = audioTrack
-        await client.publish([audioTrack])
     }, [])
 
     const leaveAgoraChannel = useCallback(async () => {
+        isAgoraJoinedRef.current = false
         if (localAudioTrackRef.current) {
             localAudioTrackRef.current.stop()
             localAudioTrackRef.current.close()
@@ -196,30 +205,36 @@ export default function CallManager() {
 
         if (payload.status === 'active') {
             stopCallSounds()
+            // Caller receives this when receiver accepts — join Agora immediately
+            if (joined && !isAgoraJoinedRef.current) {
+                joinAgoraChannel(payload.id, payload.chat_id).catch(err => {
+                    console.error('[Agora] Join on call-active event error:', err)
+                    toast.error('Ses kanalına bağlanılamadı.')
+                })
+            }
         }
 
         if (['ended', 'cancelled', 'rejected'].includes(payload.status)) {
             teardownCallMedia()
         }
-    }, [currentUser?.id, applyCallUpdate, setIsInCall, stopCallSounds, teardownCallMedia])
+    }, [currentUser?.id, applyCallUpdate, setIsInCall, stopCallSounds, teardownCallMedia, joinAgoraChannel])
 
-    useEffect(() => { applyCallUpdateRef.current = handleCallUpdateEvent }, [handleCallUpdateEvent])
+    useEffect(() => { handleCallUpdateRef.current = handleCallUpdateEvent }, [handleCallUpdateEvent])
 
-    // ─── Auto-join Agora ──────────────────────────────────────────────────────
+    // ─── Auto-join Agora (backup for page refresh / reconnection) ────────────
 
     useEffect(() => {
         if (!activeCall?.id || !isInCall || activeCall.status !== 'active') return
 
-        let cancelled = false
-        joinAgoraChannel(activeCall.id).catch(err => {
-            if (!cancelled) {
-                console.error('[Agora] Join error:', err)
+        // If already joined via imperative call, just register cleanup
+        if (!isAgoraJoinedRef.current) {
+            joinAgoraChannel(activeCall.id, activeCall.chat_id).catch(err => {
+                console.error('[Agora] Auto-join error:', err)
                 toast.error('Ses kanalına bağlanılamadı.')
-            }
-        })
+            })
+        }
 
         return () => {
-            cancelled = true
             leaveAgoraChannel()
         }
     }, [activeCall?.id, activeCall?.status, isInCall, joinAgoraChannel, leaveAgoraChannel])
@@ -256,7 +271,7 @@ export default function CallManager() {
                 toast((event.caller_name || 'Bir kişi') + ' sizi arıyor')
             })
             .listen('.chat.call.updated', (event) => {
-                applyCallUpdateRef.current?.(event)
+                handleCallUpdateRef.current?.(event)
             })
             .listen('.chat.created', (e) => {
                 queryClient.invalidateQueries(['chats'])
@@ -340,12 +355,20 @@ export default function CallManager() {
             setIncomingCall(null)
             setIsInCall(true)
             toast.success('Arama kabul edildi.')
+
+            // Join Agora immediately after accepting
+            if (call.status === 'active') {
+                joinAgoraChannel(call.id, call.chat_id).catch(err => {
+                    console.error('[Agora] Accept join error:', err)
+                    toast.error('Ses kanalına bağlanılamadı.')
+                })
+            }
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Arama kabul edilemedi.')
         } finally {
             setIsCallActionPending(false)
         }
-    }, [setActiveCall, setIncomingCall, setIsInCall, setIsCallActionPending, stopCallSounds])
+    }, [setActiveCall, setIncomingCall, setIsInCall, setIsCallActionPending, stopCallSounds, joinAgoraChannel])
 
     const handleRejectIncomingCall = useCallback(async () => {
         const { incomingCall: ic } = useCallStore.getState()
@@ -394,12 +417,20 @@ export default function CallManager() {
             setActiveCall(call)
             setIsInCall(true)
             toast.success('Görüşmeye tekrar katıldınız.')
+
+            // Join Agora immediately after rejoining
+            if (call.status === 'active') {
+                joinAgoraChannel(call.id, call.chat_id).catch(err => {
+                    console.error('[Agora] Rejoin error:', err)
+                    toast.error('Ses kanalına bağlanılamadı.')
+                })
+            }
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Görüşmeye katılınamadı.')
         } finally {
             setIsCallActionPending(false)
         }
-    }, [setActiveCall, setIsInCall, setIsCallActionPending])
+    }, [setActiveCall, setIsInCall, setIsCallActionPending, joinAgoraChannel])
 
     // Expose handlers via ref on window for ChatPage to access
     useEffect(() => {

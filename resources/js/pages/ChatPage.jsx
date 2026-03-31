@@ -291,15 +291,27 @@ export default function ChatPage() {
             .then((res) => {
                 if (cancelled) return
                 const call = res.data?.data || null
-                setActiveCall(call)
 
-                const myStatus = call?.participants?.find(p => String(p.user_id) === String(currentUser?.id))?.status
-                setIsInCall(myStatus === 'joined')
+                if (call) {
+                    setActiveCall(call)
+                    const myStatus = call.participants?.find(p => String(p.user_id) === String(currentUser?.id))?.status
+                    setIsInCall(myStatus === 'joined')
+                } else {
+                    // Only clear if the current active call is for THIS chat
+                    const currentCall = useCallStore.getState().activeCall
+                    if (!currentCall || String(currentCall.chat_id) === String(selectedChat.id)) {
+                        setActiveCall(null)
+                        setIsInCall(false)
+                    }
+                }
             })
             .catch(() => {
                 if (!cancelled) {
-                    setActiveCall(null)
-                    setIsInCall(false)
+                    const currentCall = useCallStore.getState().activeCall
+                    if (!currentCall || String(currentCall.chat_id) === String(selectedChat.id)) {
+                        setActiveCall(null)
+                        setIsInCall(false)
+                    }
                 }
             })
 
@@ -391,13 +403,8 @@ export default function ChatPage() {
                 }
                 queryClient.invalidateQueries(['chats'])
             })
-            .listen('.chat.call.updated', (e) => {
-                // Call update is handled by global CallManager via user.chats channel
-                // but also sync local view when on chat-specific channel
-                const store = useCallStore.getState()
-                const myP = e.participants?.find(p => String(p.user_id) === String(currentUser?.id))
-                store.applyCallUpdate(e)
-                store.setIsInCall(myP?.status === 'joined')
+            .listen('.chat.call.updated', () => {
+                // Handled by global CallManager via user.chats channel
             })
         return () => window.Echo.leave(`chat.${selectedChat.id}`)
     }, [selectedChat, currentUser, queryClient, markAsRead])
